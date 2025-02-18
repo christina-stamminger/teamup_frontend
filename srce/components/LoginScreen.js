@@ -16,6 +16,43 @@ import PasswordInput from "./PasswordInput";
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState(""); // For displaying errors
+
+  const handleLogin = async () => {
+    try {
+      const response = await fetch("http://192.168.50.116:8082/api/user/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      });
+
+      // Check if the login was successful
+      if (response.ok) {
+        const data = await response.json();
+        const { token } = data;  // Assuming the JWT token is sent under 'token'
+        
+        // Store the token in your app's state or secure storage
+        console.log("JWT Token:", token);
+
+        // You can store it in React Native's AsyncStorage or SecureStorage for persistence
+        // await AsyncStorage.setItem("userToken", token);
+
+        // Navigate to the home screen or authenticated area
+        navigation.replace('HomeTabs');
+      } else {
+        const data = await response.json();
+        setErrorMessage(data.message || "Invalid login credentials");
+      }
+    } catch (error) {
+      setErrorMessage("An error occurred. Please try again.");
+      console.error("Login error", error);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -58,9 +95,14 @@ const LoginScreen = ({ navigation }) => {
                 />
               </View>
 
+              {/* Error Message */}
+              {errorMessage ? (
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              ) : null}
+
               <TouchableOpacity 
                 style={styles.button} 
-                onPress={() => navigation.replace('HomeTabs')}
+                onPress={handleLogin}
               >
                 <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>
@@ -173,6 +215,12 @@ const styles = StyleSheet.create({
     marginTop: 32,
     fontSize: 12,
     color: "#4A7070",
+  },
+  errorText: {
+    color: "red",
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 8,
   },
 });
 

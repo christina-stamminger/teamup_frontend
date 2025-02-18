@@ -1,227 +1,248 @@
-import React from "react";
-import {
-  View,
-  TextInput,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableWithoutFeedback,
-  Keyboard
-} from "react-native";
-import { Formik } from "formik";
+import React, { useState } from "react";
+import { View, TextInput, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { useFormik } from "formik";
 import * as Yup from "yup";
+import get from "lodash.get";
 
 // Validation Schema
-const validationSchema = Yup.object().shape({
-  username: Yup.string().required("Username is required"),
-  email: Yup.string().email("Invalid email").required("Email is required"),
-  password: Yup.string().min(8, "Password must be at least 8 characters").required("Password is required"),
-  firstName: Yup.string().required("First name is required"),
-  lastName: Yup.string().required("Last name is required"),
-  street: Yup.string().required("Street address is required"),
-  postalCode: Yup.string().matches(/^[0-9]+$/, "Invalid postal code").required("Postal code is required"),
-  city: Yup.string().required("City is required"),
-  //dob: Yup.string().required("Date of birth is required"), // Using string for simplicity
-  //dob: Yup.date().required('Date of birth is required').nullable(),
-  dob: Yup.date()
-  .required("Date of birth is required")
-  .nullable()
-  .max(new Date(new Date().setFullYear(new Date().getFullYear() - 12)), "You must be at least 12 years old"),
-
+const validationSchema = Yup.object({
+  address: Yup.object({
+    streetNumber: Yup.string().required("Street number is required."),
+    postalCode: Yup.string()
+      .length(4, "Postal Code must be exactly 4 characters long.")
+      .required("Postal Code is required."),
+    city: Yup.string().required("City is required."),
+  }),
+  username: Yup.string().required("Username is required."),
+  password: Yup.string().required("Password is required."),
+  firstName: Yup.string()
+    .matches(
+      /^[a-zA-Z\s'-]+$/,
+      "First name can only contain letters, spaces, hyphens, and apostrophes."
+    )
+    .required("First name is required."),
+  lastName: Yup.string()
+    .matches(
+      /^[a-zA-Z\s'-]+$/,
+      "Last name can only contain letters, spaces, hyphens, and apostrophes."
+    )
+    .required("Last name is required."),
+  dateOfBirth: Yup.date()
+    .required("Date of Birth is required.")
+    .test("age", "You must be at least 12 years old", function (value) {
+      return value && new Date().getFullYear() - value.getFullYear() >= 12;
+    }),
+  email: Yup.string()
+    .email("Please enter a valid email address.")
+    .required("Email address is required."),
+  phone: Yup.string().required("Phone number is required."),
 });
 
-export default function RegisterForm({ navigation }) {
-  const handleRegister = (values) => {
-    Alert.alert(
-      "Account Created Successfully",
-      "You have registered successfully. Please log in now.",
-      [{ text: "OK", onPress: () => navigation.replace("Login") }]
-    );
+// API request for new user registration
+const postNewUser = async (userData) => {
+  try {
+    const response = await fetch("http://192.168.50.116:8082/api/user/signup", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (response.status === 409) {
+      return { success: false, message: "Username already exists." };
+    } else if (response.ok) {
+      return { success: true };
+    } else {
+      const data = await response.json();
+      return {
+        success: false,
+        message: data.message || "Error registering user. Please try again.",
+      };
+    }
+  } catch (error) {
+    console.error("Error registering user:", error);
+    return {
+      success: false,
+      message: "Error registering user. Please try again.",
+    };
+  }
+};
+
+const RegisterScreen = ({ navigation }) => {
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [registrationMessage, setRegistrationMessage] = useState("");
+
+  const formik = useFormik({
+    initialValues: {
+      address: {
+        streetNumber: "",
+        postalCode: "",
+        city: "",
+      },
+      username: "",
+      password: "",
+      firstName: "",
+      lastName: "",
+      dateOfBirth: "",
+      email: "",
+      phone: "",
+    },
+    validationSchema: validationSchema,
+    onSubmit: async (values) => {
+      const { success, message } = await postNewUser(values);
+      if (success) {
+        setIsSubmitted(true);
+      } else {
+        setRegistrationMessage(message); // Set registration error message
+      }
+    },
+  });
+
+  const handleBackButton = () => {
+    navigation.goBack();
   };
+
+  if (isSubmitted) {
+    return (
+      <View style={styles.registrationSaved}>
+        <Text>Account created successfully!</Text>
+        <Text>Please login now.</Text>
+
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => {
+            setIsSubmitted(false);
+            setRegistrationMessage("");
+            navigation.navigate("Login"); // Navigate back to login screen
+            formik.resetForm();
+          }}
+        >
+          <Text style={styles.closeButtonText}>X</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 50} // Adjusts layout for keyboard
-      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"} // Adjust for iOS and Android
+      style={styles.container}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView 
-          contentContainerStyle={styles.container} 
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Formik
-            initialValues={{
-              username: "",
-              email: "",
-              password: "",
-              firstName: "",
-              lastName: "",
-              street: "",
-              postalCode: "",
-              city: "",
-              dob: "",
-            }}
-            validationSchema={validationSchema}
-            onSubmit={handleRegister}
-          >
-            {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-              <View style={styles.form}>
-                {/* Username */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="Username"
-                  value={values.username}
-                  onChangeText={handleChange("username")}
-                  onBlur={handleBlur("username")}
-                />
-                {touched.username && errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
+      <ScrollView contentContainerStyle={styles.scrollViewContainer}>
+        <View style={styles.formWrapper}>
+          <Text style={styles.title}>Register</Text>
+          <View style={styles.form}>
+            {[ 
+              { name: "username", placeholder: "Username", type: "text" },
+              { name: "password", placeholder: "Password", type: "password" },
+              { name: "email", placeholder: "Email", type: "email-address" },
+              { name: "firstName", placeholder: "First Name", type: "text" },
+              { name: "lastName", placeholder: "Last Name", type: "text" },
+              { name: "dateOfBirth", placeholder: "Date of Birth", type: "date" },
+              { name: "phone", placeholder: "Phone Number", type: "phone-pad" },
+              { name: "address.streetNumber", placeholder: "Street & Number", type: "text" },
+              { name: "address.postalCode", placeholder: "Postal Code", type: "numeric" },
+              { name: "address.city", placeholder: "City", type: "text" },
+            ].map(({ name, placeholder, type }) => {
+              const fieldError = get(formik.errors, name);
+              const fieldTouched = get(formik.touched, name);
 
-                {/* Email */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email"
-                  value={values.email}
-                  onChangeText={handleChange("email")}
-                  onBlur={handleBlur("email")}
-                  keyboardType="email-address"
-                />
-                {touched.email && errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+              return (
+                <View key={name} style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    name={name}
+                    placeholder={placeholder}
+                    value={get(formik.values, name)}
+                    onChangeText={formik.handleChange(name)}
+                    onBlur={formik.handleBlur(name)}
+                    keyboardType={type === "numeric" ? "numeric" : "default"}
+                    secureTextEntry={type === "password"}
+                  />
+                  {fieldTouched && fieldError && <Text style={styles.error}>{fieldError}</Text>}
+                </View>
+              );
+            })}
+            {registrationMessage && <Text style={styles.error}>{registrationMessage}</Text>}
 
-                {/* Password */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  value={values.password}
-                  onChangeText={handleChange("password")}
-                  onBlur={handleBlur("password")}
-                  secureTextEntry
-                />
-                {touched.password && errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+            <TouchableOpacity style={styles.button} onPress={formik.handleSubmit}>
+              <Text style={styles.buttonText}>Register</Text>
+            </TouchableOpacity>
 
-                {/* First Name */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="First Name"
-                  value={values.firstName}
-                  onChangeText={handleChange("firstName")}
-                  onBlur={handleBlur("firstName")}
-                />
-                {touched.firstName && errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
-
-                {/* Last Name */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="Last Name"
-                  value={values.lastName}
-                  onChangeText={handleChange("lastName")}
-                  onBlur={handleBlur("lastName")}
-                />
-                {touched.lastName && errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
-
-                {/* Street Address */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="Street Address"
-                  value={values.street}
-                  onChangeText={handleChange("street")}
-                  onBlur={handleBlur("street")}
-                />
-                {touched.street && errors.street && <Text style={styles.errorText}>{errors.street}</Text>}
-
-                {/* Postal Code */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="Postal Code"
-                  value={values.postalCode}
-                  onChangeText={handleChange("postalCode")}
-                  onBlur={handleBlur("postalCode")}
-                  keyboardType="numeric"
-                />
-                {touched.postalCode && errors.postalCode && <Text style={styles.errorText}>{errors.postalCode}</Text>}
-
-                {/* City */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="City"
-                  value={values.city}
-                  onChangeText={handleChange("city")}
-                  onBlur={handleBlur("city")}
-                />
-                {touched.city && errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
-
-                {/* Date of Birth */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="Date of Birth (YYYY-MM-DD)"
-                  value={values.dob}
-                  onChangeText={handleChange("dob")}
-                  onBlur={handleBlur("dob")}
-                />
-                {touched.dob && errors.dob && <Text style={styles.errorText}>{errors.dob}</Text>}
-
-                {/* Submit Button */}
-                <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-                  <Text style={styles.buttonText}>Register</Text>
-                </TouchableOpacity>
-
-{/* Back to Login Button */}
-<TouchableOpacity 
-  style={[styles.button, { backgroundColor: "#D1D5DB", marginTop: 8 }]} 
-  onPress={() => navigation.navigate("Login")}
->
-  <Text style={[styles.buttonText, { color: "#333" }]}>Back to Login</Text>
-</TouchableOpacity>
-
-
-              </View>
-            )}
-          </Formik>
-        </ScrollView>
-      </TouchableWithoutFeedback>
+            <TouchableOpacity style={styles.button} onPress={handleBackButton}>
+              <Text style={styles.buttonText}>Back</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1, // Allows scrolling when keyboard is open
+    flex: 1,
+    justifyContent: "center",
     padding: 20,
-    backgroundColor: "#f7f7f7",
+  },
+  scrollViewContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingBottom: 20, // Ensure there's enough padding to allow scrolling when the keyboard is visible
+  },
+  formWrapper: {
+    alignItems: "center",
+    width: "100%",
   },
   form: {
     width: "100%",
-    paddingTop: 22,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  inputContainer: {
+    marginBottom: 15,
   },
   input: {
-    height: 48,
-    borderColor: "#D1D5DB",
+    height: 40,
+    borderColor: "#ccc",
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    marginVertical: 8,
+    borderRadius: 5,
+    paddingLeft: 10,
   },
   button: {
     backgroundColor: "#5FC9C9",
-    paddingVertical: 12,
-    borderRadius: 8,
+    padding: 10,
+    marginVertical: 10,
+    borderRadius: 5,
     alignItems: "center",
-    marginTop: 16,
   },
   buttonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
   },
-  errorText: {
+  error: {
     color: "red",
     fontSize: 12,
-    marginBottom: 8,
+  },
+  registrationSaved: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: "#5FC9C9",
+    padding: 10,
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontSize: 18,
   },
 });
+
+export default RegisterScreen;
