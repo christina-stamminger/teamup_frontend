@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -9,36 +9,153 @@ import {
     KeyboardAvoidingView,
     Platform,
     TouchableWithoutFeedback,
-    Keyboard
+    Keyboard,
+    ScrollView
 } from 'react-native';
+import * as SecureStore from "expo-secure-store";
 
-export default function CreateTodoScreen() {
+import { useUser } from "../components/context/UserContext"; // Import the useUser hook
+
+export default function CreateTodoScreen() {  
+    const [title, setTitle] = useState('');
+    const [location, setLocation] = useState('');
+    const [description, setDescription] = useState('');
+    const [addInfo, setAddInfo] = useState('');
+    const [uploadPath, setUploadPath] = useState('');
+    const [expiresAt, setExpiresAt] = useState('');
+    //const [showDateTimePicker, setShowDateTimePicker] = useState(false);
+
+    // Format date to match the backend format (YYYY-MM-DD HH:mm:ss)
+    const formatLocalDateTime = (date) => {
+        return date.toISOString().slice(0, 19); // Format as "YYYY-MM-DDTHH:mm:ss"  
+    };
+
+    const { userId } = useUser(); // Access the userId from context
+
+    const handleCreateTodo = async () => {
+        if (!title || !description || !expiresAt) {
+            Alert.alert('Error', 'Title, Description, and Expiration Date are required!');
+            return;
+        }
+
+        // Format expiresAt date if it's provided in a valid format
+        const formattedDateTime = expiresAt ? formatLocalDateTime(new Date(expiresAt)) : '';
+
+        const newTodo = {
+            userOfferedId: userId,  // The logged-in user ID
+            title,
+            location,
+            description,
+            addInfo,
+            uploadPath,
+            expiresAt: formattedDateTime // Send formatted date to backend
+        };
+
+        console.log("Sending JSON Payload:", JSON.stringify(newTodo)); // Debug log
+
+        try {
+            const token = await SecureStore.getItemAsync("authToken");
+
+            const response = await fetch("http://192.168.50.116:8082/api/todo/create", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,  // Include token in the header
+                },
+                body: JSON.stringify(newTodo),
+            });
+
+            if (!response.ok) {
+                console.log("response:", response)
+                throw new Error("Failed to create todo!");
+            }
+
+            const data = await response.json();
+            console.log("Todo Created:", data);
+
+            Alert.alert("Success", "Todo Created Successfully!");
+
+            // Optional: Reset form fields after submission
+            setTitle("");
+            setLocation("");
+            setDescription("");
+            setAddInfo("");
+            setUploadPath("");
+            setExpiresAt("");
+
+        } catch (error) {
+            console.error("Error:", error);
+            Alert.alert("Error", "Failed to create todo. Please try again.");
+        }
+    };
+
     return (
-        <KeyboardAvoidingView 
-            behavior={Platform.OS === "ios" ? "padding" : "height"} // Adjust for iOS
+        <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.container}
         >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <View style={styles.inner}>
-                    <Text style={styles.label}>Username</Text>
-                    <TextInput style={styles.input} placeholder="Enter username" />
+                <ScrollView 
+                    contentContainerStyle={styles.scrollContainer}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <View style={styles.inner}>
+                        <Text style={styles.label}>Title</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter todo title"
+                            value={title}
+                            onChangeText={setTitle}
+                        />
 
-                    <Text style={styles.label}>Title</Text>
-                    <TextInput style={styles.input} placeholder="Enter todo title" />
+                        <Text style={styles.label}>Location</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter location"
+                            value={location}
+                            onChangeText={setLocation}
+                        />
 
-                    <Text style={styles.label}>Description</Text>
-                    <TextInput
-                        style={[styles.input, styles.textArea]}
-                        placeholder="Enter todo description"
-                        multiline
-                        numberOfLines={4}
-                        textAlignVertical="top"
-                    />
+                        <Text style={styles.label}>Description</Text>
+                        <TextInput
+                            style={[styles.input, styles.textArea]}
+                            placeholder="Enter todo description"
+                            multiline
+                            numberOfLines={4}
+                            textAlignVertical="top"
+                            value={description}
+                            onChangeText={setDescription}
+                        />
 
-                    <TouchableOpacity style={styles.button} onPress={() => Alert.alert("Todo Created!")}>
-                        <Text style={styles.buttonText}>Create Todo</Text>
-                    </TouchableOpacity>
-                </View>
+                        <Text style={styles.label}>Additional Info</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter additional info"
+                            value={addInfo}
+                            onChangeText={setAddInfo}
+                        />
+
+                        <Text style={styles.label}>Upload Path</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter upload path"
+                            value={uploadPath}
+                            onChangeText={setUploadPath}
+                        />
+
+                        <Text style={styles.label}>Expires At (YYYY-MM-DD HH:MM:SS)</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter expiration date and time"
+                            value={expiresAt}
+                            onChangeText={setExpiresAt}
+                        />
+
+                        <TouchableOpacity style={styles.button} onPress={handleCreateTodo}>
+                            <Text style={styles.buttonText}>Create Todo</Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
             </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
     );
@@ -49,10 +166,12 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F7F7F7',
     },
+    scrollContainer: {
+        flexGrow: 1,
+        justifyContent: "center",
+    },
     inner: {
-        flex: 1,
         padding: 16,
-        justifyContent: "center", // Center content when keyboard is dismissed
     },
     label: {
         fontSize: 16,
@@ -64,10 +183,12 @@ const styles = StyleSheet.create({
         borderColor: '#D1D5DB',
         borderRadius: 8,
         paddingHorizontal: 12,
+        justifyContent: 'center',
         marginBottom: 16,
+        backgroundColor: '#FFF', // Better contrast
     },
     textArea: {
-        height: 100, // Increase height for multiline input
+        height: 100,
         textAlignVertical: "top",
     },
     button: {
@@ -75,6 +196,7 @@ const styles = StyleSheet.create({
         padding: 12,
         borderRadius: 8,
         alignItems: 'center',
+        marginTop: 20,
     },
     buttonText: {
         color: '#FFF',

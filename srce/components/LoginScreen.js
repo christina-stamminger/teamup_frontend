@@ -12,6 +12,9 @@ import {
 } from "react-native";
 import { Handshake } from "lucide-react-native"; // Lucide-react-native library for icons
 import PasswordInput from "./PasswordInput";
+//import Keychain from "react-native-keychain"; // Import Keychain to store token securely
+import * as SecureStore from 'expo-secure-store';
+
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState("");
@@ -34,15 +37,15 @@ const LoginScreen = ({ navigation }) => {
       // Check if the login was successful
       if (response.ok) {
         const data = await response.json();
-        const { token } = data;  // Assuming the JWT token is sent under 'token'
+        const { token } = data;  // jwt token
+
+        // Store the token securely in Keychain
+        await SecureStore.setItemAsync('authToken', token);
+        console.log("JWT Token stored:", token);
+
+
         
-        // Store the token in your app's state or secure storage
-        console.log("JWT Token:", token);
-
-        // You can store it in React Native's AsyncStorage or SecureStorage for persistence
-        // await AsyncStorage.setItem("userToken", token);
-
-        // Navigate to the home screen or authenticated area
+        // Navigate to the authenticated area after successful login
         navigation.replace('HomeTabs');
       } else {
         const data = await response.json();
