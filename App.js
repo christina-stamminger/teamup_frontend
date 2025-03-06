@@ -6,7 +6,8 @@ import { UserProvider } from "./srce/components/context/UserContext";
 
 export default function App() {
   return (
-    <UserProvider>  {/* Wrap your app or relevant section with UserProvider */}
+    
+    <UserProvider>  
       <AppNavigator />
     </UserProvider>
     )

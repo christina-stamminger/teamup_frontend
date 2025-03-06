@@ -8,14 +8,14 @@ export default function MyTodosScreen() {
   const [todos, setTodos] = useState([]);  // State to store fetched todos
   const [loading, setLoading] = useState(true);  // Loading state to show while fetching
   const { userId } = useUser(); // Get userId from context
-  
+
 
   // Fetch todos when the component mounts
   useEffect(() => {
     const fetchTodos = async () => {
       try {
         const token = await SecureStore.getItemAsync('authToken');
-        
+
         // Fetch from API 
         const response = await fetch(`http://192.168.50.116:8082/api/todo/offeredByUser/${userId}`, {
           method: 'GET',
@@ -53,10 +53,11 @@ export default function MyTodosScreen() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={todos}  // Pass the fetched todos to the FlatList
-        keyExtractor={(item) => item.id}  // Use the ID of each todo as the key
-        renderItem={({ item }) => <CollapsibleTodoCard todo={item} />}  // Render each todo using your card component
+        data={todos}
+        keyExtractor={(item, index) => item.id ? item.id.toString() : index.toString()}
+        renderItem={({ item }) => <CollapsibleTodoCard key={item.id} todo={item} />}
       />
+
     </View>
   );
 }
