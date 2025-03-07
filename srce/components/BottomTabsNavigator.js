@@ -6,7 +6,7 @@ import MyTodosScreen from "../components/MyTodosScreen";
 import OpenTodosScreen from "../components/OpenTodosScreen";
 import CreateTodoScreen from "../components/CreateTodoScreen";
 import LogoutButton from "../components/LogoutButton";
-import GroupModal from "../components/GroupModal";
+import GroupModal from "./GroupModal";
 
 import { jwtDecode } from "jwt-decode";
 import * as SecureStore from "expo-secure-store";

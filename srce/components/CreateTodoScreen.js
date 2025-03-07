@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -10,31 +10,59 @@ import {
     Platform,
     TouchableWithoutFeedback,
     Keyboard,
-    ScrollView
+    ScrollView,
 } from 'react-native';
-import * as SecureStore from "expo-secure-store";
-
+import * as SecureStore from 'expo-secure-store';
 import { useUser } from "../components/context/UserContext"; // Import the useUser hook
 
-export default function CreateTodoScreen() {  
+export default function CreateTodoScreen() {
     const [title, setTitle] = useState('');
     const [location, setLocation] = useState('');
     const [description, setDescription] = useState('');
     const [addInfo, setAddInfo] = useState('');
     const [uploadPath, setUploadPath] = useState('');
     const [expiresAt, setExpiresAt] = useState('');
-    //const [showDateTimePicker, setShowDateTimePicker] = useState(false);
+    const [groupId, setGroupId] = useState(''); // New state for groupId
+    const [groups, setGroups] = useState([]); // To store the available groups for the user
+
+    const { userId } = useUser(); // Access the userId from context
 
     // Format date to match the backend format (YYYY-MM-DD HH:mm:ss)
     const formatLocalDateTime = (date) => {
         return date.toISOString().slice(0, 19); // Format as "YYYY-MM-DDTHH:mm:ss"  
     };
 
-    const { userId } = useUser(); // Access the userId from context
+    // Fetch the groups the user is part of
+    useEffect(() => {
+        const fetchGroups = async () => {
+            try {
+                const token = await SecureStore.getItemAsync('authToken');
+                const response = await fetch('http://192.168.50.116:8082/api/groups/myGroups', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch groups');
+                }
+
+                const data = await response.json();
+                setGroups(data); // Populate the groups available to the user
+            } catch (error) {
+                console.error('Error fetching groups:', error);
+                Alert.alert('Error', 'Failed to fetch groups. Please try again.');
+            }
+        };
+
+        fetchGroups();
+    }, []);
 
     const handleCreateTodo = async () => {
-        if (!title || !description || !expiresAt) {
-            Alert.alert('Error', 'Title, Description, and Expiration Date are required!');
+        if (!title || !description || !expiresAt || !groupId) {
+            Alert.alert('Error', 'Title, Description, Expiration Date, and Group are required!');
             return;
         }
 
@@ -48,7 +76,8 @@ export default function CreateTodoScreen() {
             description,
             addInfo,
             uploadPath,
-            expiresAt: formattedDateTime // Send formatted date to backend
+            expiresAt: formattedDateTime, // Send formatted date to backend
+            groupId,  // Include groupId in the payload
         };
 
         console.log("Sending JSON Payload:", JSON.stringify(newTodo)); // Debug log
@@ -66,7 +95,7 @@ export default function CreateTodoScreen() {
             });
 
             if (!response.ok) {
-                console.log("response:", response)
+                console.log("response:", response);
                 throw new Error("Failed to create todo!");
             }
 
@@ -82,7 +111,7 @@ export default function CreateTodoScreen() {
             setAddInfo("");
             setUploadPath("");
             setExpiresAt("");
-
+            setGroupId(""); // Reset group selection
         } catch (error) {
             console.error("Error:", error);
             Alert.alert("Error", "Failed to create todo. Please try again.");
@@ -151,6 +180,15 @@ export default function CreateTodoScreen() {
                             onChangeText={setExpiresAt}
                         />
 
+                        <Text style={styles.label}>Select Group</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter group ID"
+                            value={groupId}
+                            onChangeText={setGroupId}
+                        />
+                        {/* Alternatively, you could use a modal or picker for group selection */}
+                        
                         <TouchableOpacity style={styles.button} onPress={handleCreateTodo}>
                             <Text style={styles.buttonText}>Create Todo</Text>
                         </TouchableOpacity>

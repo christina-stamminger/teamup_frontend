@@ -1,45 +1,77 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import Collapsible from 'react-native-collapsible';
-import { Card } from 'react-native-paper';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
-// This collapsible TodoCard will be used in MyTodos and OpenTodos
 const CollapsibleTodoCard = ({ todo }) => {
-  const [collapsed, setCollapsed] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false); // Track whether the card is expanded or collapsed
+
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded); // Toggle the expanded state
+  };
 
   return (
-    <Card style={styles.card}>
-      <TouchableOpacity onPress={() => setCollapsed(!collapsed)}>
-        <Card.Title title={todo.username} subtitle={todo.date} />
-      </TouchableOpacity>
+    <TouchableOpacity style={styles.card} onPress={toggleExpand}>
+      {/* Title, username, and expiresAt are shown when the card is collapsed */}
+      <View style={styles.cardContent}>
+        <Text style={styles.title}>{todo.title}</Text>
+        <Text style={styles.username}>Assigned to: {todo.username}</Text>
+        <Text style={styles.expiresAt}>Expires at: {todo.expiresAt}</Text>
+      </View>
 
-      <Collapsible collapsed={collapsed}>
-        <Card.Content>
-          <Text style={styles.description}>{todo.description}</Text>
-          <Text style={styles.details}>Priority: {todo.priority}</Text>
-          <Text style={styles.details}>Status: {todo.status}</Text>
-        </Card.Content>
-      </Collapsible>
-    </Card>
+      {/* Show additional info when expanded */}
+      {isExpanded && (
+        <View style={styles.additionalContent}>
+          {/* Description */}
+          <Text style={styles.description}>Description: {todo.description}</Text>
+          
+          {/* Additional Info */}
+          <Text style={styles.addInfo}>Additional Info: {todo.addInfo}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    marginVertical: 8,
     backgroundColor: '#fff',
-    borderRadius: 8,
-    elevation: 4,
-    padding: 12,
+    borderRadius: 10,
+    padding: 15,
+    marginVertical: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  cardContent: {
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  username: {
+    fontSize: 14,
+    color: '#555',
+    marginVertical: 5,
+  },
+  expiresAt: {
+    fontSize: 14,
+    color: '#777',
+    marginBottom: 5,
+  },
+  additionalContent: {
+    marginTop: 10,
   },
   description: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  details: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#555',
+    marginBottom: 5,
+  },
+  addInfo: {
+    fontSize: 14,
+    color: '#777',
+    marginBottom: 5,
   },
 });
 
