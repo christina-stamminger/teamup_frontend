@@ -6,7 +6,7 @@ import MyTodosScreen from "../components/MyTodosScreen";
 import OpenTodosScreen from "../components/OpenTodosScreen";
 import CreateTodoScreen from "../components/CreateTodoScreen";
 import LogoutButton from "../components/LogoutButton";
-import GroupModal from "./GroupModal";
+import GroupCreationModal from "./GroupCreationModal";
 
 import { jwtDecode } from "jwt-decode";
 import * as SecureStore from "expo-secure-store";
@@ -124,8 +124,8 @@ export default function BottomTabsNavigator({ navigation }) {
         <Tab.Screen name="CreateTodo" component={CreateTodoScreen} options={{ tabBarIcon: ({ color }) => <PlusCircle size={24} color={color} /> }} />
       </Tab.Navigator>
 
-      {/* Group Modal */}
-      <GroupModal
+      {/* Group Creation Modal */}
+      <GroupCreationModal
         isVisible={isModalVisible}
         toggleModal={toggleModal}
         selectedGroup={selectedGroup}

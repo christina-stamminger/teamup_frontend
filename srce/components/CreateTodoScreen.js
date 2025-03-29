@@ -13,7 +13,9 @@ import {
     ScrollView,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { useUser } from "../components/context/UserContext"; // Import the useUser hook
+import { useUser } from "../components/context/UserContext";  // Assuming useUser is a custom hook to get user data
+import { Dropdown } from 'react-native-element-dropdown';
+import { MaskedTextInput } from 'react-native-mask-text';
 
 export default function CreateTodoScreen() {
     const [title, setTitle] = useState('');
@@ -22,17 +24,17 @@ export default function CreateTodoScreen() {
     const [addInfo, setAddInfo] = useState('');
     const [uploadPath, setUploadPath] = useState('');
     const [expiresAt, setExpiresAt] = useState('');
-    const [groupId, setGroupId] = useState(''); // New state for groupId
-    const [groups, setGroups] = useState([]); // To store the available groups for the user
+    const [groupId, setGroupId] = useState(null);
+    const [groups, setGroups] = useState([]);
 
-    const { userId } = useUser(); // Access the userId from context
+    // Use the context to get the user ID
+    const { userId } = useUser(); // Access userId directly from the context
 
-    // Format date to match the backend format (YYYY-MM-DD HH:mm:ss)
-    const formatLocalDateTime = (date) => {
-        return date.toISOString().slice(0, 19); // Format as "YYYY-MM-DDTHH:mm:ss"  
-    };
+    // Debug log for userId
+    useEffect(() => {
+        console.log("userId from context:", userId); // Check the value of userId
+    }, [userId]);
 
-    // Fetch the groups the user is part of
     useEffect(() => {
         const fetchGroups = async () => {
             try {
@@ -50,7 +52,11 @@ export default function CreateTodoScreen() {
                 }
 
                 const data = await response.json();
-                setGroups(data); // Populate the groups available to the user
+                const formattedGroups = data.map((group) => ({
+                    label: group.groupName,
+                    value: group.groupId.toString(),
+                }));
+                setGroups(formattedGroups);
             } catch (error) {
                 console.error('Error fetching groups:', error);
                 Alert.alert('Error', 'Failed to fetch groups. Please try again.');
@@ -61,26 +67,34 @@ export default function CreateTodoScreen() {
     }, []);
 
     const handleCreateTodo = async () => {
+        // Check if userId is null
+        if (!userId) {
+            Alert.alert('Error', 'User not logged in. Please log in again.');
+            return;
+        }
+
+        console.log("Creating todo for userId:", userId); // Check the userId before creating the todo
+
         if (!title || !description || !expiresAt || !groupId) {
             Alert.alert('Error', 'Title, Description, Expiration Date, and Group are required!');
             return;
         }
-
-        // Format expiresAt date if it's provided in a valid format
-        const formattedDateTime = expiresAt ? formatLocalDateTime(new Date(expiresAt)) : '';
+        // Convert expiresAt from "YYYY-MM-DD HH:MM:SS" to "YYYY-MM-DDTHH:MM:SSZ"
+        const formattedExpiresAt = expiresAt.replace(" ", "T") + "Z";
 
         const newTodo = {
-            userOfferedId: userId,  // The logged-in user ID
+            userOfferedId: userId,
             title,
             location,
             description,
             addInfo,
             uploadPath,
-            expiresAt: formattedDateTime, // Send formatted date to backend
-            groupId,  // Include groupId in the payload
+            expiresAt: formattedExpiresAt, // Corrected format
+            groupId: parseInt(groupId, 10),
         };
 
-        console.log("Sending JSON Payload:", JSON.stringify(newTodo)); // Debug log
+
+        console.log("Sending JSON Payload:", JSON.stringify(newTodo)); // Log the newTodo object
 
         try {
             const token = await SecureStore.getItemAsync("authToken");
@@ -89,29 +103,28 @@ export default function CreateTodoScreen() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,  // Include token in the header
+                    "Authorization": `Bearer ${token}`,
                 },
                 body: JSON.stringify(newTodo),
             });
 
             if (!response.ok) {
-                console.log("response:", response);
                 throw new Error("Failed to create todo!");
             }
 
             const data = await response.json();
-            console.log("Todo Created:", data);
+            console.log("Todo Created:", data); // Log the response data
 
             Alert.alert("Success", "Todo Created Successfully!");
 
-            // Optional: Reset form fields after submission
+            // Reset fields
             setTitle("");
             setLocation("");
             setDescription("");
             setAddInfo("");
             setUploadPath("");
             setExpiresAt("");
-            setGroupId(""); // Reset group selection
+            setGroupId(null);
         } catch (error) {
             console.error("Error:", error);
             Alert.alert("Error", "Failed to create todo. Please try again.");
@@ -124,11 +137,12 @@ export default function CreateTodoScreen() {
             style={styles.container}
         >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <ScrollView 
+                <ScrollView
                     contentContainerStyle={styles.scrollContainer}
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.inner}>
+                        {/* Title */}
                         <Text style={styles.label}>Title</Text>
                         <TextInput
                             style={styles.input}
@@ -137,6 +151,7 @@ export default function CreateTodoScreen() {
                             onChangeText={setTitle}
                         />
 
+                        {/* Location */}
                         <Text style={styles.label}>Location</Text>
                         <TextInput
                             style={styles.input}
@@ -145,6 +160,7 @@ export default function CreateTodoScreen() {
                             onChangeText={setLocation}
                         />
 
+                        {/* Description */}
                         <Text style={styles.label}>Description</Text>
                         <TextInput
                             style={[styles.input, styles.textArea]}
@@ -156,6 +172,7 @@ export default function CreateTodoScreen() {
                             onChangeText={setDescription}
                         />
 
+                        {/* Additional Info */}
                         <Text style={styles.label}>Additional Info</Text>
                         <TextInput
                             style={styles.input}
@@ -164,6 +181,7 @@ export default function CreateTodoScreen() {
                             onChangeText={setAddInfo}
                         />
 
+                        {/* Upload Path */}
                         <Text style={styles.label}>Upload Path</Text>
                         <TextInput
                             style={styles.input}
@@ -172,23 +190,31 @@ export default function CreateTodoScreen() {
                             onChangeText={setUploadPath}
                         />
 
+                        {/* Expires At (Masked Input) */}
                         <Text style={styles.label}>Expires At (YYYY-MM-DD HH:MM:SS)</Text>
-                        <TextInput
+                        <MaskedTextInput
+                            mask="9999-99-99 99:99:99"
                             style={styles.input}
-                            placeholder="Enter expiration date and time"
+                            placeholder="YYYY-MM-DD HH:MM:SS"
+                            keyboardType="numeric"
                             value={expiresAt}
                             onChangeText={setExpiresAt}
                         />
 
+                        {/* Group Selection */}
                         <Text style={styles.label}>Select Group</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter group ID"
+                        <Dropdown
+                            style={styles.dropdown}
+                            data={groups}
+                            maxHeight={300}
+                            labelField="label"
+                            valueField="value"
+                            placeholder="Select Group"
                             value={groupId}
-                            onChangeText={setGroupId}
+                            onChange={(item) => setGroupId(item.value)}
                         />
-                        {/* Alternatively, you could use a modal or picker for group selection */}
-                        
+
+                        {/* Create Button */}
                         <TouchableOpacity style={styles.button} onPress={handleCreateTodo}>
                             <Text style={styles.buttonText}>Create Todo</Text>
                         </TouchableOpacity>
@@ -199,6 +225,7 @@ export default function CreateTodoScreen() {
     );
 }
 
+// Styles
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -221,13 +248,21 @@ const styles = StyleSheet.create({
         borderColor: '#D1D5DB',
         borderRadius: 8,
         paddingHorizontal: 12,
-        justifyContent: 'center',
         marginBottom: 16,
-        backgroundColor: '#FFF', // Better contrast
+        backgroundColor: '#FFF',
     },
     textArea: {
         height: 100,
         textAlignVertical: "top",
+    },
+    dropdown: {
+        height: 48,
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        marginBottom: 16,
+        backgroundColor: '#FFF',
     },
     button: {
         backgroundColor: '#5FC9C9',

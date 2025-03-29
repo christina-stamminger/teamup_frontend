@@ -14,6 +14,8 @@ import { Handshake } from "lucide-react-native"; // Lucide-react-native library 
 import PasswordInput from "./PasswordInput";
 //import Keychain from "react-native-keychain"; // Import Keychain to store token securely
 import * as SecureStore from 'expo-secure-store';
+//import jwt_decode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 
 
 const LoginScreen = ({ navigation }) => {
@@ -33,30 +35,49 @@ const LoginScreen = ({ navigation }) => {
           password,
         }),
       });
-
-      // Check if the login was successful
+  
       if (response.ok) {
         const data = await response.json();
-        const { token } = data;  // jwt token
-
-        // Store the token securely in Keychain
-        await SecureStore.setItemAsync('authToken', token);
-        console.log("JWT Token stored:", token);
-
-
-        
-        // Navigate to the authenticated area after successful login
-        navigation.replace('HomeTabs');
+        const { token } = data;  // No need for userId here, it's inside the token
+  
+        console.log("JWT Token received:", token);
+  
+        // Decode the token
+        try {
+          const decodedToken = jwtDecode(token);
+          console.log("Decoded JWT Token:", decodedToken);
+  
+          // Extract userId safely with fallback (just in case)
+          const userId = decodedToken.userId ?? decodedToken.sub;
+  
+          if (!userId) {
+            throw new Error("User ID not found in token.");
+          }
+  
+          console.log("User ID extracted:", userId);
+  
+          // Store the token and userId securely in SecureStore
+          await SecureStore.setItemAsync('authToken', token);
+          await SecureStore.setItemAsync('userId', userId.toString());
+  
+          console.log("JWT Token and User ID stored in SecureStore");
+  
+          // Navigate to Home
+          navigation.replace('HomeTabs');
+        } catch (decodeError) {
+          console.error("Error decoding JWT token:", decodeError);
+          setErrorMessage("Failed to decode JWT token.");
+        }
       } else {
         const data = await response.json();
         setErrorMessage(data.message || "Invalid login credentials");
       }
     } catch (error) {
       setErrorMessage("An error occurred. Please try again.");
-      console.error("Login error", error);
+      console.error("Login error:", error);
     }
   };
-
+  
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
