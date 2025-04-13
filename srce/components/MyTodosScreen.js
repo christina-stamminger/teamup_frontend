@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Alert, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome';
+
 import * as SecureStore from 'expo-secure-store';
 import CollapsibleTodoCard from '../components/CollapsibleTodoCard';
 import { useUser } from "../components/context/UserContext";
 import Modal from 'react-native-modal';
 import GroupCreationModal from "../components/GroupCreationModal";
+import AddMemberCard from '../components/AddMemberCard'; // Import the new AddMemberCard
+
 
 export default function MyTodosScreen() {
   const [todos, setTodos] = useState([]);
@@ -110,12 +114,24 @@ export default function MyTodosScreen() {
     setIsGroupModalVisible(false);
   };
 
+  const handleAddMember = () => {
+    // Logic to add a member, for now let's just show an alert
+    Alert.alert("Add Member", "Here you can add a new member to the group.");
+  };
+
   return (
     <View style={styles.container}>
       {/* Group Selector */}
       <TouchableOpacity onPress={toggleGroupModal} style={styles.groupButton}>
         <Text style={styles.groupButtonText}>{selectedGroupName}</Text>
       </TouchableOpacity>
+
+          {/* Add Member Card */}
+          {selectedGroupId && (
+        <AddMemberCard onPress={handleAddMember} /> // Show the AddMemberCard if a group is selected
+      )}
+
+
 
       {/* Todo List */}
       <FlatList
@@ -133,17 +149,29 @@ export default function MyTodosScreen() {
             keyExtractor={(item, index) => item.groupId ? item.groupId.toString() : index.toString()}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={[
-                  styles.groupItem,
-                  { backgroundColor: selectedGroupId === item.groupId ? '#5FC9C9' : 'transparent' },
-                ]}
-                onPress={() => handleGroupSelect(item.groupId)}
-              >
-                <Text style={styles.groupItemText}>{item.groupName}</Text>
-              </TouchableOpacity>
+              style={[
+                styles.groupItem,
+                { backgroundColor: selectedGroupId === item.groupId ? '#5FC9C9' : 'transparent' },
+              ]}
+              onPress={() => handleGroupSelect(item.groupId)}
+            >
+              <View style={styles.iconAndTextContainer}>
+                {/* Show an icon depending on the role */}
+                <Icon
+                  name={item.role === 'ADMIN' ? 'shield' : 'user'} // 'shield' for admins, 'user' for members
+                  size={18} // Icon size
+                  color={item.role === 'ADMIN' ? '#FFD700' : '#4A90E2'} // Different colors for admin and member
+                  style={styles.icon}
+                />
+                <Text style={styles.groupItemText}>
+                  {item.groupName}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            
             )}
           />
-        
+
         </View>
       </Modal>
 
@@ -193,11 +221,20 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginVertical: 5,
     alignItems: 'center',
+    flexDirection: 'row', // Ensures the icon and text are in a row
   },
   groupItemText: {
     fontSize: 16,
     color: '#333',
     fontWeight: 'bold',
+    marginLeft: 10, // Space between the icon and the text
+  },
+  iconAndTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center', // Align icon and text vertically
+  },
+  icon: {
+    marginRight: 10, // Adds space between the icon and text
   },
   createGroupButton: {
     marginTop: 20,
