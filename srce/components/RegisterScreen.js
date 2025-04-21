@@ -133,18 +133,18 @@ const RegisterScreen = ({ navigation }) => {
         <View style={styles.formWrapper}>
           <Text style={styles.title}>Register</Text>
           <View style={styles.form}>
-            {[ 
+            {[
               { name: "username", placeholder: "Username", type: "text" },
               { name: "password", placeholder: "Password", type: "password" },
               { name: "email", placeholder: "Email", type: "email-address" },
               { name: "firstName", placeholder: "First Name", type: "text" },
               { name: "lastName", placeholder: "Last Name", type: "text" },
-              { name: "dateOfBirth", placeholder: "Date of Birth", type: "date" },
+              { name: "dateOfBirth", placeholder: "Date of Birth", type: "date", hint: "Format: YYYY-MM-DD" },
               { name: "phone", placeholder: "Phone Number", type: "phone-pad" },
               { name: "address.streetNumber", placeholder: "Street & Number", type: "text" },
               { name: "address.postalCode", placeholder: "Postal Code", type: "numeric" },
               { name: "address.city", placeholder: "City", type: "text" },
-            ].map(({ name, placeholder, type }) => {
+            ].map(({ name, placeholder, type, hint }) => {
               const fieldError = get(formik.errors, name);
               const fieldTouched = get(formik.touched, name);
 
@@ -160,6 +160,7 @@ const RegisterScreen = ({ navigation }) => {
                     keyboardType={type === "numeric" ? "numeric" : "default"}
                     secureTextEntry={type === "password"}
                   />
+                  {hint && <Text style={styles.hint}>{hint}</Text>}
                   {fieldTouched && fieldError && <Text style={styles.error}>{fieldError}</Text>}
                 </View>
               );
@@ -189,7 +190,7 @@ const styles = StyleSheet.create({
   scrollViewContainer: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingBottom: 20, // Ensure there's enough padding to allow scrolling when the keyboard is visible
+    paddingBottom: 20, // padding to allow scrolling when the keyboard is visible
   },
   formWrapper: {
     alignItems: "center",
@@ -243,6 +244,12 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
   },
+  hint: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+  }
+  
 });
 
 export default RegisterScreen;

@@ -1,20 +1,63 @@
-import React from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, FlatList, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import CollapsibleTodoCard from '../components/CollapsibleTodoCard';
-
-const openTodos = [
-  { id: '3', username: 'Charlie', description: 'Refactor API calls', date: '2025-01-28', priority: 'High', status: 'Open' },
-  { id: '4', username: 'Dave', description: 'Design new logo', date: '2025-01-27', priority: 'Low', status: 'Pending' },
-];
+import { useIsFocused } from '@react-navigation/native';
 
 export default function OpenTodosScreen() {
+  const [todos, setTodos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const isFocused = useIsFocused(); // triggers fetchTodo everytime the screen is navigated to
+
+  const fetchTodos = async () => {
+    try {
+      const token = await SecureStore.getItemAsync('authToken');
+      if (!token) {
+        Alert.alert('Nicht eingeloggt', 'Bitte logge dich ein.');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch('http://192.168.50.116:8082/api/todo/group', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("fetched todos:", data)
+      setTodos(data);
+    } catch (error) {
+      console.error('Fehler beim Laden der Todos:', error);
+      Alert.alert('Fehler', 'Todos konnten nicht geladen werden.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isFocused) {
+      fetchTodos();
+    }
+  }, [isFocused]);
+
   return (
     <View style={styles.container}>
-      <FlatList
-        data={openTodos}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <CollapsibleTodoCard todo={item} />}
-      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#888" />
+      ) : (
+        <FlatList
+          data={todos}
+          keyExtractor={(item) => item.todoId.toString()}
+          renderItem={({ item }) => <CollapsibleTodoCard todo={item} />}
+        />
+      )}
     </View>
   );
 }

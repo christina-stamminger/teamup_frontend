@@ -16,12 +16,16 @@ import PasswordInput from "./PasswordInput";
 import * as SecureStore from 'expo-secure-store';
 //import jwt_decode from 'jwt-decode';
 import { jwtDecode } from 'jwt-decode';
+import { useUser } from '../components/context/UserContext'; // 
+
 
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState(""); // For displaying errors
+  const { setUserId } = useUser();
+
 
   const handleLogin = async () => {
     try {
@@ -58,7 +62,8 @@ const LoginScreen = ({ navigation }) => {
   
           // Store the token and userId securely in SecureStore
           await SecureStore.setItemAsync('authToken', token);
-          await SecureStore.setItemAsync('userId', userId.toString());
+          await SecureStore.setItemAsync('userId', userId.toString()); // optional, but fine
+          setUserId(userId); // 💥 this is the key line!
   
           console.log("JWT Token and User ID stored in SecureStore");
   
