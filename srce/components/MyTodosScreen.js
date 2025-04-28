@@ -11,12 +11,6 @@ import AddMemberModal from '../components/AddMemberModal';
 import { useIsFocused } from '@react-navigation/native'; // for handling screen focus changes
 import GroupListModal from '../components/GroupListModal'
 import { getAvatarColor } from '../utils/getAvatarColor';
-import TodoItem from './TodoItem';
-
-//import { SafeAreaView, ScrollView } from 'react-native';
-
-
-
 
 export default function MyTodosScreen() {
   const [todos, setTodos] = useState([]);
@@ -167,7 +161,7 @@ export default function MyTodosScreen() {
   const handleDeleteTodo = async (todoId) => {
     try {
       const token = await SecureStore.getItemAsync('authToken');
-  
+
       const response = await fetch(`http://192.168.50.116:8082/api/todo/${todoId}`, {
         method: 'DELETE',
         headers: {
@@ -352,14 +346,15 @@ export default function MyTodosScreen() {
 
       <FlatList
         data={todos}
-        keyExtractor={(item, index) => (item.id ? item.id.toString() : index.toString())}
+        keyExtractor={(item, index) => (item?.id ? item.id.toString() : index.toString())} // Check if id exists
         renderItem={({ item }) => (
-          <CollapsibleTodoCard
-            key={item.id}
-            todo={item}
-            onStatusUpdated={() => fetchTodos(selectedGroupId)} // trigger re-fetch!
-            
-          />
+          <View>
+      
+            <CollapsibleTodoCard
+              todo={item}
+              onStatusUpdated={() => fetchTodos(selectedGroupId)} // trigger re-fetch!
+            />
+          </View>
         )}
       />
 
