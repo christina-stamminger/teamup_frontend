@@ -159,7 +159,7 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#EBEBEB",
+    backgroundColor: "#EAEAEA",
   },
   inner: {
     flex: 1,
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   iconContainer: {
-    backgroundColor: "#5FC9C9",
+    backgroundColor: "#5fc9c9",
     padding: 12,
     borderRadius: 50,
     marginRight: 12,
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 48,
-    borderColor: "#5FC9C9",
+    borderColor: "#5fc9c9",
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   button: {
-    backgroundColor: "#5FC9C9",
+    backgroundColor: "#5fc9c9",
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: "center",
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   registerLink: {
-    color: "#5FC9C9",
+    color: "#5fc9c9",
     fontWeight: "600",
   },
   footer: {

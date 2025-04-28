@@ -13,7 +13,7 @@ export default function LogoutButton({ navigation }) {
       }
       style={{ marginRight: 16 }}
     >
-      <LogOut size={24} color="#5FC9C9" />
+      <LogOut size={24} color="#5fc9c9" />
     </TouchableOpacity>
   );
 }

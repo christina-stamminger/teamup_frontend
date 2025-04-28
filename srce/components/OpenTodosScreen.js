@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, FlatList, StyleSheet, ActivityIndicator, Alert, Text } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import CollapsibleTodoCard from '../components/CollapsibleTodoCard';
 import { useIsFocused } from '@react-navigation/native';
@@ -49,6 +49,10 @@ export default function OpenTodosScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.headerContainer}>
+</View>
+<Text style={styles.headerTitle}>Open Todos</Text>
+
       {loading ? (
         <ActivityIndicator size="large" color="#888" />
       ) : (
@@ -66,7 +70,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    marginTop: 30,
+    //marginTop: 30,
     backgroundColor: '#F7F7F7',
+  },
+  headerTitle: {
+    fontSize: 26, // ⬆️ Increased font size (was 22 before)
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center', // ⬅️ Also helps center text inside its block
   },
 });

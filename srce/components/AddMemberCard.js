@@ -1,37 +1,37 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 const AddMemberCard = ({ onPress }) => {
   return (
-    <View style={styles.card}>
-      <TouchableOpacity style={styles.cardButton} onPress={onPress}>
-        <Icon name="user-plus" size={24} color="#FFFFFF" style={styles.plusIcon} />
-      </TouchableOpacity>
-    </View>
+    <TouchableOpacity style={styles.addMemberRow} onPress={onPress}>
+      <View style={styles.avatarSmall}>
+        <Icon name="plus" size={14} color="#5fc9c9" />
+      </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    marginTop: 12,
-    width: 40, // Set a specific width for the card
-    height: 40, // Set a specific height for the card
-    backgroundColor: '#5FC9C9', // The same color as the group button
-    borderRadius: 5, // Rounded corners for the card
-    alignItems: 'center', // Centers the content horizontally
-    justifyContent: 'center', // Centers the content vertically
-    alignSelf: 'center', // Ensures the card is centered within its parent container
+  addMemberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
-  cardButton: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center', // Centers the icon vertically
-    alignItems: 'center', // Centers the icon horizontally
-    borderRadius: 10,  // Round corners
+  avatarSmall: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  plusIcon: {
-    // No need for marginTop, as it's already centered
+  addText: {
+    fontSize: 16,
+    color: '#5A67D8',
+    fontWeight: '500',
   },
 });
 

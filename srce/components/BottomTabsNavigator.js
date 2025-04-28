@@ -112,7 +112,7 @@ export default function BottomTabsNavigator({ navigation }) {
           headerRight: () => <LogoutButton navigation={navigation} />,
           headerLeft: () => (
             <TouchableOpacity onPress={toggleModal} style={{ marginLeft: 16 }}>
-              <Users size={24} color="#5FC9C9" />
+              <Users size={24} color="#5fc9c9" />
             </TouchableOpacity>
           ),
           headerTitle: "BringIt",

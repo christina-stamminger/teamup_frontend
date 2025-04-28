@@ -5,7 +5,7 @@ export const getStatusColor = (status) => {
           case 'In Arbeit':
             return '#FFB65C'; // Warm Peach
           case 'Abgelaufen':
-            return '#4A4A4A'; // Dark Gray
+            return '#404040'; // Dark Gray
           case 'Erledigt':
             return '#5c7cff'; // Soft Tealish Blue
           default:
