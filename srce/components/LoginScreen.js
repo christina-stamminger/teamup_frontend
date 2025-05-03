@@ -16,73 +16,52 @@ import PasswordInput from "./PasswordInput";
 import * as SecureStore from 'expo-secure-store';
 //import jwt_decode from 'jwt-decode';
 import { jwtDecode } from 'jwt-decode';
-import { useUser } from '../components/context/UserContext'; // 
-
-
+import { useUser } from '../components/context/UserContext';
 
 const LoginScreen = ({ navigation }) => {
-  const [username, setUsername] = useState("");
+  const [inputUsername, setInputUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState(""); // For displaying errors
-  const { setUserId } = useUser();
+  const [errorMessage, setErrorMessage] = useState("");
 
+  const { setUserId, setUsername } = useUser(); // <-- FIXED!
 
   const handleLogin = async () => {
     try {
       const response = await fetch("http://192.168.50.116:8082/api/user/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username,
+          username: inputUsername,
           password,
         }),
       });
-  
+
       if (response.ok) {
         const data = await response.json();
-        const { token } = data;  // No need for userId here, it's inside the token
-  
-        console.log("JWT Token received:", token);
-  
-        // Decode the token
-        try {
-          const decodedToken = jwtDecode(token);
-          console.log("Decoded JWT Token:", decodedToken);
-  
-          // Extract userId safely with fallback (just in case)
-          const userId = decodedToken.userId ?? decodedToken.sub;
-  
-          if (!userId) {
-            throw new Error("User ID not found in token.");
-          }
-  
-          console.log("User ID extracted:", userId);
-  
-          // Store the token and userId securely in SecureStore
-          await SecureStore.setItemAsync('authToken', token);
-          await SecureStore.setItemAsync('userId', userId.toString()); // optional, but fine
-          setUserId(userId); // 💥 this is the key line!
-  
-          console.log("JWT Token and User ID stored in SecureStore");
-  
-          // Navigate to Home
-          navigation.replace('HomeTabs');
-        } catch (decodeError) {
-          console.error("Error decoding JWT token:", decodeError);
-          setErrorMessage("Failed to decode JWT token.");
-        }
+        const { token } = data;
+
+        const decoded = jwtDecode(token);
+
+        const userId = decoded.userId ?? decoded.sub;
+        if (!userId) throw new Error("User ID not found in token");
+
+        await SecureStore.setItemAsync('authToken', token);
+        await SecureStore.setItemAsync('userId', userId.toString());
+
+        setUserId(userId);           // Update ID globally
+        setUsername(decoded.sub);    // Update Username globally!
+
+        navigation.replace('HomeTabs');
       } else {
         const data = await response.json();
         setErrorMessage(data.message || "Invalid login credentials");
       }
     } catch (error) {
-      setErrorMessage("An error occurred. Please try again.");
       console.error("Login error:", error);
+      setErrorMessage("An error occurred. Please try again.");
     }
   };
-  
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -101,7 +80,7 @@ const LoginScreen = ({ navigation }) => {
           {/* Card for Login/Register */}
           <View style={styles.card}>
             <Text style={styles.title}>Welcome to BringIt</Text>
-            
+
             {/* Input Fields */}
             <View style={styles.form}>
               <View style={styles.inputGroup}>
@@ -110,8 +89,8 @@ const LoginScreen = ({ navigation }) => {
                   style={styles.input}
                   placeholder="Username"
                   keyboardType="default"
-                  value={username}
-                  onChangeText={setUsername}
+                  value={inputUsername}
+                  onChangeText={setInputUsername}
                 />
               </View>
 
@@ -129,8 +108,8 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.errorText}>{errorMessage}</Text>
               ) : null}
 
-              <TouchableOpacity 
-                style={styles.button} 
+              <TouchableOpacity
+                style={styles.button}
                 onPress={handleLogin}
               >
                 <Text style={styles.buttonText}>Login</Text>
@@ -138,8 +117,8 @@ const LoginScreen = ({ navigation }) => {
 
               <Text style={styles.registerText}>
                 Don’t have an account?{' '}
-                <Text 
-                  style={styles.registerLink} 
+                <Text
+                  style={styles.registerLink}
                   onPress={() => navigation.navigate('Register')}
                 >
                   Register here

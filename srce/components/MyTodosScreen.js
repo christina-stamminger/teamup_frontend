@@ -11,6 +11,7 @@ import AddMemberModal from '../components/AddMemberModal';
 import { useIsFocused } from '@react-navigation/native'; // for handling screen focus changes
 import GroupListModal from '../components/GroupListModal'
 import { getAvatarColor } from '../utils/getAvatarColor';
+import Toast from 'react-native-toast-message'; // toast: for short messages intead of alert
 
 export default function MyTodosScreen() {
   const [todos, setTodos] = useState([]);
@@ -102,7 +103,12 @@ export default function MyTodosScreen() {
       setTodos(filtered);
 
       if (filtered.length === 0) {
-        Alert.alert('No todos available', 'There are no relevant todos for you in this group yet.');
+        Toast.show({
+          type: 'info',
+          text1: 'No todos available.',
+          //text2: 'This is an info message with custom styles.',
+          visibilityTime: 1500, //will be shown for 1 second
+        });
       }
     } catch (error) {
       console.error('Error fetching todos:', error);

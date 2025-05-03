@@ -16,6 +16,8 @@ import * as SecureStore from 'expo-secure-store';
 import { useUser } from "../components/context/UserContext";  // Assuming useUser is a custom hook to get user data
 import { Dropdown } from 'react-native-element-dropdown';
 import { MaskedTextInput } from 'react-native-mask-text';
+import Toast from 'react-native-toast-message'; // toast: for short messages intead of alert
+
 
 export default function CreateTodoScreen() {
     const [title, setTitle] = useState('');
@@ -109,14 +111,22 @@ export default function CreateTodoScreen() {
             });
 
             if (!response.ok) {
-                throw new Error("Failed to create todo!");
+                // Parse the error response from the backend
+                const errorData = await response.json();  // Define errorData correctly here
+                console.error("Error from backend:", errorData);  // Log full response for debugging
+                throw new Error("Failed to create todo!");  // This will trigger the catch block
             }
 
             const data = await response.json();
+
             console.log("Todo Created:", data); // Log the response data
 
-            Alert.alert("Success", "Todo Created Successfully!");
-
+            Toast.show({
+                type: 'info',
+                text1: 'Todo created successfully.',
+                //text2: 'This is an info message with custom styles.',
+                visibilityTime: 1500, //will be shown for 1 second
+            });
             // Reset fields
             setTitle("");
             setLocation("");

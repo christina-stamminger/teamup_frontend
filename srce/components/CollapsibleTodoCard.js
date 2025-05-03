@@ -10,6 +10,8 @@ import * as SecureStore from 'expo-secure-store';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native'; // Import the hook
+import Toast from 'react-native-toast-message'; // toast: for short messages intead of alert
+
 
 const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -21,6 +23,51 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
   const toggleExpand = () => setIsExpanded(!isExpanded);
 
   const statusColor = getStatusColor(todo.status);
+
+
+  // Update PATCH todostatus
+  const updateTodoStatus = async (newStatus = 'In Arbeit') => {
+    try {
+      const token = await SecureStore.getItemAsync('authToken');
+      const currentTime = new Date().toISOString();  // Get the current time in ISO format
+
+      const response = await fetch('http://192.168.50.116:8082/api/todo/status', {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          todoId: todo.todoId,
+          userTakenId: userId,
+          status: newStatus,
+          completedAt: newStatus === 'Erledigt' ? currentTime : null,  // Only add completedAt if status is 'Completed'
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        Toast.show({
+          type: 'error',
+          text1: result.errorMessage || 'Todos could not be updated.',
+          visibilityTime: 2000,
+        });
+      } else {
+        Toast.show({
+          type: 'success',
+          text1: 'Todo status updated successfully.',
+          visibilityTime: 1500,
+        });
+        onStatusUpdated?.();
+      }
+      
+    } catch (error) {
+      console.error('Fehler beim Aktualisieren:', error);
+      alert('Netzwerkfehler.');
+    }
+  };
+
+  if (loading) return <Text>Loading...</Text>;
 
   // Swipe to delete
   const deleteTodo = async () => {
@@ -37,20 +84,29 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
       const result = await response.json();
 
       if (!response.ok) {
-        alert(result.errorMessage || 'Fehler beim Löschen des Todos.');
+        Toast.show({
+          type: 'error',
+          text1: result.errorMessage || 'Todo could not be deleted.',
+          visibilityTime: 2000,
+        });
       } else {
-        alert('Todo erfolgreich gelöscht!');// Trigger onDelete to remove the todo from the list
-        onDelete?.(todo.todoId);
-
-        // If the screen is focused, re-fetch the todo list
-        if (isFocused) {
-          onStatusUpdated?.(); // Trigger an update to fetch the latest todos
-        }
-
-        // Close the Swipeable when the delete action is completed
-        swipeableRef.current?.close(); // Close the swipeable after delete
-      }
+        Toast.show({
+          type: 'success',
+          text1: 'Todo deleted successfully!',
+          visibilityTime: 1500,
+        });
       
+        // Remove the todo from the list
+        onDelete?.(todo.todoId);
+      
+        // Re-fetch if this screen is focused
+        if (isFocused) {
+          onStatusUpdated?.();
+        }
+      
+        // Close the swipeable row
+        swipeableRef.current?.close();
+      }      
     } catch (error) {
       console.error('Fehler beim Löschen:', error);
       alert('Netzwerkfehler.');

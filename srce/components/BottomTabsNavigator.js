@@ -7,7 +7,7 @@ import OpenTodosScreen from "../components/OpenTodosScreen";
 import CreateTodoScreen from "../components/CreateTodoScreen";
 import LogoutButton from "../components/LogoutButton";
 import GroupCreationModal from "./GroupCreationModal";
-
+import ProfileScreen from "../components/ProfileScreen"
 import { jwtDecode } from "jwt-decode";
 import * as SecureStore from "expo-secure-store";
 
@@ -17,7 +17,7 @@ import { useUser } from "../components/context/UserContext"; // Import the useUs
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabsNavigator({ navigation }) {
-  const { setUserId } = useUser(); // Get the setter for userId
+  const { username, setUserId } = useUser(); // Get the setter for userId
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [groups, setGroups] = useState([]); // Store fetched groups
@@ -29,11 +29,12 @@ export default function BottomTabsNavigator({ navigation }) {
     fetchUserGroups(); // Fetch groups when modal is toggled
   };
 
+
   // Fetch User ID from Backend using Username
   const fetchUserId = async (username, token) => {
     try {
       console.log("📡 Fetching User ID for:", username);
-  
+
       const response = await fetch(`http://192.168.50.116:8082/api/users/username/${username}`, {
         method: "GET",
         headers: {
@@ -41,16 +42,16 @@ export default function BottomTabsNavigator({ navigation }) {
           "Content-Type": "application/json",
         },
       });
-  
+
       if (!response.ok) throw new Error(`Failed to fetch user ID. Status: ${response.status}`);
-  
+
       const userData = await response.json();
       console.log("Received User Data:", userData);
-  
+
       if (!userData.user || !userData.user.userId) {
         throw new Error("User ID not found in response!");
       }
-  
+
       setUserId(userData.user.userId); // Set the userId in the context (to make it globally accessible)
 
       return userData.user.userId; // Correctly accessing userId
@@ -59,7 +60,7 @@ export default function BottomTabsNavigator({ navigation }) {
       return null;
     }
   };
-  
+
 
   // Fetch Groups Using User ID
   const fetchUserGroups = async () => {
@@ -100,6 +101,8 @@ export default function BottomTabsNavigator({ navigation }) {
     }
   };
 
+
+
   const handleGroupSelect = (group) => {
     setSelectedGroup(group);
     setModalVisible(false);
@@ -111,17 +114,20 @@ export default function BottomTabsNavigator({ navigation }) {
         screenOptions={{
           headerRight: () => <LogoutButton navigation={navigation} />,
           headerLeft: () => (
-            <TouchableOpacity onPress={toggleModal} style={{ marginLeft: 16 }}>
+            <TouchableOpacity     
+            onPress={() => navigation.navigate("ProfileScreen")}
+            style={{ marginLeft: 16 }}>
               <Users size={24} color="#5fc9c9" />
             </TouchableOpacity>
           ),
-          headerTitle: "BringIt",
+          headerTitle: username ? `Hi, ${username}` : "Loading...",
           headerTitleAlign: "center",
         }}
       >
         <Tab.Screen name="MyTodos" component={MyTodosScreen} options={{ tabBarIcon: ({ color }) => <Home size={24} color={color} /> }} />
         <Tab.Screen name="OpenTodos" component={OpenTodosScreen} options={{ tabBarIcon: ({ color }) => <ClipboardList size={24} color={color} /> }} />
         <Tab.Screen name="CreateTodo" component={CreateTodoScreen} options={{ tabBarIcon: ({ color }) => <PlusCircle size={24} color={color} /> }} />
+
       </Tab.Navigator>
 
       {/* Group Creation Modal */}

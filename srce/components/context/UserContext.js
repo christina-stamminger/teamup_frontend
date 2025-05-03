@@ -1,36 +1,65 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import * as SecureStore from "expo-secure-store";
+import { jwtDecode } from "jwt-decode";
 
-// Create the UserContext
 const UserContext = createContext();
 
-// Custom hook to access the user context easily
 export const useUser = () => useContext(UserContext);
 
-// The provider component that will wrap your app and provide the user context
 export const UserProvider = ({ children }) => {
   const [userId, setUserId] = useState(null);
+  const [username, setUsername] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(null);
 
-  // Load userId from SecureStore when app starts
-  useEffect(() => {
-    const loadUserId = async () => {
-      try {
-        const storedUserId = await SecureStore.getItemAsync("userId");
-        if (storedUserId) {
-          setUserId(storedUserId);
-        }
-      } catch (error) {
-        console.error("Failed to load userId:", error);
-      } finally {
-        setLoading(false);
+  const loadUserData = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      const storedUserId = await SecureStore.getItemAsync("userId");
+      
+      if (storedUserId) {
+        setUserId(storedUserId);
       }
-    };
-    loadUserId();
+
+      if (token) {
+        setToken(token)
+        const decoded = jwtDecode(token);
+        if (decoded.sub) {
+          setUsername(decoded.sub);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load user data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // expose reloadUser to be called after login
+  const reloadUser = async () => {
+    setLoading(true);
+    await loadUserData();
+  };
+
+  const logoutUser = async () => {
+    try {
+      await SecureStore.deleteItemAsync("authToken");
+      await SecureStore.deleteItemAsync("userId");
+
+      setUserId(null);
+      setUsername(null);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadUserData();
   }, []);
 
   return (
-    <UserContext.Provider value={{ userId, setUserId, loading }}>
+    <UserContext.Provider value={{ userId, setUserId, token, setToken, username, setUsername, logoutUser, reloadUser, loading }}>
       {children}
     </UserContext.Provider>
   );
