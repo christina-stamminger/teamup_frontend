@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -17,6 +17,8 @@ import { useUser } from "../components/context/UserContext";  // Assuming useUse
 import { Dropdown } from 'react-native-element-dropdown';
 import { MaskedTextInput } from 'react-native-mask-text';
 import Toast from 'react-native-toast-message'; // toast: for short messages intead of alert
+import { useFocusEffect } from '@react-navigation/native'; // useFocusEffect importieren, läuft jedes mal wenn screen wieder aktiv wird
+
 
 
 export default function CreateTodoScreen() {
@@ -37,36 +39,38 @@ export default function CreateTodoScreen() {
         console.log("userId from context:", userId); // Check the value of userId
     }, [userId]);
 
-    useEffect(() => {
-        const fetchGroups = async () => {
-            try {
-                const token = await SecureStore.getItemAsync('authToken');
-                const response = await fetch('http://192.168.50.116:8082/api/groups/myGroups', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
+    // ✅ useFocusEffect: runs everytime screen gets focused
+    useFocusEffect(
+        useCallback(() => {
+            const fetchGroups = async () => {
+                try {
+                    const token = await SecureStore.getItemAsync('authToken');
+                    const response = await fetch('http://192.168.50.116:8082/api/groups/myGroups', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                    });
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch groups');
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch groups');
+                    }
+
+                    const data = await response.json();
+                    const formattedGroups = data.map((group) => ({
+                        label: group.groupName,
+                        value: group.groupId.toString(),
+                    }));
+                    setGroups(formattedGroups);
+                } catch (error) {
+                    console.error('Error fetching groups:', error);
+                    Alert.alert('Error', 'Failed to fetch groups. Please try again.');
                 }
-
-                const data = await response.json();
-                const formattedGroups = data.map((group) => ({
-                    label: group.groupName,
-                    value: group.groupId.toString(),
-                }));
-                setGroups(formattedGroups);
-            } catch (error) {
-                console.error('Error fetching groups:', error);
-                Alert.alert('Error', 'Failed to fetch groups. Please try again.');
-            }
-        };
-
-        fetchGroups();
-    }, []);
+            };
+            fetchGroups(); // new loading after returning to screen
+        }, []) // empty dependencies for not running endless
+    );
 
     const handleCreateTodo = async () => {
         // Check if userId is null
@@ -186,7 +190,7 @@ export default function CreateTodoScreen() {
                         <Text style={styles.label}>Additional Info</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Enter additional info"
+                            placeholder="Optional"
                             value={addInfo}
                             onChangeText={setAddInfo}
                         />
@@ -195,7 +199,7 @@ export default function CreateTodoScreen() {
                         <Text style={styles.label}>Upload Path</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Enter upload path"
+                            placeholder="Optional"
                             value={uploadPath}
                             onChangeText={setUploadPath}
                         />
@@ -256,7 +260,7 @@ const styles = StyleSheet.create({
         height: 48,
         borderWidth: 1,
         borderColor: '#D1D5DB',
-        borderRadius: 8,
+        borderRadius: 5,
         paddingHorizontal: 12,
         marginBottom: 16,
         backgroundColor: '#FFF',

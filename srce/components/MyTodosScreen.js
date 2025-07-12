@@ -12,6 +12,7 @@ import { useIsFocused } from '@react-navigation/native'; // for handling screen 
 import GroupListModal from '../components/GroupListModal'
 import { getAvatarColor } from '../utils/getAvatarColor';
 import Toast from 'react-native-toast-message'; // toast: for short messages intead of alert
+import FilterBar from '../components/FilterBar';
 
 export default function MyTodosScreen() {
   const [todos, setTodos] = useState([]);
@@ -29,6 +30,11 @@ export default function MyTodosScreen() {
   const toggleGroupModal = () => setIsGroupModalVisible(prev => !prev);
   const toggleCreationModal = () => setIsCreationModalVisible(prev => !prev);
 
+  // displaying membersList in modal
+  const [isMembersModalVisible, setIsMembersModalVisible] = useState(false);
+  const toggleMembersModal = () => setIsMembersModalVisible(prev => !prev);
+
+
   // Memberslist: tap to expand and collapse
   const [membersExpanded, setMembersExpanded] = useState(false);
 
@@ -36,6 +42,21 @@ export default function MyTodosScreen() {
   const extendedMembers = userRoleInGroup === 'ADMIN'
     ? [...newMembers, { type: 'addButton' }]
     : [...newMembers];
+
+
+  // Filter options for filterBar
+  // Define filter options
+  const FILTER_OPTIONS = [
+    { label: 'All', value: 'ALL' },
+    { label: 'Open', value: 'OFFEN' },
+    { label: 'In Progress', value: 'IN_ARBEIT' },
+    { label: 'Completed', value: 'ERLEDIGT' },
+    { label: 'Expired', value: 'ABGELAUFEN' },
+
+
+  ];
+
+  const [selectedFilters, setSelectedFilters] = useState(['ALL']);
 
 
   // GroupListData
@@ -73,6 +94,14 @@ export default function MyTodosScreen() {
       Alert.alert('Error', 'Failed to fetch groups.');
     }
   };
+
+
+  // Logic for using filterBar before fetching todos
+  const filteredTodos = todos.filter(todo => {
+    if (selectedFilters.includes('ALL')) return true;
+    return selectedFilters.includes(todo.status?.toUpperCase());
+  });
+
 
   const fetchTodos = async (groupId) => {
     console.log("Calling fetchTodos with groupId:", groupId);
@@ -190,6 +219,20 @@ export default function MyTodosScreen() {
     }
   };
 
+  const handleSelectFilter = (filterValue) => {
+    if (filterValue === 'ALL') {
+      setSelectedFilters(['ALL']);
+    } else {
+      setSelectedFilters(prev => {
+        const updated = prev.includes(filterValue)
+          ? prev.filter(f => f !== filterValue)
+          : [...prev.filter(f => f !== 'ALL'), filterValue];
+        return updated.length === 0 ? ['ALL'] : updated;
+      });
+    }
+  };
+
+
 
 
   const handleRemoveUser = async (userIdToRemove) => {
@@ -218,60 +261,23 @@ export default function MyTodosScreen() {
   };
 
 
-
-
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>My Groups</Text>
-      </View>
+
       <View style={{ paddingVertical: 10 }}>
-        <FlatList
-          data={groupListData}
-          keyExtractor={(item, index) => item.groupId ? item.groupId.toString() : `create-${index}`}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 10 }}
-          renderItem={({ item }) => {
-            if (item.isCreateButton) {
-              // 👉 Render the "+" create group button
-              return (
-                <TouchableOpacity
-                  style={styles.createGroupCard}
-                  onPress={toggleCreationModal} // your modal toggle function
-                >
-                  <Text style={styles.plusIcon}>+</Text>
-                </TouchableOpacity>
-              );
-            } else {
-              // 👉 Render normal group
-              return (
-                <TouchableOpacity
-                  style={[
-                    styles.groupCard,
-                    selectedGroupId === item.groupId && styles.selectedGroupCard,
-                  ]}
-                  onPress={() => handleGroupSelect(item.groupId)}
-                >
-                  <View
-                    style={[
-                      styles.avatar,
-                      styles.groupAvatar,
-                      { backgroundColor: '#e0e0e0' }, // Set background color to grey
-                    ]}
-                  >
-                    <Text style={styles.avatarInitialGroup}>
-                      {item.groupName.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <Text style={styles.groupName} numberOfLines={1}>
-                    {item.groupName}
-                  </Text>
-                </TouchableOpacity>
-              );
-            }
-          }}
-          ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
+        <TouchableOpacity
+          onPress={toggleGroupModal}
+          style={styles.groupSelector}
+        >
+          <Text style={styles.groupSelectorText}>
+            {selectedGroupName || 'Select Group'}
+          </Text>
+          <Icon name="chevron-down" size={16} color="gray" />
+        </TouchableOpacity>
+        <FilterBar
+          filters={FILTER_OPTIONS}
+          selectedFilters={selectedFilters}
+          onSelectFilter={handleSelectFilter}
         />
       </View>
 
@@ -281,81 +287,17 @@ export default function MyTodosScreen() {
         </>
       )}
 
-
-      {selectedGroupId && newMembers.length > 0 && (
-        <View style={styles.membersContainer}>
-          <TouchableOpacity
-            onPress={() => setMembersExpanded(prev => !prev)}
-            style={styles.membersHeader}
-          >
-            <Text style={styles.membersTitle}>Members</Text>
-            <Icon
-              name={membersExpanded ? 'chevron-up' : 'chevron-down'}
-              size={14}
-              color="grey"
-              style={{ marginLeft: 6 }}
-            />
-          </TouchableOpacity>
-
-          {membersExpanded && (
-            <FlatList
-              data={extendedMembers}
-              keyExtractor={(item, index) => item.userId ? item.userId.toString() : `addButton-${index}`}
-              renderItem={({ item }) => {
-                if (item.type === 'addButton') {
-                  return <AddMemberCard onPress={handleAddMember} />;
-                }
-                const isAdmin = item.role === 'ADMIN';
-                return (
-                  <View style={styles.memberRow}>
-                    <View style={styles.memberInfo}>
-                      <View
-                        style={[
-                          styles.avatarSmall,
-                          { backgroundColor: getAvatarColor(item.username.charAt(0)) }, // Dynamically set the background color
-                        ]}
-                      >
-                        <Text style={styles.avatarInitialMember}>
-                          {item.username.charAt(0).toUpperCase()} {/* Display first letter */}
-                        </Text>
-                      </View>
-                      <Text style={[styles.memberName, isAdmin && styles.adminName]}>
-                        {item.username}
-                      </Text>
-                      {isAdmin && (
-                        <Icon name="shield" size={12} color="#FFD700" style={{ marginLeft: 4 }} />
-                      )}
-                    </View>
-                    {userRoleInGroup === 'ADMIN' && (
-                      <TouchableOpacity
-                        onPress={() => handleRemoveUser(item.userId)}
-                        hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }} // 👈 optional, even bigger touch zone
-                      >
-                        <Icon name="trash" size={18} color="#FF5C5C" />
-                      </TouchableOpacity>
-
-                    )}
-                  </View>
-                );
-              }}
-              ItemSeparatorComponent={() => <View style={styles.separator} />}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-        </View>
-      )}
-
-
       <View style={styles.headerContainer}>
+
         <Text style={styles.headerTitle}>My Todos</Text>
       </View>
 
       <FlatList
-        data={todos}
+        data={filteredTodos}
         keyExtractor={(item, index) => (item?.id ? item.id.toString() : index.toString())} // Check if id exists
         renderItem={({ item }) => (
           <View>
-      
+
             <CollapsibleTodoCard
               todo={item}
               onStatusUpdated={() => fetchTodos(selectedGroupId)} // trigger re-fetch!
@@ -363,7 +305,6 @@ export default function MyTodosScreen() {
           </View>
         )}
       />
-
 
       <GroupListModal
         isVisible={isGroupModalVisible}
@@ -373,22 +314,68 @@ export default function MyTodosScreen() {
         onSelect={handleGroupSelect}
       />
 
-      <GroupCreationModal
-        isVisible={isCreationModalVisible}
-        toggleModal={toggleCreationModal}
-        userId={userId}
-        onGroupCreated={handleGroupCreated}
-      />
 
-      <AddMemberModal
-        isVisible={isAddMemberModalVisible}
-        onClose={() => setIsAddMemberModalVisible(false)}
-        groupId={selectedGroupId}
-        onMemberAdded={() => fetchNewMembers(selectedGroupId)}
-      />
+      <Modal
+        isVisible={isMembersModalVisible}
+        onBackdropPress={toggleMembersModal}
+        style={{ margin: 0, justifyContent: 'flex-end' }}
+      >
+        <View style={{
+          backgroundColor: 'white',
+          padding: 20,
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          maxHeight: '60%',
+        }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>
+            Group Members
+          </Text>
+
+          <FlatList
+            data={extendedMembers}
+            keyExtractor={(item, index) => item.userId ? item.userId.toString() : `addButton-${index}`}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            renderItem={({ item }) => {
+              if (item.type === 'addButton') {
+                return <AddMemberCard onPress={handleAddMember} />;
+              }
+
+              const isAdmin = item.role === 'ADMIN';
+              return (
+                <View style={styles.memberRow}>
+                  <View style={styles.memberInfo}>
+                    <View style={[
+                      styles.avatarSmall,
+                      { backgroundColor: getAvatarColor(item.username.charAt(0)) }
+                    ]}>
+                      <Text style={styles.avatarInitialMember}>
+                        {item.username.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <Text style={[styles.memberName, isAdmin && styles.adminName]}>
+                      {item.username}
+                    </Text>
+                    {isAdmin && (
+                      <Icon name="shield" size={12} color="#FFD700" style={{ marginLeft: 4 }} />
+                    )}
+                  </View>
+
+                  {userRoleInGroup === 'ADMIN' && (
+                    <TouchableOpacity onPress={() => handleRemoveUser(item.userId)}>
+                      <Icon name="trash" size={18} color="#FF5C5C" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            }}
+          />
+        </View>
+      </Modal>
+
     </View>
   );
 }
+
 
 // Your styles remain the same
 const styles = StyleSheet.create({
@@ -499,6 +486,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
   },
+  avatarSmallText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
 
   memberName: {
     fontSize: 14,
@@ -605,5 +598,19 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center', // ⬅️ Also helps center text inside its block
   },
+  avatarsRow: {
+    flexDirection: 'row',
+    marginTop: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  moreAvatar: {
+    backgroundColor: '#ccc',
+    marginLeft: -8,
+    zIndex: 0,
+  },
+
+
 });
 

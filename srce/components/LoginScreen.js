@@ -23,9 +23,16 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const { setUserId, setUsername } = useUser(); // <-- FIXED!
+  const { setUserId, setUsername, setToken, setHasLoggedInOnce } = useUser();
 
   const handleLogin = async () => {
+
+    // Basic frontend check for empty fields
+    if (!inputUsername.trim() || !password.trim()) {
+      setErrorMessage("Invalid username or password.");
+      return;
+    }
+
     try {
       const response = await fetch("http://192.168.50.116:8082/api/user/auth/login", {
         method: "POST",
@@ -50,11 +57,13 @@ const LoginScreen = ({ navigation }) => {
 
         setUserId(userId);           // Update ID globally
         setUsername(decoded.sub);    // Update Username globally!
+        setHasLoggedInOnce(true);
+        setToken(token);
 
         navigation.replace('HomeTabs');
       } else {
-        const data = await response.json();
-        setErrorMessage(data.message || "Invalid login credentials");
+        //const data = await response.json();
+        setErrorMessage("Invalid login credentials");
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -87,7 +96,7 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.label}>Username</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Username"
+                  placeholder="Enter username"
                   keyboardType="default"
                   value={inputUsername}
                   onChangeText={setInputUsername}
@@ -99,9 +108,17 @@ const LoginScreen = ({ navigation }) => {
                 <PasswordInput
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="Enter your password"
+                  placeholder="Enter password"
                 />
               </View>
+
+              <Text
+                style={styles.forgotPassword}
+                onPress={() => navigation.navigate("ForgotPassword")}
+              >
+                Forgot password?
+              </Text>
+
 
               {/* Error Message */}
               {errorMessage ? (
@@ -229,6 +246,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     marginTop: 8,
+  },
+  forgotPassword: {
+    textAlign: "right",
+    color: "#5fc9c9",
+    marginTop: -8,
+    marginBottom: 12,
+    fontWeight: "500",
   },
 });
 

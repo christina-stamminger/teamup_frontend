@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import Modal from 'react-native-modal';
 import * as SecureStore from 'expo-secure-store';
 
@@ -48,7 +48,18 @@ export default function AddMemberModal({ isVisible, onClose, groupId, onMemberAd
           onChangeText={setUsername}
           style={styles.input}
         />
-        <Button title="Add Member" onPress={handleAddMember} />
+
+        <TouchableOpacity
+          style={styles.addMemberButton}
+          onPress={() => {
+            handleAddMember(); // Your custom function
+            // Alert.alert("Member added");
+          }}
+        >
+          <Text style={styles.addMemberText}>Add Member</Text>
+        </TouchableOpacity>
+
+
       </View>
     </Modal>
   );
@@ -71,5 +82,18 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 15,
+  },
+  addMemberButton: {
+    backgroundColor: '#5FC9C9',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+    elevation: 2, // Android
+  },
+  addMemberText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

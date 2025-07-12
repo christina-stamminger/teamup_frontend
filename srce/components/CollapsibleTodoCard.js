@@ -26,7 +26,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
 
 
   // Update PATCH todostatus
-  const updateTodoStatus = async (newStatus = 'In Arbeit') => {
+  const updateTodoStatus = async (newStatus = 'IN_ARBEIT') => {
     try {
       const token = await SecureStore.getItemAsync('authToken');
       const currentTime = new Date().toISOString();  // Get the current time in ISO format
@@ -41,7 +41,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
           todoId: todo.todoId,
           userTakenId: userId,
           status: newStatus,
-          completedAt: newStatus === 'Erledigt' ? currentTime : null,  // Only add completedAt if status is 'Completed'
+          completedAt: newStatus === 'ERLEDIGT' ? currentTime : null,  // Only add completedAt if status is 'Completed'
         }),
       });
 
@@ -169,11 +169,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
               <Text style={styles.detailText}>{todo.description}</Text>
             </View>
 
-            {/* Additional Info - Icon Only */}
-            <View style={styles.detailRow}>
-              <Feather name="info" size={18} color="#4B5563" style={styles.icon} />
-              <Text style={styles.detailText}>{todo.addInfo}</Text>
-            </View>
+      
 
             {!todo.userTakenId && (
               <Text style={styles.userTakenText}>No user has taken this task yet.</Text>
@@ -195,21 +191,21 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
             )}
 
             {/* Take button if open */}
-            {todo.status === 'Offen' && todo.userOfferedId !== userId && (
+            {todo.status === 'OFFEN' && todo.userOfferedId !== userId && (
               <TouchableOpacity
                 style={styles.takeButton}
-                onPress={() => updateTodoStatus('In Arbeit')}
+                onPress={() => updateTodoStatus('IN_ARBEIT')}
               >
                 <Text style={styles.takeButtonText}>I'll bring it</Text>
               </TouchableOpacity>
             )}
 
             {/* Fulfilled & Cancel buttons if already taken */}
-            {todo.userTakenUsername && todo.userTakenId === userId && todo.status === 'In Arbeit' && (
+            {todo.userTakenUsername && todo.userTakenId === userId && todo.status === 'IN_ARBEIT' && (
               <View style={styles.actionButtons}>
                 <TouchableOpacity
                   style={[styles.statusButton, { backgroundColor: '#6BA8D1' }]}
-                  onPress={() => updateTodoStatus('Erledigt')}
+                  onPress={() => updateTodoStatus('ERLEDIGT')}
                 >
                   <Icon name="check" size={16} color="#fff" style={styles.buttonIcon} />
                   <Text style={styles.statusButtonText}>Completed</Text>
@@ -223,7 +219,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
                       'Do you want to give back todo?',
                       [
                         { text: 'No', style: 'cancel' },
-                        { text: 'Yes', onPress: () => updateTodoStatus('Offen') },
+                        { text: 'Yes', onPress: () => updateTodoStatus('OFFEN') },
                       ]
                     )
                   }
@@ -316,11 +312,7 @@ const styles = StyleSheet.create({
     color: '#555',
     marginBottom: 5,
   },
-  addInfo: {
-    fontSize: 14,
-    color: '#777',
-    marginBottom: 5,
-  },
+
   userTakenText: {
     fontSize: 14,
     fontStyle: 'italic',

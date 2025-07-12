@@ -1,12 +1,12 @@
 export const getStatusColor = (status) => {
     switch (status) {
-        case 'Offen':
+        case 'OFFEN':
             return '#5FC994'; // Kind of Green
-          case 'In Arbeit':
+          case 'IN_ARBEIT':
             return '#FFB65C'; // Warm Peach
-          case 'Abgelaufen':
+          case 'ABGELAUFEN':
             return '#404040'; // Dark Gray
-          case 'Erledigt':
+          case 'ERLEDIGT':
             return '#5c7cff'; // Soft Tealish Blue
           default:
             return '#5FC9C9'; // Default Main Color

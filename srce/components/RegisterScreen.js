@@ -7,11 +7,11 @@ import get from "lodash.get";
 // Validation Schema
 const validationSchema = Yup.object({
   address: Yup.object({
-    streetNumber: Yup.string().required("Street number is required."),
-    postalCode: Yup.string()
+    streetNumber: Yup.string()//.required("Street number is required."),
+    ,postalCode: Yup.string()
       .length(4, "Postal Code must be exactly 4 characters long.")
-      .required("Postal Code is required."),
-    city: Yup.string().required("City is required."),
+      //.required("Postal Code is required."),
+    ,city: Yup.string()//.required("City is required."),
   }),
   username: Yup.string().required("Username is required."),
   password: Yup.string().required("Password is required."),
@@ -19,8 +19,8 @@ const validationSchema = Yup.object({
     .matches(
       /^[a-zA-Z\s'-]+$/,
       "First name can only contain letters, spaces, hyphens, and apostrophes."
-    )
-    .required("First name is required."),
+    ),
+   // .required("First name is required."),
   lastName: Yup.string()
     .matches(
       /^[a-zA-Z\s'-]+$/,
@@ -35,7 +35,7 @@ const validationSchema = Yup.object({
   email: Yup.string()
     .email("Please enter a valid email address.")
     .required("Email address is required."),
-  phone: Yup.string().required("Phone number is required."),
+  phone: Yup.string(),
 });
 
 // API request for new user registration
@@ -137,13 +137,13 @@ const RegisterScreen = ({ navigation }) => {
               { name: "username", placeholder: "Username", type: "text" },
               { name: "password", placeholder: "Password", type: "password" },
               { name: "email", placeholder: "Email", type: "email-address" },
-              { name: "firstName", placeholder: "First Name", type: "text" },
+              { name: "firstName", placeholder: "First Name (optional)", type: "text" },
               { name: "lastName", placeholder: "Last Name", type: "text" },
               { name: "dateOfBirth", placeholder: "Date of Birth", type: "date", hint: "Format: YYYY-MM-DD" },
-              { name: "phone", placeholder: "Phone Number", type: "phone-pad" },
-              { name: "address.streetNumber", placeholder: "Street & Number", type: "text" },
-              { name: "address.postalCode", placeholder: "Postal Code", type: "numeric" },
-              { name: "address.city", placeholder: "City", type: "text" },
+              { name: "phone", placeholder: "Phone Number (optional)", type: "phone-pad" },
+              { name: "address.streetNumber", placeholder: "Street & Number (optional)", type: "text" },
+              { name: "address.postalCode", placeholder: "Postal Code (optional)", type: "numeric" },
+              { name: "address.city", placeholder: "City (optional)", type: "text" },
             ].map(({ name, placeholder, type, hint }) => {
               const fieldError = get(formik.errors, name);
               const fieldTouched = get(formik.touched, name);

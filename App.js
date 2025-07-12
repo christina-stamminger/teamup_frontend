@@ -1,25 +1,55 @@
-import React from "react";
+import React, { useEffect } from "react";
 import AppNavigator from "./srce/components/AppNavigator"; // Fix path if needed
-import { UserProvider } from "./srce/components/context/UserContext"; // Fix path if needed
+import { UserProvider } from "./srce/components/context/UserContext";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Toast from 'react-native-toast-message'; // instead of alerts, short messages
-import { toastConfig } from './srce/config/toastConfig'; // import your custom config
-import { BackHandler } from 'react-native'; // DELETE asap error does not occur anymore
+import Toast from 'react-native-toast-message';
+import { toastConfig } from './srce/config/toastConfig';
+import { BackHandler, Linking } from 'react-native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
+import { linking } from './srce/components/AppNavigator'; // <-- export linking from AppNavigator.js
 
-// DELETE asap error does not occur anymore
+
 export default function App() {
+  const navigationRef = useNavigationContainerRef();
 
+  // Remove deprecated listener warning (temporary)
   BackHandler.removeEventListener = (...args) => {
-    console.warn('🚨 DEPRECATED BackHandler.removeEventListener used!', args);
+    console.warn('DEPRECATED BackHandler.removeEventListener used!', args);
   };
 
+  // Handle deep linking
+  useEffect(() => {
+    const handleDeepLink = (event) => {
+      const url = event?.url;
+      if (!url) return;
+
+      const parsed = Linking.parse(url);
+      const token = parsed?.queryParams?.token;
+
+      if (url.includes("reset-password") && token) {
+        navigationRef.current?.navigate("ResetPassword", { token });
+      }
+    };
+
+    // Listen for future deep links
+    const subscription = Linking.addEventListener("url", handleDeepLink);
+
+    // Handle initial launch via deep link
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink({ url });
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   return (
-    // Wrap with both UserProvider and TodosProvider to share user and todo state across the app
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <UserProvider>
-        <AppNavigator />
-       <Toast config={toastConfig} />
-    </UserProvider>
+      <UserProvider>
+        <NavigationContainer ref={navigationRef} linking={linking}>
+          <AppNavigator />
+        </NavigationContainer>
+        <Toast config={toastConfig} />
+      </UserProvider>
     </GestureHandlerRootView>
   );
 }

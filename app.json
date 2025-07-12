@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "hello-world",
-    "slug": "hello-world",
+    "name": "bringit",
+    "slug": "bringit",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,9 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourcompany.bringit"
     },
     "android": {
+      "package": "com.yourcompany.bringit",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -26,6 +28,12 @@
     },
     "plugins": [
       "expo-secure-store"
+    ],
+    "scheme": "bringit",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
     ]
   }
 }

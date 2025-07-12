@@ -11,19 +11,25 @@ export const UserProvider = ({ children }) => {
   const [username, setUsername] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
+  const [hasLoggedInOnce, setHasLoggedInOnce] = useState(false);
 
+  /**
+   * Lädt User-Daten aus SecureStore + decodiert token
+   * Setzt userId, username und token im Context.
+   */
   const loadUserData = async () => {
     try {
-      const token = await SecureStore.getItemAsync("authToken");
+      const storedToken = await SecureStore.getItemAsync("authToken");
       const storedUserId = await SecureStore.getItemAsync("userId");
-      
+
       if (storedUserId) {
         setUserId(storedUserId);
+        setHasLoggedInOnce(true); // ✅ Wichtig: Session flag korrekt setzen!
       }
 
-      if (token) {
-        setToken(token)
-        const decoded = jwtDecode(token);
+      if (storedToken) {
+        setToken(storedToken);
+        const decoded = jwtDecode(storedToken);
         if (decoded.sub) {
           setUsername(decoded.sub);
         }
@@ -35,31 +41,56 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // expose reloadUser to be called after login
+  /**
+   * Für manuelles Neuladen nach Login
+   */
   const reloadUser = async () => {
     setLoading(true);
     await loadUserData();
   };
 
+  /**
+   * Bei Logout alles löschen
+   */
   const logoutUser = async () => {
     try {
       await SecureStore.deleteItemAsync("authToken");
       await SecureStore.deleteItemAsync("userId");
-
       setUserId(null);
       setUsername(null);
+      setToken(null);
+      setHasLoggedInOnce(false);
       setLoading(false);
     } catch (error) {
       console.error("Error during logout:", error);
     }
   };
 
+  /**
+   * ✅ Nur EIN useEffect reicht völlig.
+   * Der zweite mit `[hasLoggedInOnce]` ist überflüssig,
+   * da du eh `loadUserData` beim ersten Mount aufrufst.
+   */
   useEffect(() => {
     loadUserData();
   }, []);
 
   return (
-    <UserContext.Provider value={{ userId, setUserId, token, setToken, username, setUsername, logoutUser, reloadUser, loading }}>
+    <UserContext.Provider
+      value={{
+        userId,
+        setUserId,
+        token,
+        setToken,
+        username,
+        setUsername,
+        logoutUser,
+        reloadUser,
+        loading,
+        hasLoggedInOnce,
+        setHasLoggedInOnce,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

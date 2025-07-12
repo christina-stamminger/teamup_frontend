@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { TouchableOpacity } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Home, ClipboardList, PlusCircle, Users } from "lucide-react-native";
+import { Home, ClipboardList, PlusCircle, Users, User2Icon } from "lucide-react-native";
 import MyTodosScreen from "../components/MyTodosScreen";
 import OpenTodosScreen from "../components/OpenTodosScreen";
 import CreateTodoScreen from "../components/CreateTodoScreen";
@@ -10,8 +10,8 @@ import GroupCreationModal from "./GroupCreationModal";
 import ProfileScreen from "../components/ProfileScreen"
 import { jwtDecode } from "jwt-decode";
 import * as SecureStore from "expo-secure-store";
-
 import { useUser } from "../components/context/UserContext"; // Import the useUser hook for userID, create context to make it globally accessible
+import MyGroups from "../components/MyGroups";
 
 
 const Tab = createBottomTabNavigator();
@@ -117,7 +117,7 @@ export default function BottomTabsNavigator({ navigation }) {
             <TouchableOpacity     
             onPress={() => navigation.navigate("ProfileScreen")}
             style={{ marginLeft: 16 }}>
-              <Users size={24} color="#5fc9c9" />
+              <User2Icon size={24} color="#5fc9c9" />
             </TouchableOpacity>
           ),
           headerTitle: username ? `Hi, ${username}` : "Loading...",
@@ -127,6 +127,7 @@ export default function BottomTabsNavigator({ navigation }) {
         <Tab.Screen name="MyTodos" component={MyTodosScreen} options={{ tabBarIcon: ({ color }) => <Home size={24} color={color} /> }} />
         <Tab.Screen name="OpenTodos" component={OpenTodosScreen} options={{ tabBarIcon: ({ color }) => <ClipboardList size={24} color={color} /> }} />
         <Tab.Screen name="CreateTodo" component={CreateTodoScreen} options={{ tabBarIcon: ({ color }) => <PlusCircle size={24} color={color} /> }} />
+        <Tab.Screen name="MyGroups" component={MyGroups} options={{ tabBarIcon: ({ color }) => <Users size={24} color={color} /> }} />
 
       </Tab.Navigator>
 
