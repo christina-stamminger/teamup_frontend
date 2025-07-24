@@ -2,19 +2,19 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
+  ScrollView,
+  Pressable,
   Keyboard,
+  TouchableOpacity,
+  TouchableWithoutFeedback
 } from "react-native";
-import { Handshake } from "lucide-react-native"; // Lucide-react-native library for icons
+import { Handshake } from "lucide-react-native";
+import UsernameInput from "./UsernameInput";
 import PasswordInput from "./PasswordInput";
-//import Keychain from "react-native-keychain"; // Import Keychain to store token securely
 import * as SecureStore from 'expo-secure-store';
-//import jwt_decode from 'jwt-decode';
 import { jwtDecode } from 'jwt-decode';
 import { useUser } from '../components/context/UserContext';
 
@@ -26,8 +26,6 @@ const LoginScreen = ({ navigation }) => {
   const { setUserId, setUsername, setToken, setHasLoggedInOnce } = useUser();
 
   const handleLogin = async () => {
-
-    // Basic frontend check for empty fields
     if (!inputUsername.trim() || !password.trim()) {
       setErrorMessage("Invalid username or password.");
       return;
@@ -46,23 +44,20 @@ const LoginScreen = ({ navigation }) => {
       if (response.ok) {
         const data = await response.json();
         const { token } = data;
-
         const decoded = jwtDecode(token);
-
         const userId = decoded.userId ?? decoded.sub;
         if (!userId) throw new Error("User ID not found in token");
 
         await SecureStore.setItemAsync('authToken', token);
         await SecureStore.setItemAsync('userId', userId.toString());
 
-        setUserId(userId);           // Update ID globally
-        setUsername(decoded.sub);    // Update Username globally!
-        setHasLoggedInOnce(true);
+        setUserId(userId);
+        setUsername(decoded.sub);
         setToken(token);
+        setHasLoggedInOnce(true);
 
         navigation.replace('HomeTabs');
       } else {
-        //const data = await response.json();
         setErrorMessage("Invalid login credentials");
       }
     } catch (error) {
@@ -73,12 +68,21 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.inner}>
-          {/* Logo and Name */}
+      <Pressable
+        style={{ flex: 1 }}
+        onPress={() => {
+          console.log("Background tapped → dismissing keyboard");
+          Keyboard.dismiss();
+        }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.inner}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Logo */}
           <View style={styles.logoContainer}>
             <View style={styles.iconContainer}>
               <Handshake size={40} color="#fff" />
@@ -86,20 +90,17 @@ const LoginScreen = ({ navigation }) => {
             <Text style={styles.appName}>BringIt</Text>
           </View>
 
-          {/* Card for Login/Register */}
+          {/* Card */}
           <View style={styles.card}>
             <Text style={styles.title}>Welcome to BringIt</Text>
 
-            {/* Input Fields */}
             <View style={styles.form}>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Username</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter username"
-                  keyboardType="default"
+                <UsernameInput
                   value={inputUsername}
                   onChangeText={setInputUsername}
+                  placeholder="Enter username"
                 />
               </View>
 
@@ -119,24 +120,19 @@ const LoginScreen = ({ navigation }) => {
                 Forgot password?
               </Text>
 
-
-              {/* Error Message */}
               {errorMessage ? (
                 <Text style={styles.errorText}>{errorMessage}</Text>
               ) : null}
 
-              <TouchableOpacity
-                style={styles.button}
-                onPress={handleLogin}
-              >
+              <TouchableOpacity style={styles.button} onPress={handleLogin}>
                 <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>
 
               <Text style={styles.registerText}>
-                Don’t have an account?{' '}
+                Don’t have an account?{" "}
                 <Text
                   style={styles.registerLink}
-                  onPress={() => navigation.navigate('Register')}
+                  onPress={() => navigation.navigate("Register")}
                 >
                   Register here
                 </Text>
@@ -144,115 +140,87 @@ const LoginScreen = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Footer */}
           <Text style={styles.footer}>© 2025 BringIt. All rights reserved.</Text>
-        </View>
-      </TouchableWithoutFeedback>
+        </ScrollView>
+      </Pressable>
     </KeyboardAvoidingView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#EAEAEA",
-  },
+  container: { flex: 1 },
   inner: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
-    alignItems: "center",
-    padding: 16,
+    padding: 30,
   },
   logoContainer: {
-    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 30,
   },
   iconContainer: {
-    backgroundColor: "#5fc9c9",
-    padding: 12,
+    backgroundColor: "#5FC9C9",
+    padding: 20,
     borderRadius: 50,
-    marginRight: 12,
   },
   appName: {
-    fontSize: 32,
+    marginTop: 10,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#2A4D4D",
   },
   card: {
-    width: "100%",
-    maxWidth: 400,
-    backgroundColor: "#FFFFFF",
-    padding: 24,
+    backgroundColor: "#f9f9f9",
     borderRadius: 8,
-    elevation: 5,
+    padding: 20,
+    elevation: 3,
   },
   title: {
     fontSize: 20,
-    fontWeight: "600",
-    color: "#2A4D4D",
+    marginBottom: 20,
     textAlign: "center",
-    marginBottom: 16,
+    color: "#404040"
   },
-  form: {
-    marginTop: 16,
-  },
+  form: {},
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 15,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#4A7070",
+    marginBottom: 5,
+    color: "#404040",
   },
-  input: {
-    height: 48,
-    borderColor: "#5fc9c9",
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    marginTop: 8,
-  },
-  button: {
-    backgroundColor: "#5fc9c9",
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 16,
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  registerText: {
-    textAlign: "center",
-    fontSize: 14,
-    color: "#4A7070",
-    marginTop: 16,
-  },
-  registerLink: {
-    color: "#5fc9c9",
-    fontWeight: "600",
-  },
-  footer: {
-    marginTop: 32,
-    fontSize: 12,
-    color: "#4A7070",
+  forgotPassword: {
+    marginTop: 1,
+    textAlign: "right",
+    color: "#5FC9C9",
   },
   errorText: {
     color: "red",
-    fontSize: 14,
+    marginVertical: 10,
     textAlign: "center",
-    marginTop: 8,
   },
-  forgotPassword: {
-    textAlign: "right",
-    color: "#5fc9c9",
-    marginTop: -8,
-    marginBottom: 12,
-    fontWeight: "500",
+  button: {
+    backgroundColor: "#5FC9C9",
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  registerText: {
+    marginTop: 15,
+    textAlign: "center",
+  },
+  registerLink: {
+    color: "#5FC9C9",
+    fontWeight: "bold",
+  },
+  footer: {
+    textAlign: "center",
+    marginTop: 20,
+    color: "#888",
   },
 });
 

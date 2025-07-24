@@ -7,11 +7,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
-//import { useUser } from '../components/context/UserContext';
 import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import * as SecureStore from 'expo-secure-store';
 import { useUser } from './context/UserContext';
 
 const ProfileScreen = () => {
@@ -33,12 +33,12 @@ const ProfileScreen = () => {
   });
 
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (userContextLoading) return; // wait for user context to load
-    console.log(userContextLoading)
+
     if (!token || !userId) {
-      console.warn(token, 'Token or userId missing after context load');
       Alert.alert('Error', 'Session data missing. Please log in again.');
       return;
     }
@@ -46,13 +46,16 @@ const ProfileScreen = () => {
     const fetchUserProfile = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://192.168.50.116:8082/api/users/profile/${userId}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        const response = await fetch(
+          `http://192.168.50.116:8082/api/users/profile/${userId}`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
 
         if (response.ok) {
           const data = await response.json();
@@ -83,6 +86,47 @@ const ProfileScreen = () => {
     fetchUserProfile();
   }, [userContextLoading, userId, token]);
 
+  const handleSave = async () => {
+    setSaving(true);
+
+    try {
+      const response = await fetch('http://192.168.50.116:8082/api/user', {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          // Only sending address fields for now — add more if needed
+          address: {
+            streetNumber: userDetails.address.streetNumber,
+            postalCode: userDetails.address.postalCode,
+            city: userDetails.address.city,
+          },
+          // If you want to allow updating other fields, add them here
+          // firstName: userDetails.firstName,
+          // lastName: userDetails.lastName,
+          // email: userDetails.email,
+          // etc.
+        }),
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', 'Profile saved successfully!');
+      } else {
+        const errData = await response.json();
+        const msg = errData.errors?.join('\n') || 'Failed to save profile.';
+        Alert.alert('Error', msg);
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      Alert.alert('Error', 'There was an issue saving your profile.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading || userContextLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -93,72 +137,90 @@ const ProfileScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeAreaContainer}>
-      <View style={styles.container}>
-        <Text style={styles.header}>User Profile</Text>
+ <KeyboardAvoidingView
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    style={styles.container}
+  >
+    <ScrollView
+      contentContainerStyle={styles.scrollViewContainer}
+      keyboardShouldPersistTaps="handled"   // ← THIS IS THE FIX
+    >
+        <View style={styles.container}>
+          <Text style={styles.header}>User Profile</Text>
 
-        <View style={styles.infoContainer}>
-          <LabelValue label="Username" value={userDetails.username} />
-          <LabelValue label="First Name" value={userDetails.firstName} />
-          <LabelValue label="Last Name" value={userDetails.lastName} />
-          <LabelValue label="Date of Birth" value={userDetails.dateOfBirth} />
-          <LabelValue label="Email" value={userDetails.email} />
-          <LabelValue label="Password" value={userDetails.password} />
+          <View style={styles.infoContainer}>
+            <LabelValue label="Username" value={userDetails.username} />
+            <LabelValue label="First Name" value={userDetails.firstName} />
+            <LabelValue label="Last Name" value={userDetails.lastName} />
+            <LabelValue label="Date of Birth" value={userDetails.dateOfBirth} />
+            <LabelValue label="Email" value={userDetails.email} />
+            <LabelValue label="Password" value={userDetails.password} />
 
-          <Text style={styles.label}>Street and Number:</Text>
-          <TextInput
-            style={styles.input}
-            value={userDetails.address.streetNumber}
-            onChangeText={(val) =>
-              setUserDetails((prev) => ({
-                ...prev,
-                address: { ...prev.address, streetNumber: val },
-              }))
-            }
-          />
+            <Text style={styles.label}>Street and Number:</Text>
+            <TextInput
+              style={styles.input}
+              value={userDetails.address.streetNumber}
+              onChangeText={(val) =>
+                setUserDetails((prev) => ({
+                  ...prev,
+                  address: { ...prev.address, streetNumber: val },
+                }))
+              }
+              editable={!saving}
+            />
 
-          <Text style={styles.label}>Postal Code:</Text>
-          <TextInput
-            style={styles.input}
-            value={userDetails.address.postalCode}
-            onChangeText={(val) =>
-              setUserDetails((prev) => ({
-                ...prev,
-                address: { ...prev.address, postalCode: val },
-              }))
-            }
-          />
+            <Text style={styles.label}>Postal Code:</Text>
+            <TextInput
+              style={styles.input}
+              value={userDetails.address.postalCode}
+              onChangeText={(val) =>
+                setUserDetails((prev) => ({
+                  ...prev,
+                  address: { ...prev.address, postalCode: val },
+                }))
+              }
+              editable={!saving}
+              keyboardType="numeric"
+            />
 
-          <Text style={styles.label}>City:</Text>
-          <TextInput
-            style={styles.input}
-            value={userDetails.address.city}
-            onChangeText={(val) =>
-              setUserDetails((prev) => ({
-                ...prev,
-                address: { ...prev.address, city: val },
-              }))
-            }
-          />
+            <Text style={styles.label}>City:</Text>
+            <TextInput
+              style={styles.input}
+              value={userDetails.address.city}
+              onChangeText={(val) =>
+                setUserDetails((prev) => ({
+                  ...prev,
+                  address: { ...prev.address, city: val },
+                }))
+              }
+              editable={!saving}
+            />
+          </View>
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.saveButton, saving && styles.disabledButton]}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>Save Profile</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              disabled={saving}
+            >
+              <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={() => Alert.alert('Profile saved')}
-          >
-            <Text style={styles.saveButtonText}>Save Profile</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </SafeAreaView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -170,9 +232,10 @@ const LabelValue = ({ label, value }) => (
 );
 
 const styles = StyleSheet.create({
-  safeAreaContainer: {
-    flex: 1,
-    backgroundColor: '#f4f4f9',
+  scrollViewContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingBottom: 20,
   },
   container: {
     flex: 1,
@@ -205,7 +268,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   buttonContainer: {
-    gap: 10,
+    marginBottom: 10,
     marginTop: 20,
   },
   saveButton: {
@@ -213,6 +276,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    marginBottom: 10, //gap /margin between save and back button
+  },
+  disabledButton: {
+    backgroundColor: '#a0d6d6',
   },
   saveButtonText: {
     color: '#fff',
