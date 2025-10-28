@@ -19,7 +19,7 @@ const PasswordInput = ({ value, onChangeText, placeholder, onSubmitEditing }) =>
         onSubmitEditing={onSubmitEditing}
       />
       <TouchableOpacity onPress={() => setSecure(!secure)}>
-        {secure ? <EyeOff size={24} color="gray" /> : <Eye size={24} color="gray" />}
+        {secure ? <Eye size={24} color="gray" /> : <EyeOff size={24} color="gray" />}
       </TouchableOpacity>
     </View>
   );
@@ -30,11 +30,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#5FC9C9",
     borderRadius: 8,
+    borderColor: "#ccc",
     paddingHorizontal: 12,
     height: 48,
     marginTop: 8,
+    backgroundColor: "#fff",
   },
   input: {
     flex: 1,

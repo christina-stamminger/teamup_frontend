@@ -56,7 +56,7 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
 
     return (
         <View style={{ flex: 1, marginTop: 30, alignItems: 'center' }}>
-        
+
 
             <FlatList
                 data={groupListData}
@@ -73,32 +73,44 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
                         return (
                             <TouchableOpacity
                                 style={styles.createGroupCard}
-                                onPress={toggleCreationModal} // your modal toggle function
+                                onPress={toggleCreationModal}
                             >
                                 <Icon name="plus" size={14} color="#5fc9c9" />
                             </TouchableOpacity>
                         );
-                    } else {
-                        return (
-                            <TouchableOpacity
-                                style={[
-                                    styles.groupCard,
-                                    selectedGroupId === item.groupId && styles.selectedGroupCard,
-                                ]}
-                                onPress={() => handleGroupSelect(item.groupId)}
-                            >
-                                <View style={[styles.avatar, styles.groupAvatar, { backgroundColor: '#e0e0e0' }]}>
-                                    <Text style={styles.avatarInitialGroup}>
-                                        {item.groupName.charAt(0).toUpperCase()}
-                                    </Text>
-                                </View>
-                                <Text style={styles.groupName} numberOfLines={1}>
-                                    {item.groupName}
-                                </Text>
-                            </TouchableOpacity>
-                        );
                     }
+
+                    const isAdmin = item.role === 'ADMIN';
+
+                    return (
+                        <TouchableOpacity
+                            style={[
+                                styles.groupCard,
+                                selectedGroupId === item.groupId && styles.selectedGroupCard,
+                            ]}
+                            onPress={() => handleGroupSelect(item.groupId)}
+                        >
+                            {/* Avatar + optional Shield-Badge */}
+                            <View style={[styles.avatar, { backgroundColor: '#e0e0e0' }]}>
+                                <Text style={styles.avatarInitialGroup}>
+                                    {item.groupName.charAt(0).toUpperCase()}
+                                </Text>
+
+                                {isAdmin && (
+                                    <View style={styles.adminBadge}>
+                                        <Icon name="shield" size={16} color="#FFD700" />
+                                    </View>
+                                )}
+                            </View>
+
+                            {/* Gruppenname bleibt clean */}
+                            <Text style={styles.groupName} numberOfLines={1}>
+                                {item.groupName}
+                            </Text>
+                        </TouchableOpacity>
+                    );
                 }}
+
                 ItemSeparatorComponent={() => <View style={{ width: 10 }} />} // Add space between rows
             />
 
@@ -165,4 +177,37 @@ const styles = StyleSheet.create({
         color: '#00ACC1',
         fontWeight: 'bold',
     },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    adminBadgeAvatar: {
+        position: 'absolute',
+        bottom: 2,
+        right: 2,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        padding: 2,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowOffset: { width: 0, height: 1 },
+        shadowRadius: 1,
+    },
+    adminBadge: {
+    position: 'absolute',
+    bottom: -2, // leicht über Rand
+    right: -2,
+    
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 3,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+},
 });

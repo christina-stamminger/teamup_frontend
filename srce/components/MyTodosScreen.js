@@ -8,7 +8,7 @@ import Modal from 'react-native-modal';
 import GroupCreationModal from "../components/GroupCreationModal";
 import AddMemberCard from '../components/AddMemberCard';
 import AddMemberModal from '../components/AddMemberModal';
-import { useIsFocused } from '@react-navigation/native'; // for handling screen focus changes
+import { useIsFocused, useFocusEffect } from '@react-navigation/native'; // for handling screen focus changes
 import GroupListModal from '../components/GroupListModal'
 import { getAvatarColor } from '../utils/getAvatarColor';
 import Toast from 'react-native-toast-message'; // toast: for short messages intead of alert
@@ -65,6 +65,13 @@ export default function MyTodosScreen() {
 
   // Fetch groups on user change
   useEffect(() => { fetchGroups(); }, [userId]);
+
+  // fetch groups on screen focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchGroups(); // lädt immer die aktuellen Gruppen
+    }, [])
+  );
 
   // Fetch todos - screen focus changes 
   const isFocused = useIsFocused(); // isFocused becomes true when screen is active

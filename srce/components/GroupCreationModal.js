@@ -7,7 +7,7 @@ export default function GroupCreationModal({
   isVisible,
   toggleModal,
   userId,
-  onGroupCreated, // New callback
+  onGroupCreated,
 }) {
   const [groupName, setGroupName] = useState('');
   const [description, setDescription] = useState('');
@@ -35,25 +35,26 @@ export default function GroupCreationModal({
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to create group');
+        // Spezifische Fehlermeldung vom Backend
+        const message = data?.error || 'Failed to create group';
+        throw new Error(message);
       }
 
-      const newGroup = await response.json();
-      console.log('Group created:', newGroup);
+      console.log('Group created:', data);
 
-      // Call the parent callback with the new group
       if (onGroupCreated) {
-        onGroupCreated(newGroup);
+        onGroupCreated(data);
       }
 
-      // Reset fields and close modal
       setGroupName('');
       setDescription('');
       toggleModal();
     } catch (error) {
-      console.error('Error creating group:', error);
-      Alert.alert('Error', 'Failed to create group. Please try again.');
+      console.error('Error creating group:', error); // Für Debugging in der Konsole
+      Alert.alert('Error', error.message);           // Userfreundliche Meldung
     } finally {
       setLoading(false);
     }
@@ -78,7 +79,7 @@ export default function GroupCreationModal({
           multiline
         />
         <TouchableOpacity
-          style={styles.createButton}
+          style={[styles.createButton, loading && { opacity: 0.6 }]}
           onPress={handleCreateGroup}
           disabled={loading}
         >
@@ -91,19 +92,12 @@ export default function GroupCreationModal({
   );
 }
 
-
 const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: 'white',
     padding: 20,
     borderRadius: 10,
     alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
   },
   input: {
     width: '100%',

@@ -1,26 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { View, TextInput, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import get from "lodash.get";
+import { Eye, EyeOff } from "lucide-react-native";
+import { Handshake } from "lucide-react-native";
+
 
 // Validation Schema
+// MVP: Validation Schema - nur 3 Felder
 const validationSchema = Yup.object({
-  address: Yup.object({
-    streetNumber: Yup.string()//.required("Street number is required."),
-    ,postalCode: Yup.string()
-      .length(4, "Postal Code must be exactly 4 characters long.")
-      //.required("Postal Code is required."),
-    ,city: Yup.string()//.required("City is required."),
-  }),
   username: Yup.string().required("Username is required."),
-  password: Yup.string().required("Password is required."),
+  email: Yup.string()
+    .email("Please enter a valid email address.")
+    .required("Email address is required."),
+  password: Yup.string()
+    .min(8, "Password must be at least 8 characters.")
+    .required("Password is required."),
+
+  // MVP: Auskommentiert - werden später im Profil editiert
+  /*
+  address: Yup.object({
+    streetNumber: Yup.string(),
+    postalCode: Yup.string().length(4, "Postal Code must be exactly 4 characters long."),
+    city: Yup.string(),
+  }),
   firstName: Yup.string()
     .matches(
       /^[a-zA-Z\s'-]+$/,
       "First name can only contain letters, spaces, hyphens, and apostrophes."
     ),
-   // .required("First name is required."),
   lastName: Yup.string()
     .matches(
       /^[a-zA-Z\s'-]+$/,
@@ -32,10 +41,8 @@ const validationSchema = Yup.object({
     .test("age", "You must be at least 12 years old", function (value) {
       return value && new Date().getFullYear() - value.getFullYear() >= 12;
     }),
-  email: Yup.string()
-    .email("Please enter a valid email address.")
-    .required("Email address is required."),
   phone: Yup.string(),
+  */
 });
 
 // API request for new user registration
@@ -72,33 +79,52 @@ const postNewUser = async (userData) => {
 const RegisterScreen = ({ navigation }) => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [registrationMessage, setRegistrationMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // Password visibility
+
+  // ✅ FIX: useCallback für toggle
+  const togglePasswordVisibility = useCallback(() => {
+    setShowPassword(prev => {
+      console.log('Toggle password from', prev, 'to', !prev); // DEBUG
+      return !prev;
+    });
+  }, []);
 
   const formik = useFormik({
     initialValues: {
+      username: "",
+      email: "",
+      password: "",
+
+      // MVP: Auskommentiert
+      /*
       address: {
         streetNumber: "",
         postalCode: "",
         city: "",
       },
-      username: "",
-      password: "",
       firstName: "",
       lastName: "",
       dateOfBirth: "",
-      email: "",
       phone: "",
+      */
     },
     validationSchema: validationSchema,
     onSubmit: async (values) => {
-      const { success, message } = await postNewUser(values);
+      // MVP: Nur 3 Felder senden
+      const userData = {
+        username: values.username,
+        email: values.email,
+        password: values.password,
+      };
+
+      const { success, message } = await postNewUser(userData);
       if (success) {
         setIsSubmitted(true);
       } else {
-        setRegistrationMessage(message); // Set registration error message
+        setRegistrationMessage(message);
       }
     },
   });
-
   const handleBackButton = () => {
     navigation.goBack();
   };
@@ -129,14 +155,30 @@ const RegisterScreen = ({ navigation }) => {
       behavior={Platform.OS === "ios" ? "padding" : "height"} // Adjust for iOS and Android
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollViewContainer}>
+      <ScrollView contentContainerStyle={styles.scrollViewContainer}
+
+        keyboardShouldPersistTaps="handled" // ← THIS IS THE FIX
+      >
+
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <View style={styles.iconContainer}>
+            <Handshake size={40} color="#fff" />
+          </View>
+          <Text style={styles.appName}>BringIt</Text>
+        </View>
+
         <View style={styles.formWrapper}>
           <Text style={styles.title}>Register</Text>
           <View style={styles.form}>
+            {/* MVP: Nur noch 3 Felder */}
             {[
               { name: "username", placeholder: "Username", type: "text" },
-              { name: "password", placeholder: "Password", type: "password" },
               { name: "email", placeholder: "Email", type: "email-address" },
+              { name: "password", placeholder: "Password", type: "password" },
+
+              // MVP: Auskommentiert - werden später im Profil editiert
+              /*
               { name: "firstName", placeholder: "First Name (optional)", type: "text" },
               { name: "lastName", placeholder: "Last Name", type: "text" },
               { name: "dateOfBirth", placeholder: "Date of Birth", type: "date", hint: "Format: YYYY-MM-DD" },
@@ -144,10 +186,48 @@ const RegisterScreen = ({ navigation }) => {
               { name: "address.streetNumber", placeholder: "Street & Number (optional)", type: "text" },
               { name: "address.postalCode", placeholder: "Postal Code (optional)", type: "numeric" },
               { name: "address.city", placeholder: "City (optional)", type: "text" },
+              */
             ].map(({ name, placeholder, type, hint }) => {
               const fieldError = get(formik.errors, name);
               const fieldTouched = get(formik.touched, name);
 
+              // 👉 Passwortfeld bekommt Icon
+              if (name === "password") {
+                return (
+                  <View key={name} style={styles.inputContainer}>
+                    <View style={styles.passwordContainer}>
+                      <TextInput
+                        style={styles.passwordInput}
+                        name={name}
+                        placeholder={placeholder}
+                        value={get(formik.values, name)}
+                        onChangeText={formik.handleChange(name)}
+                        onFocus={() => console.log("PASSWORD got focus")}
+                        onBlur={formik.handleBlur(name)}
+                        secureTextEntry={!showPassword}
+                        autoCapitalize="none" // ← WICHTIG für Password!
+                      />
+                      <TouchableOpacity
+                        onPress={togglePasswordVisibility}
+                        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                        activeOpacity={0.7}
+                        style={styles.eyeButton}
+                      >
+                        {showPassword ? (
+                          <EyeOff size={22} color="#666" />
+                        ) : (
+                          <Eye size={22} color="#666" />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                    {fieldTouched && fieldError && (
+                      <Text style={styles.error}>{fieldError}</Text>
+                    )}
+                  </View>
+                );
+              }
+
+              // 👉 alle anderen Felder bleiben wie gehabt
               return (
                 <View key={name} style={styles.inputContainer}>
                   <TextInput
@@ -161,17 +241,22 @@ const RegisterScreen = ({ navigation }) => {
                     secureTextEntry={type === "password"}
                   />
                   {hint && <Text style={styles.hint}>{hint}</Text>}
-                  {fieldTouched && fieldError && <Text style={styles.error}>{fieldError}</Text>}
+                  {fieldTouched && fieldError && (
+                    <Text style={styles.error}>{fieldError}</Text>
+                  )}
                 </View>
               );
             })}
-            {registrationMessage && <Text style={styles.error}>{registrationMessage}</Text>}
+
+            {registrationMessage && (
+              <Text style={styles.error}>{registrationMessage}</Text>
+            )}
 
             <TouchableOpacity style={styles.button} onPress={formik.handleSubmit}>
               <Text style={styles.buttonText}>Register</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={handleBackButton}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBackButton}>
               <Text style={styles.buttonText}>Back</Text>
             </TouchableOpacity>
           </View>
@@ -190,7 +275,7 @@ const styles = StyleSheet.create({
   scrollViewContainer: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingBottom: 20, // padding to allow scrolling when the keyboard is visible
+    paddingBottom: 20,
   },
   formWrapper: {
     alignItems: "center",
@@ -206,24 +291,53 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 15,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    height: 48,
+
   },
   input: {
-    height: 40,
+    height: 48,
     borderColor: "#ccc",
     borderWidth: 1,
-    borderRadius: 5,
+    borderRadius: 8,
     paddingLeft: 10,
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingRight: 10,
+  },
+  passwordInput: {
+    flex: 1,
+    height: 48,
+    paddingLeft: 10,
+  },
+  eyeIconButton: {
+    padding: 8, // ← größerer Touch-Bereich
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   button: {
     backgroundColor: "#5FC9C9",
     padding: 10,
     marginVertical: 10,
-    borderRadius: 5,
+    borderRadius: 8,
     alignItems: "center",
   },
   buttonText: {
     color: "#fff",
     fontSize: 16,
+  },
+  backButton: {
+    backgroundColor: "#e0e0e0",
+    padding: 10,
+    marginVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
   },
   error: {
     color: "red",
@@ -248,8 +362,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
     marginTop: 4,
-  }
-  
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 30,
+  },
+  iconContainer: {
+    backgroundColor: "#5FC9C9",
+    padding: 20,
+    borderRadius: 50,
+  },
 });
 
 export default RegisterScreen;

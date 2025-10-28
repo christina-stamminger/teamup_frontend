@@ -13,48 +13,50 @@ import {
     ScrollView,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { useUser } from "../components/context/UserContext";  // Assuming useUser is a custom hook to get user data
+import { useUser } from "../components/context/UserContext";
 import { Dropdown } from 'react-native-element-dropdown';
 import { MaskedTextInput } from 'react-native-mask-text';
-import Toast from 'react-native-toast-message'; // toast: for short messages intead of alert
-import { useFocusEffect } from '@react-navigation/native'; // useFocusEffect importieren, läuft jedes mal wenn screen wieder aktiv wird
-
-
+import Toast from 'react-native-toast-message';
+import { useFocusEffect } from '@react-navigation/native';
+import { ChevronDown, ChevronUp } from 'lucide-react-native'; // ← Icons für Collapse
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 export default function CreateTodoScreen() {
-    const [title, setTitle] = useState('');
-    const [location, setLocation] = useState('');
-    const [description, setDescription] = useState('');
-    const [addInfo, setAddInfo] = useState('');
-    const [uploadPath, setUploadPath] = useState('');
-    const [expiresAt, setExpiresAt] = useState('');
+    const [title, setTitle] = useState("");
+    const [expiresAt, setExpiresAt] = useState("");
     const [groupId, setGroupId] = useState(null);
     const [groups, setGroups] = useState([]);
 
-    // Use the context to get the user ID
-    const { userId } = useUser(); // Access userId directly from the context
+    const [description, setDescription] = useState("");
+    const [showDescription, setShowDescription] = useState(false);
 
-    // Debug log for userId
+    // DateTime Picker state
+    const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+
+    const { userId } = useUser();
+
     useEffect(() => {
-        console.log("userId from context:", userId); // Check the value of userId
+        console.log("userId from context:", userId);
     }, [userId]);
 
-    // ✅ useFocusEffect: runs everytime screen gets focused
     useFocusEffect(
         useCallback(() => {
             const fetchGroups = async () => {
                 try {
-                    const token = await SecureStore.getItemAsync('authToken');
-                    const response = await fetch('http://192.168.50.116:8082/api/groups/myGroups', {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                        },
-                    });
+                    const token = await SecureStore.getItemAsync("authToken");
+                    const response = await fetch(
+                        "http://192.168.50.116:8082/api/groups/myGroups",
+                        {
+                            method: "GET",
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                                "Content-Type": "application/json",
+                            },
+                        }
+                    );
 
                     if (!response.ok) {
-                        throw new Error('Failed to fetch groups');
+                        throw new Error("Failed to fetch groups");
                     }
 
                     const data = await response.json();
@@ -64,81 +66,115 @@ export default function CreateTodoScreen() {
                     }));
                     setGroups(formattedGroups);
                 } catch (error) {
-                    console.error('Error fetching groups:', error);
-                    Alert.alert('Error', 'Failed to fetch groups. Please try again.');
+                    console.error("Error fetching groups:", error);
+                    Alert.alert(
+                        "Error",
+                        "Failed to fetch groups. Please try again."
+                    );
                 }
             };
-            fetchGroups(); // new loading after returning to screen
-        }, []) // empty dependencies for not running endless
+            fetchGroups();
+        }, [])
     );
 
+    // DateTimePicker handlers
+    const showPicker = () => setDatePickerVisible(true);
+    const hidePicker = () => setDatePickerVisible(false);
+    const handleConfirm = (date) => {
+        setExpiresAt(formatDateTime(date));
+        hidePicker();
+    };
+
+    const formatDateTime = (date) => {
+        // YYYY-MM-DD HH:MM:SS
+        const pad = (n) => (n < 10 ? "0" + n : n);
+        return (
+            date.getFullYear() +
+            "-" +
+            pad(date.getMonth() + 1) +
+            "-" +
+            pad(date.getDate()) +
+            " " +
+            pad(date.getHours()) +
+            ":" +
+            pad(date.getMinutes()) +
+            ":" +
+            pad(date.getSeconds())
+        );
+    };
+
+    // Quick buttons
+    const applyQuickButton = (option) => {
+        const now = new Date();
+        let newDate = new Date();
+        switch (option) {
+            case "sofort":
+                newDate.setHours(now.getHours() + 2);
+                break;
+            case "plus4":
+                newDate.setHours(now.getHours() + 4);
+                break;
+            case "plus6":
+                newDate.setHours(now.getHours() + 6);
+                break;
+            default:
+                newDate = now;
+        }
+        setExpiresAt(formatDateTime(newDate));
+    };
+
+
     const handleCreateTodo = async () => {
-        // Check if userId is null
         if (!userId) {
-            Alert.alert('Error', 'User not logged in. Please log in again.');
+            Alert.alert("Error", "User not logged in. Please log in again.");
             return;
         }
-
-        console.log("Creating todo for userId:", userId); // Check the userId before creating the todo
-
-        if (!title || !description || !expiresAt || !groupId) {
-            Alert.alert('Error', 'Title, Description, Expiration Date, and Group are required!');
+        if (!title || !expiresAt || !groupId) {
+            Alert.alert(
+                "Error",
+                "Title, Expiration Date, and Group are required!"
+            );
             return;
         }
-        // Convert expiresAt from "YYYY-MM-DD HH:MM:SS" to "YYYY-MM-DDTHH:MM:SSZ"
         const formattedExpiresAt = expiresAt.replace(" ", "T") + "Z";
 
         const newTodo = {
             userOfferedId: userId,
             title,
-            location,
-            description,
-            addInfo,
-            uploadPath,
-            expiresAt: formattedExpiresAt, // Corrected format
+            expiresAt: formattedExpiresAt,
             groupId: parseInt(groupId, 10),
+            ...(description && { description }),
         };
-
-
-        console.log("Sending JSON Payload:", JSON.stringify(newTodo)); // Log the newTodo object
 
         try {
             const token = await SecureStore.getItemAsync("authToken");
-
-            const response = await fetch("http://192.168.50.116:8082/api/todo/create", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                },
-                body: JSON.stringify(newTodo),
-            });
-
+            const response = await fetch(
+                "http://192.168.50.116:8082/api/todo/create",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(newTodo),
+                }
+            );
             if (!response.ok) {
-                // Parse the error response from the backend
-                const errorData = await response.json();  // Define errorData correctly here
-                console.error("Error from backend:", errorData);  // Log full response for debugging
-                throw new Error("Failed to create todo!");  // This will trigger the catch block
+                const errorData = await response.json();
+                console.error("Error from backend:", errorData);
+                throw new Error("Failed to create todo!");
             }
-
-            const data = await response.json();
-
-            console.log("Todo Created:", data); // Log the response data
-
             Toast.show({
-                type: 'info',
-                text1: 'Todo created successfully.',
-                //text2: 'This is an info message with custom styles.',
-                visibilityTime: 1500, //will be shown for 1 second
+                type: "info",
+                text1: "Todo created successfully.",
+                visibilityTime: 1500,
             });
             // Reset fields
             setTitle("");
-            setLocation("");
-            setDescription("");
-            setAddInfo("");
-            setUploadPath("");
             setExpiresAt("");
             setGroupId(null);
+            setDescription("");
+            setShowDescription(false);
         } catch (error) {
             console.error("Error:", error);
             Alert.alert("Error", "Failed to create todo. Please try again.");
@@ -156,6 +192,8 @@ export default function CreateTodoScreen() {
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.inner}>
+                        {/* Screen Title */}
+                        <Text style={styles.screenTitle}>Create Todo</Text>
                         {/* Title */}
                         <Text style={styles.label}>Title</Text>
                         <TextInput
@@ -165,58 +203,36 @@ export default function CreateTodoScreen() {
                             onChangeText={setTitle}
                         />
 
-                        {/* Location */}
-                        <Text style={styles.label}>Location</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter location"
-                            value={location}
-                            onChangeText={setLocation}
-                        />
+                        {/* Optional: Collapsible Description */}
+                        <TouchableOpacity
+                            style={styles.collapseButton}
+                            onPress={() => setShowDescription(!showDescription)}
+                        >
+                            <Text style={styles.collapseButtonText}>
+                                {showDescription ? "Hide" : "Add"} Description (optional)
+                            </Text>
+                            {showDescription ? (
+                                <ChevronUp size={20} color="#5FC9C9" />
+                            ) : (
+                                <ChevronDown size={20} color="#5FC9C9" />
+                            )}
+                        </TouchableOpacity>
 
-                        {/* Description */}
-                        <Text style={styles.label}>Description</Text>
-                        <TextInput
-                            style={[styles.input, styles.textArea]}
-                            placeholder="Enter todo description"
-                            multiline
-                            numberOfLines={4}
-                            textAlignVertical="top"
-                            value={description}
-                            onChangeText={setDescription}
-                        />
-
-                        {/* Additional Info */}
-                        <Text style={styles.label}>Additional Info</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Optional"
-                            value={addInfo}
-                            onChangeText={setAddInfo}
-                        />
-
-                        {/* Upload Path */}
-                        <Text style={styles.label}>Upload Path</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Optional"
-                            value={uploadPath}
-                            onChangeText={setUploadPath}
-                        />
-
-                        {/* Expires At (Masked Input) */}
-                        <Text style={styles.label}>Expires At (YYYY-MM-DD HH:MM:SS)</Text>
-                        <MaskedTextInput
-                            mask="9999-99-99 99:99:99"
-                            style={styles.input}
-                            placeholder="YYYY-MM-DD HH:MM:SS"
-                            keyboardType="numeric"
-                            value={expiresAt}
-                            onChangeText={setExpiresAt}
-                        />
+                        {showDescription && (
+                            <View style={styles.collapsibleSection}>
+                                <TextInput
+                                    style={[styles.input, styles.textArea]}
+                                    placeholder="Add more details..."
+                                    multiline
+                                    numberOfLines={4}
+                                    textAlignVertical="top"
+                                    value={description}
+                                    onChangeText={setDescription}
+                                />
+                            </View>
+                        )}
 
                         {/* Group Selection */}
-                        <Text style={styles.label}>Select Group</Text>
                         <Dropdown
                             style={styles.dropdown}
                             data={groups}
@@ -228,9 +244,46 @@ export default function CreateTodoScreen() {
                             onChange={(item) => setGroupId(item.value)}
                         />
 
-                        {/* Create Button */}
-                        <TouchableOpacity style={styles.button} onPress={handleCreateTodo}>
-                            <Text style={styles.buttonText}>Create Todo</Text>
+                        {/* Expires At */}
+                        {/* Quick Buttons */}
+                        <View style={styles.quickButtonContainer}>
+                            <TouchableOpacity
+                                style={styles.quickButtonModern}
+                                onPress={() => applyQuickButton("sofort")}
+                            >
+                                <Text style={styles.quickButtonModernText}>Now (2h)</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.quickButtonModern}
+                                onPress={() => applyQuickButton("plus4")}
+                            >
+                                <Text style={styles.quickButtonModernText}>+4h</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.quickButtonModern}
+                                onPress={() => applyQuickButton("plus6")}
+                            >
+                                <Text style={styles.quickButtonModernText}>+6h</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* DateTime Picker Button */}
+                        <TouchableOpacity style={styles.dateTimeButton} onPress={showPicker}>
+                            <Text style={styles.dateTimeButtonText}>
+                                {expiresAt ? expiresAt : "Pick Date & Time"}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <DateTimePickerModal
+                            isVisible={isDatePickerVisible}
+                            mode="datetime"
+                            onConfirm={handleConfirm}
+                            onCancel={hidePicker}
+                        />
+
+                        {/* Create Todo */}
+                        <TouchableOpacity style={styles.createButton} onPress={handleCreateTodo}>
+                            <Text style={styles.createButtonText}>Create Todo</Text>
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
@@ -239,8 +292,23 @@ export default function CreateTodoScreen() {
     );
 }
 
-// Styles
 const styles = StyleSheet.create({
+    container: { flex: 1, padding: 16 },
+    scrollContainer: { flexGrow: 1 },
+    inner: { flex: 1 },
+
+    screenTitle: { 
+        fontSize: 26, 
+        fontWeight: "700", 
+        marginBottom: 20, 
+        color: "#333",
+        textAlign: "center", 
+    },
+
+    label: { fontWeight: "bold", marginTop: 12 },
+    input: {
+        borderWidth: 1,
+    },
     container: {
         flex: 1,
         backgroundColor: '#F7F7F7',
@@ -275,7 +343,8 @@ const styles = StyleSheet.create({
         borderColor: '#D1D5DB',
         borderRadius: 8,
         paddingHorizontal: 12,
-        marginBottom: 16,
+        marginBottom: 30,
+        marginTop: 20,
         backgroundColor: '#FFF',
     },
     button: {
@@ -290,4 +359,44 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+    // Quick Buttons Modern
+    quickButtonContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginVertical: 10,
+    },
+    quickButtonModern: {
+        flex: 1,
+        backgroundColor: "#E0F7FA",
+        paddingVertical: 10,
+        marginHorizontal: 4,
+        borderRadius: 12,
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#5FC9C9",
+    },
+    quickButtonModernText: { color: "#00796B", fontWeight: "600", fontSize: 14 },
+
+    // DateTime Picker Button
+    dateTimeButton: {
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#5FC9C9",
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        alignItems: "center",
+        marginVertical: 10,
+    },
+    dateTimeButtonText: { color: "#5FC9C9", fontWeight: "600", fontSize: 15 },
+
+    // Create Todo Button (unchanged)
+    createButton: {
+        backgroundColor: "#5FC9C9",
+        padding: 12,
+        borderRadius: 8,
+        alignItems: "center",
+        marginVertical: 80,
+    },
+    createButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 });
