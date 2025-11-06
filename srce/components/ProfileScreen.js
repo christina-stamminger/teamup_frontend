@@ -11,6 +11,8 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import Modal from 'react-native-modal';
+
 import { useNavigation } from '@react-navigation/native';
 import { useUser } from './context/UserContext';
 
@@ -35,6 +37,9 @@ const ProfileScreen = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+
+
+
   useEffect(() => {
     if (userContextLoading) return; // wait for user context to load
 
@@ -43,48 +48,53 @@ const ProfileScreen = () => {
       return;
     }
 
-    const fetchUserProfile = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(
-          `http://192.168.50.116:8082/api/users/profile/${userId}`,
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          setUserDetails({
-            username: data.username,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            dateOfBirth: data.dateOfBirth,
-            email: data.email,
-            password: '********',
-            address: {
-              streetNumber: data.address?.streetNumber || '',
-              postalCode: data.address?.postalCode || '',
-              city: data.address?.city || '',
-            },
-          });
-        } else {
-          Alert.alert('Error', 'Failed to fetch user details.');
-        }
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-        Alert.alert('Error', 'There was an issue fetching your profile.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUserProfile();
+    //fetchTrashedTodos(); // ✅ <--- hier hinzufügen
+
   }, [userContextLoading, userId, token]);
+
+
+  const fetchUserProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `http://192.168.50.116:8082/api/users/profile/${userId}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserDetails({
+          username: data.username,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          dateOfBirth: data.dateOfBirth,
+          email: data.email,
+          password: '********',
+          address: {
+            streetNumber: data.address?.streetNumber || '',
+            postalCode: data.address?.postalCode || '',
+            city: data.address?.city || '',
+          },
+        });
+      } else {
+        Alert.alert('Error', 'Failed to fetch user details.');
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      Alert.alert('Error', 'There was an issue fetching your profile.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
 
   const handleSave = async () => {
     setSaving(true);
@@ -127,6 +137,73 @@ const ProfileScreen = () => {
     }
   };
 
+  // Handle account deletion check
+  const handleCheckAccountDeletion = async () => {
+    try {
+      const response = await fetch(
+        `http://192.168.50.116:8082/api/user/${userId}/canDelete`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to check account status");
+      const data = await response.json();
+
+      if (!data.canDelete) {
+        Alert.alert(
+          "Account kann nicht gelöscht werden",
+          data.reason ||
+          "Du bist noch Admin einer Gruppe oder hast To-Dos in Arbeit."
+        );
+        return;
+      }
+
+      // ✅ Wenn alles passt → Bestätigungsmodal öffnen
+      Alert.alert(
+        "Account wirklich löschen?",
+        "Offene To-Dos werden gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+        [
+          { text: "Abbrechen", style: "cancel" },
+          { text: "Löschen", style: "destructive", onPress: handleDeleteAccount },
+        ]
+      );
+    } catch (error) {
+      console.error("Error checking account deletion:", error);
+      Alert.alert("Fehler", "Konnte Accountstatus nicht prüfen.");
+    }
+  };
+
+  // Handle actual account deletion
+  const handleDeleteAccount = async () => {
+    try {
+      const response = await fetch(
+        `http://192.168.50.116:8082/api/user/${userId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Fehler beim Löschen des Accounts");
+
+      Alert.alert("Account gelöscht", "Dein Account wurde erfolgreich gelöscht.");
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      Alert.alert("Fehler", "Account konnte nicht gelöscht werden.");
+    }
+  };
+
+
+
   if (loading || userContextLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -137,14 +214,14 @@ const ProfileScreen = () => {
   }
 
   return (
- <KeyboardAvoidingView
-    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    style={styles.container}
-  >
-    <ScrollView
-      contentContainerStyle={styles.scrollViewContainer}
-      keyboardShouldPersistTaps="handled"   // ← THIS IS THE FIX
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
     >
+      <ScrollView
+        contentContainerStyle={styles.scrollViewContainer}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.container}>
           <Text style={styles.header}>User Profile</Text>
 
@@ -218,10 +295,29 @@ const ProfileScreen = () => {
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
           </View>
+
+
+
+          {/* 🔴 Danger Zone */}
+          <View style={styles.dangerZone}>
+            <Text style={styles.dangerTitle}>Account löschen</Text>
+            <Text style={styles.dangerDescription}>
+              Du kannst deinen Account nur löschen, wenn du keine Adminrolle in Gruppen mehr hast
+              und keine To-Dos in Arbeit sind. Offene To-Dos werden automatisch entfernt.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleCheckAccountDeletion}
+            >
+              <Text style={styles.deleteButtonText}>Account löschen</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
+
 };
 
 const LabelValue = ({ label, value }) => (
@@ -243,7 +339,7 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: 24,
-    fontWeight: 'bold',
+
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -252,7 +348,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: 'bold',
     marginTop: 10,
   },
   value: {
@@ -293,13 +388,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backButtonText: {
-    color: '#333',
+    color: '#fff',
     fontSize: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  dangerZone: {
+    marginTop: 40,
+    padding: 20,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#f5c6cb",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  dangerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#b71c1c",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  dangerDescription: {
+    fontSize: 14,
+    color: "#555",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  deleteButton: {
+    backgroundColor: "#FF5C5C",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  deleteButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 

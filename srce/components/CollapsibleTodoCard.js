@@ -13,23 +13,47 @@ import { useIsFocused } from '@react-navigation/native'; // Import the hook
 import Toast from 'react-native-toast-message'; // toast: for short messages intead of alert
 
 
-const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
+const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { userId, loading } = useUser();
-  const isFocused = useIsFocused(); // Check if the screen is focused
-  const swipeableRef = useRef(null); // Create a reference for the Swipeable component
-
+  const isFocused = useIsFocused();
+  const swipeableRef = useRef(null);
 
   const toggleExpand = () => setIsExpanded(!isExpanded);
 
   const statusColor = getStatusColor(todo.status);
 
+  // ✅ Formatierung
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "";
+
+    try {
+      const date = new Date(dateString);
+
+      const time = date.toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const datePart = date.toLocaleDateString("de-DE", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+
+      return `${time}\n${datePart}`;
+    } catch (e) {
+      console.error("❌ Fehler beim Formatieren des Datums:", e);
+      return dateString;
+    }
+  };
 
   // Update PATCH todostatus
   const updateTodoStatus = async (newStatus = 'IN_ARBEIT') => {
     try {
       const token = await SecureStore.getItemAsync('authToken');
-      const currentTime = new Date().toISOString();  // Get the current time in ISO format
+      const currentTime = new Date().toISOString();
 
       const response = await fetch('http://192.168.50.116:8082/api/todo/status', {
         method: 'PATCH',
@@ -41,7 +65,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
           todoId: todo.todoId,
           userTakenId: userId,
           status: newStatus,
-          completedAt: newStatus === 'ERLEDIGT' ? currentTime : null,  // Only add completedAt if status is 'Completed'
+          completedAt: newStatus === 'ERLEDIGT' ? currentTime : null,
         }),
       });
 
@@ -60,7 +84,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
         });
         onStatusUpdated?.();
       }
-      
+
     } catch (error) {
       console.error('Fehler beim Aktualisieren:', error);
       alert('Netzwerkfehler.');
@@ -73,8 +97,8 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
   const deleteTodo = async () => {
     try {
       const token = await SecureStore.getItemAsync('authToken');
-      const response = await fetch(`http://192.168.50.116:8082/api/todo/${todo.todoId}`, {
-        method: 'DELETE',
+      const response = await fetch(`http://192.168.50.116:8082/api/todo/${todo.todoId}/trash`, {
+        method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -92,21 +116,18 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
       } else {
         Toast.show({
           type: 'success',
-          text1: 'Todo deleted successfully!',
+          text1: 'Todo moved to trash successfully!',
           visibilityTime: 1500,
         });
-      
-        // Remove the todo from the list
+
         onDelete?.(todo.todoId);
-      
-        // Re-fetch if this screen is focused
+
         if (isFocused) {
           onStatusUpdated?.();
         }
-      
-        // Close the swipeable row
+
         swipeableRef.current?.close();
-      }      
+      }
     } catch (error) {
       console.error('Fehler beim Löschen:', error);
       alert('Netzwerkfehler.');
@@ -125,7 +146,18 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
 
   return (
     <Swipeable ref={swipeableRef} renderRightActions={renderRightActions}>
-      <TouchableOpacity style={[styles.card, { borderColor: statusColor }]} onPress={toggleExpand}>
+      <TouchableOpacity
+        style={[
+          styles.card,
+         // { borderColor: statusColor },
+          // ⏰ Zeitkritisch = dicker roter Rand
+          todo.isTimeCritical && styles.timeCriticalCard
+        ]}
+        onPress={toggleExpand}
+      >
+        {/* ⏰ NEU: Zeitkritisch-Badge (oben rechts) */}
+     
+
         {/* Status badge */}
         <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
           <Text style={styles.statusBadgeText}>{todo.status}</Text>
@@ -138,7 +170,6 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
         <View style={styles.userBlock}>
           <View style={styles.userRow}>
             <Icon name="user" size={16} color="#666" style={styles.icon} />
-            <Text style={styles.userLabel}>  Issuer:</Text>
             <Text style={styles.userValue}>
               {todo.username} {userId === todo.userOfferedId ? '(You)' : ''}
             </Text>
@@ -147,7 +178,6 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
           {todo.userTakenUsername && (
             <View style={styles.userRow}>
               <Icon name="check" size={16} color="#28a745" style={styles.icon} />
-              <Text style={styles.userLabel}>Taken by:</Text>
               <Text style={styles.userValue}>
                 {todo.userTakenUsername} {userId === todo.userTakenId ? '(You)' : ''}
               </Text>
@@ -157,38 +187,78 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
 
         {isExpanded && (
           <View style={styles.additionalContent}>
-            {/* Bring it to - Icon Only */}
-            <View style={styles.detailRow}>
-              <MaterialCommunityIcons name="map-marker" size={18} color="#4B5563" style={styles.icon} />
-              <Text style={styles.detailText}>{todo.location}</Text>
-            </View>
-
-            {/* Description - Icon Only */}
-            <View style={styles.detailRow}>
-              <Feather name="file-text" size={18} color="#4B5563" style={styles.icon} />
-              <Text style={styles.detailText}>{todo.description}</Text>
-            </View>
-
-      
+            {/* Description */}
+            {todo.description && (
+              <View style={styles.detailRow}>
+                <Feather name="file-text" size={18} color="#4B5563" style={styles.icon} />
+                <Text style={styles.detailText}>{todo.description}</Text>
+              </View>
+            )}
 
             {!todo.userTakenId && (
               <Text style={styles.userTakenText}>No user has taken this task yet.</Text>
             )}
 
-            <View style={styles.expiryRow}>
-              <Text style={[styles.expiryText, { color: statusColor }]}>
-                Expires at: {todo.expiresAt}
-              </Text>
-            </View>
-
-            {/* Show the completedAt field when status is "Completed" */}
-            {todo.completedAt && (
-              <View style={styles.completedRow}>
-                <Text style={[styles.completedText, { color: statusColor }]}>
-                  Completed at: {todo.completedAt}
+            {/* ⏰ NEU: Zeitkritisch-Warnung (expanded) */}
+            {todo.isTimeCritical && (
+              <View style={styles.timeCriticalWarning}>
+                <Icon name="exclamation-triangle" size={16} color="#FF6B6B" style={{ marginRight: 8 }} />
+                <Text style={styles.timeCriticalWarningText}>
+                  Zeitkritisch: Nach Ablauf automatisch expired
                 </Text>
               </View>
             )}
+
+            {/* Zeitabschnitt */}
+            <View style={styles.timeContainer}>
+              {/* ExpiresAt */}
+              <View style={styles.timeBlock}>
+                <View style={styles.timeHeader}>
+                  <Icon name="clock-o" size={14} color={statusColor} style={{ marginRight: 6 }} />
+                  <Text style={[styles.timeLabel, { color: statusColor }]}>Expires</Text>
+                </View>
+
+                <Text style={[styles.timeMain, { color: statusColor }]}>
+                  {new Date(todo.expiresAt).toLocaleTimeString("de-DE", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
+                <Text style={styles.timeSub}>
+                  {new Date(todo.expiresAt).toLocaleDateString("de-DE", {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </Text>
+              </View>
+
+              {/* CompletedAt */}
+              {todo.completedAt && (
+                <View style={[styles.timeBlock, { borderLeftWidth: 1, borderLeftColor: "#e0e0e0" }]}>
+                  <View style={styles.timeHeader}>
+                    <Icon name="check" size={14} color="#4CAF50" style={{ marginRight: 6 }} />
+                    <Text style={[styles.timeLabel, { color: "#4CAF50" }]}>Completed</Text>
+                  </View>
+
+                  <Text style={[styles.timeMain, { color: "#4CAF50" }]}>
+                    {new Date(todo.completedAt).toLocaleTimeString("de-DE", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </Text>
+                  <Text style={styles.timeSub}>
+                    {new Date(todo.completedAt).toLocaleDateString("de-DE", {
+                      weekday: "short",
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </Text>
+                </View>
+              )}
+            </View>
 
             {/* Take button if open */}
             {todo.status === 'OFFEN' && todo.userOfferedId !== userId && (
@@ -200,7 +270,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
               </TouchableOpacity>
             )}
 
-            {/* Fulfilled & Cancel buttons if already taken */}
+            {/* Fulfilled & Cancel buttons */}
             {todo.userTakenUsername && todo.userTakenId === userId && todo.status === 'IN_ARBEIT' && (
               <View style={styles.actionButtons}>
                 <TouchableOpacity
@@ -212,7 +282,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.statusButton, { backgroundColor: '#F9A8B0' }]}
+                  style={[styles.statusButton, { backgroundColor: '#e0e0e0' }]}
                   onPress={() =>
                     Alert.alert(
                       'Cancel',
@@ -237,7 +307,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete }) => {
 };
 
 const styles = StyleSheet.create({
-  // Existing styles...
+
   completedRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -251,10 +321,11 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 8,
     padding: 15,
     marginVertical: 10,
-    //borderWidth: 1,
+    borderWidth: 1,  // to avoid gray corners on android
+    borderColor: '#fff',
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 5,
@@ -278,7 +349,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
     color: '#333',
     marginBottom: 10,
     paddingRight: 70, // to avoid overlap with status badge
@@ -374,11 +444,21 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   expiryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 4,
+    alignItems: "center",
+    marginTop: 10,
   },
+
+  expiryTime: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  expiryDate: {
+    fontSize: 13,
+    color: "#555",
+    marginTop: 2,
+  },
+
   expiryText: {
     fontSize: 15,
     fontWeight: 'bold',
@@ -390,10 +470,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 4,
   },
-  completedText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#28A745', // Green color to indicate completion
+  completedDate: {
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 2,
+    lineHeight: 18,
   },
   animatedCard: {
     marginBottom: 10,
@@ -411,8 +492,70 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  timeContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginTop: 14,
+    paddingVertical: 6,
+    borderTopWidth: 0.5,
+    borderTopColor: "#ddd",
+  },
 
+  timeBlock: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
 
+  timeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+
+  timeLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  timeMain: {
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 20,
+  },
+  timeSub: {
+    fontSize: 13,
+    color: "#777",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  // ⏰ Zeitkritisch-Styles
+timeCriticalCard: {
+  borderLeftWidth: 4,
+  //borderColor: '#FF6B6B', // Roter Rand
+  shadowColor: '#FF6B6B',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+  elevation: 4,
+  borderLeftColor: '#FF3B3B',
+},
+timeCriticalWarning: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#FFE5E5',
+  padding: 10,
+  borderRadius: 8,
+  marginBottom: 12,
+  borderLeftWidth: 4,
+  borderLeftColor: '#FF6B6B',
+},
+timeCriticalWarningText: {
+  flex: 1,
+  fontSize: 13,
+  color: '#C92A2A',
+  fontWeight: '500',
+},
 });
 
 export default CollapsibleTodoCard;

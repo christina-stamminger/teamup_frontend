@@ -29,15 +29,20 @@ export default function GroupListModal({ isVisible, groups, selectedGroupId, onC
                   {item.groupName.charAt(0).toUpperCase()}
                 </Text>
               </View>
+
               <View style={styles.groupInfo}>
                 <Text style={styles.groupName}>{item.groupName}</Text>
+                
+                {/* ✅ Nur Admins sehen das Shield-Icon */}
                 <View style={styles.roleRow}>
-                  <Icon
-                    name={item.role === 'ADMIN' ? 'shield' : 'user'}
-                    size={12}
-                    color={item.role === 'ADMIN' ? '#FFD700' : '#5A67D8'}
-                    style={styles.icon}
-                  />
+                  {item.role === 'ADMIN' && (
+                    <Icon
+                      name="shield"
+                      size={12}
+                      color="#FFD700"
+                      style={styles.icon}
+                    />
+                  )}
                   <Text style={styles.roleText}>
                     {item.role === 'ADMIN' ? 'Admin' : 'Member'}
                   </Text>
@@ -53,74 +58,68 @@ export default function GroupListModal({ isVisible, groups, selectedGroupId, onC
 
 const styles = StyleSheet.create({
   modalContent: {
-    backgroundColor: '#fff',
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
-    maxHeight: '80%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    maxHeight: '70%',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 20,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
     textAlign: 'center',
+    color: '#333',
   },
   listContainer: {
-    paddingBottom: 20,
+    paddingBottom: 10,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 6,
   },
   groupItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    backgroundColor: '#F9F9F9',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 8,
   },
   selectedGroupItem: {
-    backgroundColor: '#DFF6F6',
+    backgroundColor: '#E0F7FA',
   },
   avatar: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: '#E0E0E0',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   avatarInitial: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: 'bold',
     color: '#555',
   },
   groupInfo: {
     flex: 1,
   },
   groupName: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#333',
   },
   roleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-  },
-  roleText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
+    marginTop: 2,
   },
   icon: {
-    marginTop: 1,
+    marginRight: 5,
   },
-  separator: {
-    height: 12,
+  roleText: {
+    fontSize: 13,
+    color: '#666',
   },
 });

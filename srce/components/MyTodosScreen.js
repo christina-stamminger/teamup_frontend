@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Alert, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, Alert, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import * as SecureStore from 'expo-secure-store';
 import CollapsibleTodoCard from '../components/CollapsibleTodoCard';
@@ -8,13 +8,14 @@ import Modal from 'react-native-modal';
 import GroupCreationModal from "../components/GroupCreationModal";
 import AddMemberCard from '../components/AddMemberCard';
 import AddMemberModal from '../components/AddMemberModal';
-import { useIsFocused, useFocusEffect } from '@react-navigation/native'; // for handling screen focus changes
+import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import GroupListModal from '../components/GroupListModal'
 import { getAvatarColor } from '../utils/getAvatarColor';
-import Toast from 'react-native-toast-message'; // toast: for short messages intead of alert
+import Toast from 'react-native-toast-message';
 import FilterBar from '../components/FilterBar';
 
 export default function MyTodosScreen() {
+  const { userId, token, loading: userContextLoading } = useUser();
   const [todos, setTodos] = useState([]);
   const [newMembers, setNewMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +26,20 @@ export default function MyTodosScreen() {
   const [isGroupModalVisible, setIsGroupModalVisible] = useState(false);
   const [isCreationModalVisible, setIsCreationModalVisible] = useState(false);
   const [isAddMemberModalVisible, setIsAddMemberModalVisible] = useState(false);
-  const { userId } = useUser();
+
+  // trash
+  const [trashedTodos, setTrashedTodos] = useState([]);
+  const [loadingTrash, setLoadingTrash] = useState(false);
+
+  // bottom sheet
+  const [isTrashModalVisible, setIsTrashModalVisible] = useState(false);
+  const toggleTrashModal = () => {
+    console.log("🔄 Toggle trash modal");
+    console.log("📍 userId:", userId);
+    console.log("📍 token exists:", !!token);
+    console.log("📍 userContextLoading:", userContextLoading);
+    setIsTrashModalVisible((prev) => !prev);
+  };
 
   const toggleGroupModal = () => setIsGroupModalVisible(prev => !prev);
   const toggleCreationModal = () => setIsCreationModalVisible(prev => !prev);
@@ -33,7 +47,6 @@ export default function MyTodosScreen() {
   // displaying membersList in modal
   const [isMembersModalVisible, setIsMembersModalVisible] = useState(false);
   const toggleMembersModal = () => setIsMembersModalVisible(prev => !prev);
-
 
   // Memberslist: tap to expand and collapse
   const [membersExpanded, setMembersExpanded] = useState(false);
@@ -43,46 +56,54 @@ export default function MyTodosScreen() {
     ? [...newMembers, { type: 'addButton' }]
     : [...newMembers];
 
-
   // Filter options for filterBar
-  // Define filter options
   const FILTER_OPTIONS = [
     { label: 'All', value: 'ALL' },
     { label: 'Open', value: 'OFFEN' },
     { label: 'In Progress', value: 'IN_ARBEIT' },
     { label: 'Completed', value: 'ERLEDIGT' },
     { label: 'Expired', value: 'ABGELAUFEN' },
-
-
   ];
 
   const [selectedFilters, setSelectedFilters] = useState(['ALL']);
 
-
   // GroupListData
   const groupListData = [...groups, { isCreateButton: true }];
 
-
   // Fetch groups on user change
-  useEffect(() => { fetchGroups(); }, [userId]);
+  useEffect(() => {
+    fetchGroups();
+  }, [userId]);
+
+  // ✅ KORRIGIERT: fetch trashed todos on mount mit korrekten dependencies
+  useEffect(() => {
+    if (!isTrashModalVisible) return;
+    if (userContextLoading || !token || !userId) {
+      console.log("⚠️ Cannot fetch trash: missing data");
+      console.log("  - userContextLoading:", userContextLoading);
+      console.log("  - token:", !!token);
+      console.log("  - userId:", userId);
+      return;
+    }
+    console.log("🗑️ Fetching trashed todos for userId:", userId);
+    fetchTrashedTodos();
+  }, [isTrashModalVisible, token, userId, userContextLoading]); // ✅ Dependencies hinzugefügt
 
   // fetch groups on screen focus
   useFocusEffect(
     React.useCallback(() => {
-      fetchGroups(); // lädt immer die aktuellen Gruppen
+      fetchGroups();
     }, [])
   );
 
   // Fetch todos - screen focus changes 
-  const isFocused = useIsFocused(); // isFocused becomes true when screen is active
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     if (isFocused && selectedGroupId) {
-      fetchTodos(selectedGroupId);
-      fetchNewMembers(selectedGroupId); // if a group is selected, we refetch todos and members
+      fetchNewMembers(selectedGroupId);
     }
   }, [isFocused]);
-
 
   const fetchGroups = async () => {
     try {
@@ -102,6 +123,73 @@ export default function MyTodosScreen() {
     }
   };
 
+  // ✅ KORRIGIERT: Fetch trashed todos mit mehr debugging
+  const fetchTrashedTodos = async () => {
+    try {
+      setLoadingTrash(true);
+      const token = await SecureStore.getItemAsync('authToken');
+
+      console.log("📍 Fetching from:", `http://192.168.50.116:8082/api/todo/trash/${userId}`);
+
+      const response = await fetch(`http://192.168.50.116:8082/api/todo/trash/${userId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("➡️ Response status:", response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("📦 Trashed todos received:", data);
+        console.log("📦 Number of trashed todos:", data.length);
+        setTrashedTodos(data);
+      } else {
+        console.warn("❌ Failed to load trashed todos, status:", response.status);
+        const errorText = await response.text();
+        console.warn("❌ Error response:", errorText);
+      }
+    } catch (error) {
+      console.error("❌ Error loading trashed todos:", error);
+    } finally {
+      setLoadingTrash(false);
+    }
+  };
+
+  // ✅ KORRIGIERT: handleRestore mit besserer Fehlerbehandlung
+  const handleRestore = async (todoId) => {
+    try {
+      const token = await SecureStore.getItemAsync('authToken');
+      const response = await fetch(
+        `http://192.168.50.116:8082/api/todo/${todoId}/restore`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        Toast.show({
+          type: "success",
+          text1: "Todo wiederhergestellt",
+        });
+        fetchTrashedTodos();
+        if (selectedGroupId) {
+          fetchTodos(selectedGroupId);
+        }
+      } else {
+        Alert.alert("Fehler", "Konnte Todo nicht wiederherstellen");
+      }
+    } catch (error) {
+      console.error("Error restoring todo:", error);
+      Alert.alert("Fehler", "Ein Fehler ist aufgetreten");
+    }
+  };
 
   // Logic for using filterBar before fetching todos
   const filteredTodos = todos.filter(todo => {
@@ -109,9 +197,10 @@ export default function MyTodosScreen() {
     return selectedFilters.includes(todo.status?.toUpperCase());
   });
 
+  const fetchTodos = useCallback(async (groupId) => {
+    if (!groupId) return;
 
-  const fetchTodos = async (groupId) => {
-    console.log("Calling fetchTodos with groupId:", groupId);
+    console.log("🔄 Fetching todos for group:", groupId);
 
     try {
       setLoading(true);
@@ -127,33 +216,48 @@ export default function MyTodosScreen() {
       if (!response.ok) throw new Error('Failed to fetch todos');
 
       const data = await response.json();
-      console.log("Fetched todos:", data);
 
-      // ✅ Filter for MyTodosScreen (user-created or taken, but not given back)
       const filtered = data.filter(todo =>
         (todo.userOfferedId === userId || todo.userTakenId === userId) &&
-        (todo.status !== 'Offen' || todo.userOfferedId === userId)
+        (todo.status !== 'Offen' || todo.userOfferedId === userId) &&
+        !todo.deletedAt
       );
 
-      console.log("Filtered todos (MyTodos):", filtered);
       setTodos(filtered);
+      Toast.show({
+        type: 'info',
+        text1: 'Todos aktualisiert',
+        visibilityTime: 1000,
+      });
 
-      if (filtered.length === 0) {
-        Toast.show({
-          type: 'info',
-          text1: 'No todos available.',
-          //text2: 'This is an info message with custom styles.',
-          visibilityTime: 1500, //will be shown for 1 second
-        });
-      }
+      console.log(`✅ Todos fetched: ${filtered.length}`);
+
     } catch (error) {
-      console.error('Error fetching todos:', error);
-      Alert.alert('Error', 'Failed to fetch todos.');
+      console.error('❌ Error fetching todos:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
+  // Auto-refresh todos every 60 seconds when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      if (!selectedGroupId) return;
+
+      console.log("👀 Screen focused — fetching todos...");
+      fetchTodos(selectedGroupId);
+
+      const interval = setInterval(() => {
+        console.log("⏰ Auto-refreshing todos...");
+        fetchTodos(selectedGroupId);
+      }, 60000);
+
+      return () => {
+        clearInterval(interval);
+        console.log("🧹 Auto-refresh stopped.");
+      };
+    }, [selectedGroupId, fetchTodos])
+  );
 
   const fetchNewMembers = async (groupId) => {
     try {
@@ -190,8 +294,8 @@ export default function MyTodosScreen() {
       setSelectedGroupName(selectedGroup.groupName);
       setUserRoleInGroup(selectedGroup.role);
       setIsGroupModalVisible(false);
-      fetchTodos(groupId);         // ✅ fetch todos
-      fetchNewMembers(groupId);    // ✅ fetch new members
+      fetchTodos(groupId);
+      fetchNewMembers(groupId);
     }
   };
 
@@ -199,7 +303,7 @@ export default function MyTodosScreen() {
     setIsAddMemberModalVisible(true);
   };
 
-  // Swipe to delete - handleDeleteTodo
+  // ✅ KORRIGIERT: Swipe to delete - handleDeleteTodo
   const handleDeleteTodo = async (todoId) => {
     try {
       const token = await SecureStore.getItemAsync('authToken');
@@ -215,14 +319,15 @@ export default function MyTodosScreen() {
         throw new Error('Failed to delete todo');
       }
 
-      // If successful, update local state to remove the todo
-      setTodos((prevTodos) => prevTodos.filter((todo) => todo.id !== id));
+      // ✅ Korrigiert: todoId statt id verwenden
+      setTodos((prevTodos) => prevTodos.filter((todo) => todo.todoId !== todoId));
 
-      // Optionally show a success message (toast, alert, etc.)
-      alert('Todo deleted successfully!');
+      Toast.show({
+        type: 'success',
+        text1: 'Todo deleted successfully!',
+      });
     } catch (error) {
-      // Handle error (show an alert or toast message)
-      alert('Error deleting todo: ' + error.message);
+      Alert.alert('Error deleting todo: ' + error.message);
     }
   };
 
@@ -238,9 +343,6 @@ export default function MyTodosScreen() {
       });
     }
   };
-
-
-
 
   const handleRemoveUser = async (userIdToRemove) => {
     try {
@@ -258,61 +360,75 @@ export default function MyTodosScreen() {
 
       if (!response.ok) throw new Error('Failed to remove user');
 
-      fetchNewMembers(selectedGroupId); // refresh members list
+      fetchNewMembers(selectedGroupId);
       Alert.alert('Success', 'User removed from the group.');
     } catch (error) {
       console.error('Error removing user:', error);
       Alert.alert('Error', 'Could not remove user from the group.');
     }
-
   };
-
 
   return (
     <View style={styles.container}>
-
       <View style={{ paddingVertical: 10 }}>
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerTitle}>My Todos</Text>
+        </View>
+
         <TouchableOpacity
           onPress={toggleGroupModal}
-          style={styles.groupSelector}
+          style={styles.groupSelectorUnderline}
         >
-          <Text style={styles.groupSelectorText}>
+          <Text style={styles.groupSelectorUnderlineText}>
             {selectedGroupName || 'Select Group'}
           </Text>
-          <Icon name="chevron-down" size={16} color="gray" />
+          <View style={styles.underline} />
         </TouchableOpacity>
+
         <FilterBar
           filters={FILTER_OPTIONS}
           selectedFilters={selectedFilters}
           onSelectFilter={handleSelectFilter}
         />
-      </View>
 
+        <View style={{ alignItems: "flex-begin", marginLeft: 10 }}>
+          <TouchableOpacity
+            onPress={toggleTrashModal}
+            style={styles.trashButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Icon name="trash" size={24} color="#cccccc" />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {selectedGroupId && userRoleInGroup === 'ADMIN' && (
         <>
         </>
       )}
 
-      <View style={styles.headerContainer}>
-
-        <Text style={styles.headerTitle}>My Todos</Text>
-      </View>
-
       <FlatList
         data={filteredTodos}
-        keyExtractor={(item, index) => (item?.id ? item.id.toString() : index.toString())} // Check if id exists
+        keyExtractor={(item, index) => (item?.todoId ? item.todoId.toString() : index.toString())}
         renderItem={({ item }) => (
           <View>
-
             <CollapsibleTodoCard
               todo={item}
-              onStatusUpdated={() => fetchTodos(selectedGroupId)} // trigger re-fetch!
+              onStatusUpdated={() => fetchTodos(selectedGroupId)}
+              onDelete={(deletedId) => {
+                setTodos((prev) => prev.filter((t) => t.todoId !== deletedId));
+                Toast.show({
+                  type: 'info',
+                  text1: 'Todo moved to trash',
+                  visibilityTime: 1200,
+                });
+              }}
             />
           </View>
         )}
       />
 
+      {/* ✅ GroupListModal */}
       <GroupListModal
         isVisible={isGroupModalVisible}
         onClose={toggleGroupModal}
@@ -321,7 +437,54 @@ export default function MyTodosScreen() {
         onSelect={handleGroupSelect}
       />
 
+      {/* ✅ KORRIGIERT: Trash Modal - außerhalb FlatList, nach allen anderen Modals */}
+      <Modal
+        isVisible={isTrashModalVisible}
+        onBackdropPress={toggleTrashModal}
+        backdropOpacity={0.4}
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        style={{ margin: 0, justifyContent: "flex-end" }}
+      >
+        <View style={[styles.trashModalContainer, { minHeight: 250 }]}>
+          <Text style={styles.trashModalTitle}>🗑️ Gelöschte To-Dos</Text>
 
+          {loadingTrash ? (
+            <ActivityIndicator color="#5FC9C9" />
+          ) : trashedTodos.length === 0 ? (
+            <Text style={styles.trashEmpty}>Keine gelöschten To-Dos</Text>
+          ) : (
+            <ScrollView style={{ maxHeight: 400 }}>
+              {trashedTodos.map((todo) => (
+                <View key={todo.todoId} style={styles.trashItem}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.trashText}>{todo.title}</Text>
+                    <Text style={styles.trashDate}>
+                      gelöscht am{" "}
+                      {new Date(todo.deletedAt).toLocaleDateString("de-DE")}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.restoreButton}
+                    onPress={() => handleRestore(todo.todoId)}
+                  >
+                    <Text style={styles.restoreButtonText}>Wiederherstellen</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+
+          <TouchableOpacity
+            style={styles.closeModalButton}
+            onPress={toggleTrashModal}
+          >
+            <Text style={styles.closeModalButtonText}>Schließen</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {/* ✅ Members Modal */}
       <Modal
         isVisible={isMembersModalVisible}
         onBackdropPress={toggleMembersModal}
@@ -378,22 +541,19 @@ export default function MyTodosScreen() {
           />
         </View>
       </Modal>
-
     </View>
   );
 }
 
-
-// Your styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    //marginTop: 30,
+    marginTop: 0,
     backgroundColor: '#F7F7F7',
   },
   groupButton: {
-    backgroundColor: '#5fc9c9', //3cb1b1 #5FC9C9
+    backgroundColor: '#5fc9c9',
     padding: 12,
     borderRadius: 5,
     marginBottom: 10,
@@ -438,7 +598,7 @@ const styles = StyleSheet.create({
   newMembersContainer: {
     marginVertical: 10,
     padding: 10,
-    backgroundColor: '#E6F9F9', //E6F9F9
+    backgroundColor: '#E6F9F9',
     borderRadius: 6,
   },
   newMembersTitle: {
@@ -462,16 +622,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-
   adminHighlight: {
-    backgroundColor: '#FFF8DC', // Light yellow to highlight admin
+    backgroundColor: '#FFF8DC',
     borderRadius: 6,
     paddingHorizontal: 8,
   },
-
   adminText: {
     fontWeight: 'bold',
-    color: '#DAA520', // GoldenRod
+    color: '#DAA520',
   },
   memberRow: {
     flexDirection: 'row',
@@ -479,10 +637,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     paddingHorizontal: 12,
-  },
-  memberInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   avatarSmall: {
     width: 24,
@@ -498,8 +652,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-
-
   memberName: {
     fontSize: 14,
     color: '#333',
@@ -511,24 +663,17 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#EEE',
-    marginLeft: 44, // aligns with start of usernames
+    marginLeft: 44,
   },
   membersHeader: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 6,
   },
-
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  newMembersTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'grey',
   },
   groupCard: {
     backgroundColor: '#fff',
@@ -556,7 +701,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 6,
   },
-
   avatarInitialGroup: {
     color: 'white',
     fontSize: 20,
@@ -573,7 +717,6 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
   },
-
   createGroupCard: {
     backgroundColor: '#E6F9F9',
     borderRadius: 12,
@@ -597,13 +740,12 @@ const styles = StyleSheet.create({
   headerContainer: {
     marginBottom: 10,
     paddingHorizontal: 16,
-    alignItems: 'center', // 🛠️ This centers the Text horizontally
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 26, // ⬆️ Increased font size (was 22 before)
-    fontWeight: 'bold',
+    fontSize: 26,
     color: '#333',
-    textAlign: 'center', // ⬅️ Also helps center text inside its block
+    textAlign: 'center',
   },
   avatarsRow: {
     flexDirection: 'row',
@@ -611,13 +753,115 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   moreAvatar: {
     backgroundColor: '#ccc',
     marginLeft: -8,
     zIndex: 0,
   },
-
-
+  groupSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  groupSelectorText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  trashModalContainer: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 30,
+    maxHeight: "80%",
+  },
+  trashModalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  trashEmpty: {
+    fontSize: 14,
+    color: "#aaa",
+    fontStyle: "italic",
+    marginTop: 5,
+    textAlign: "center",
+  },
+  trashItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+    paddingVertical: 10,
+  },
+  trashText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+  },
+  trashDate: {
+    fontSize: 12,
+    color: "#888",
+    marginTop: 2,
+  },
+  restoreButton: {
+    backgroundColor: "#5FC9C9",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  restoreButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  closeModalButton: {
+    alignSelf: "center",
+    marginTop: 15,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+  },
+  closeModalButtonText: {
+    color: "#5FC9C9",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  trashButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    alignItems: 'left',
+    justifyContent: 'left',
+    minWidth: 44, // iOS Human Interface Guidelines minimum
+    minHeight: 44, // iOS Human Interface Guidelines minimum
+  },
+  groupSelectorUnderline: {
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+    paddingVertical: 4,
+  },
+  groupSelectorUnderlineText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  underline: {
+    height: 2,
+    backgroundColor: '#5FC9C9',
+    marginTop: 4,
+    borderRadius: 1,
+  },
 });
-

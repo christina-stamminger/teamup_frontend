@@ -9,6 +9,15 @@ export default function OpenTodosScreen() {
   const [loading, setLoading] = useState(true);
   const isFocused = useIsFocused(); // triggers fetchTodo everytime the screen is navigated to
 
+  const handleLocalTodoUpdate = (todoId) => {
+    // Entferne das Todo direkt aus der Liste
+    setTodos((prevTodos) => prevTodos.filter((t) => t.todoId !== todoId));
+
+    // Optional: Backend nach kurzer Zeit erneut abfragen (z. B. falls sich andere Todos geändert haben)
+    setTimeout(() => fetchTodos(), 2000);
+  };
+
+
   const fetchTodos = async () => {
     try {
       const token = await SecureStore.getItemAsync('authToken');
@@ -50,8 +59,8 @@ export default function OpenTodosScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-</View>
-<Text style={styles.headerTitle}>Open Todos</Text>
+      </View>
+      <Text style={styles.headerTitle}>Open Todos</Text>
 
       {loading ? (
         <ActivityIndicator size="large" color="#888" />
@@ -59,8 +68,14 @@ export default function OpenTodosScreen() {
         <FlatList
           data={todos}
           keyExtractor={(item) => item.todoId.toString()}
-          renderItem={({ item }) => <CollapsibleTodoCard todo={item} />}
+          renderItem={({ item }) => (
+            <CollapsibleTodoCard
+              todo={item}
+              onStatusUpdated={() => handleLocalTodoUpdate(item.todoId)}
+            />
+          )}
         />
+
       )}
     </View>
   );
@@ -70,12 +85,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    //marginTop: 30,
+    marginTop: 30,
     backgroundColor: '#F7F7F7',
   },
   headerTitle: {
     fontSize: 26, // ⬆️ Increased font size (was 22 before)
-    fontWeight: 'bold',
     color: '#333',
     textAlign: 'center', // ⬅️ Also helps center text inside its block
   },

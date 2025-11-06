@@ -267,6 +267,7 @@ export default function GroupDetails({ route, navigation }) {
                     hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
                     style={styles.trashButton}
                     activeOpacity={0.6}
+                    android_ripple={{ color: '#FF5C5C20', borderless: true }}  // ← Android Ripple
                   >
                     <Icon name="trash" size={20} color="#FF5C5C" />
                   </TouchableOpacity>
@@ -481,10 +482,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   trashButton: {
-    size: 32,
     padding: 12,
     marginLeft: 8,
     justifyContent: 'center',
     alignItems: 'center',
-  }
+  },
 });

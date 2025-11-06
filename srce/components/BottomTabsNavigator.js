@@ -131,6 +131,7 @@ export default function BottomTabsNavigator({ navigation }) {
           ),
           headerTitle: username ? `Hi, ${username}` : "Loading...",
           headerTitleAlign: "center",
+          headerTitleStyle: { fontSize: 22 },
         }}
       >
         <Tab.Screen

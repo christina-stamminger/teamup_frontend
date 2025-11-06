@@ -15,22 +15,22 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import { useUser } from "../components/context/UserContext";
 import { Dropdown } from 'react-native-element-dropdown';
-import { MaskedTextInput } from 'react-native-mask-text';
+//import { MaskedTextInput } from 'react-native-mask-text';
 import Toast from 'react-native-toast-message';
 import { useFocusEffect } from '@react-navigation/native';
 import { ChevronDown, ChevronUp } from 'lucide-react-native'; // ← Icons für Collapse
+import Icon from 'react-native-vector-icons/FontAwesome';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 export default function CreateTodoScreen() {
     const [title, setTitle] = useState("");
-    const [expiresAt, setExpiresAt] = useState("");
+    const [expiresAt, setExpiresAt] = useState(null);
+    const [expiresAtDisplay, setExpiresAtDisplay] = useState("");
     const [groupId, setGroupId] = useState(null);
     const [groups, setGroups] = useState([]);
-
     const [description, setDescription] = useState("");
     const [showDescription, setShowDescription] = useState(false);
-
-    // DateTime Picker state
+    const [isTimeCritical, setIsTimeCritical] = useState(false); // ← NEU
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
     const { userId } = useUser();
@@ -77,39 +77,40 @@ export default function CreateTodoScreen() {
         }, [])
     );
 
-    // DateTimePicker handlers
     const showPicker = () => setDatePickerVisible(true);
     const hidePicker = () => setDatePickerVisible(false);
     const handleConfirm = (date) => {
-        setExpiresAt(formatDateTime(date));
+        setExpiresAt(date);
+        setExpiresAtDisplay(formatDateTime(date));
         hidePicker();
     };
 
-    const formatDateTime = (date) => {
-        // YYYY-MM-DD HH:MM:SS
-        const pad = (n) => (n < 10 ? "0" + n : n);
-        return (
-            date.getFullYear() +
-            "-" +
-            pad(date.getMonth() + 1) +
-            "-" +
-            pad(date.getDate()) +
-            " " +
-            pad(date.getHours()) +
-            ":" +
-            pad(date.getMinutes()) +
-            ":" +
-            pad(date.getSeconds())
-        );
+    const formatDateTime = (dateString) => {
+        if (!dateString) return "";
+
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleString("de-DE", {
+                weekday: "short",
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+        } catch (e) {
+            console.error("❌ Fehler beim Formatieren von expiresAt:", e);
+            return dateString;
+        }
     };
 
-    // Quick buttons
     const applyQuickButton = (option) => {
         const now = new Date();
         let newDate = new Date();
+
         switch (option) {
             case "sofort":
-                newDate.setHours(now.getHours() + 2);
+                newDate.setHours(now.getHours() + 1);
                 break;
             case "plus4":
                 newDate.setHours(now.getHours() + 4);
@@ -120,9 +121,10 @@ export default function CreateTodoScreen() {
             default:
                 newDate = now;
         }
-        setExpiresAt(formatDateTime(newDate));
-    };
 
+        setExpiresAt(newDate);
+        setExpiresAtDisplay(formatDateTime(newDate));
+    };
 
     const handleCreateTodo = async () => {
         if (!userId) {
@@ -130,51 +132,54 @@ export default function CreateTodoScreen() {
             return;
         }
         if (!title || !expiresAt || !groupId) {
-            Alert.alert(
-                "Error",
-                "Title, Expiration Date, and Group are required!"
-            );
+            Alert.alert("Error", "Title, Expiration Date, and Group are required!");
             return;
         }
-        const formattedExpiresAt = expiresAt.replace(" ", "T") + "Z";
+
+        const expiresWithBuffer = new Date(expiresAt.getTime() + 2 * 60 * 1000);
+        const formattedExpiresAt = expiresWithBuffer.toISOString();
 
         const newTodo = {
             userOfferedId: userId,
             title,
             expiresAt: formattedExpiresAt,
             groupId: parseInt(groupId, 10),
+            isTimeCritical, // ← NEU: An Backend senden
             ...(description && { description }),
         };
 
         try {
             const token = await SecureStore.getItemAsync("authToken");
-            const response = await fetch(
-                "http://192.168.50.116:8082/api/todo/create",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify(newTodo),
-                }
-            );
+            const response = await fetch("http://192.168.50.116:8082/api/todo/create", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(newTodo),
+            });
+
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error("Error from backend:", errorData);
                 throw new Error("Failed to create todo!");
             }
+
             Toast.show({
                 type: "info",
                 text1: "Todo created successfully.",
                 visibilityTime: 1500,
             });
+
             // Reset fields
             setTitle("");
             setExpiresAt("");
+            setExpiresAtDisplay("");
             setGroupId(null);
             setDescription("");
             setShowDescription(false);
+            setIsTimeCritical(false); // ← NEU: Reset
+
         } catch (error) {
             console.error("Error:", error);
             Alert.alert("Error", "Failed to create todo. Please try again.");
@@ -192,8 +197,8 @@ export default function CreateTodoScreen() {
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.inner}>
-                        {/* Screen Title */}
                         <Text style={styles.screenTitle}>Create Todo</Text>
+
                         {/* Title */}
                         <Text style={styles.label}>Title</Text>
                         <TextInput
@@ -244,14 +249,13 @@ export default function CreateTodoScreen() {
                             onChange={(item) => setGroupId(item.value)}
                         />
 
-                        {/* Expires At */}
                         {/* Quick Buttons */}
                         <View style={styles.quickButtonContainer}>
                             <TouchableOpacity
                                 style={styles.quickButtonModern}
                                 onPress={() => applyQuickButton("sofort")}
                             >
-                                <Text style={styles.quickButtonModernText}>Now (2h)</Text>
+                                <Text style={styles.quickButtonModernText}>Now (1h)</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.quickButtonModern}
@@ -270,16 +274,45 @@ export default function CreateTodoScreen() {
                         {/* DateTime Picker Button */}
                         <TouchableOpacity style={styles.dateTimeButton} onPress={showPicker}>
                             <Text style={styles.dateTimeButtonText}>
-                                {expiresAt ? expiresAt : "Pick Date & Time"}
+                                {expiresAtDisplay ? expiresAtDisplay : "Pick Date & Time"}
                             </Text>
                         </TouchableOpacity>
 
                         <DateTimePickerModal
                             isVisible={isDatePickerVisible}
                             mode="datetime"
+                            minimumDate={new Date(Date.now())}
                             onConfirm={handleConfirm}
                             onCancel={hidePicker}
                         />
+
+                        {/* ⏰ NEU: Zeitkritisch Checkbox */}
+                        <TouchableOpacity
+                            style={styles.timeCriticalContainer}
+                            onPress={() => setIsTimeCritical(!isTimeCritical)}
+                            activeOpacity={0.7}
+                        >
+                            <View style={[
+                                styles.checkbox,
+                                isTimeCritical && styles.checkboxChecked
+                            ]}>
+                                {isTimeCritical && (
+                                    <Text style={styles.checkmark}>✓</Text>
+                                )}
+                            </View>
+                            <View style={styles.timeCriticalTextContainer}>
+                                <Icon
+                                    name="exclamation-triangle"
+                                    size={16}
+                                    color="#FF6B6B"
+                                    style={{ marginRight: 6 }}
+                                />
+                                <Text style={styles.timeCriticalHint}>
+                                    Nach Ablauf automatisch expired
+                                </Text>
+                            </View>
+
+                        </TouchableOpacity>
 
                         {/* Create Todo */}
                         <TouchableOpacity style={styles.createButton} onPress={handleCreateTodo}>
@@ -297,12 +330,11 @@ const styles = StyleSheet.create({
     scrollContainer: { flexGrow: 1 },
     inner: { flex: 1 },
 
-    screenTitle: { 
-        fontSize: 26, 
-        fontWeight: "700", 
-        marginBottom: 20, 
+    screenTitle: {
+        fontSize: 26,
+        marginBottom: 20,
         color: "#333",
-        textAlign: "center", 
+        textAlign: "center",
     },
 
     label: { fontWeight: "bold", marginTop: 12 },
@@ -398,5 +430,54 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginVertical: 80,
     },
-    createButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+    createButtonText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "600"
+    },
+    timeCriticalContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 15,
+        marginBottom: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 15,
+        backgroundColor: "#F8F9FA",
+    },
+    checkbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: "#5FC9C9",
+        backgroundColor: "#FFFFFF",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 12,
+    },
+    checkboxChecked: {
+        backgroundColor: "#5FC9C9",
+        borderColor: "#5FC9C9",
+    },
+    checkmark: {
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    timeCriticalTextContainer: {
+        flexDirection: 'row',      // 🔹 Icon und Text nebeneinander
+        alignItems: 'center',      // 🔹 vertikal ausgerichtet
+        marginTop: 6,
+    },
+    timeCriticalLabel: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#2C3E50",
+        marginBottom: 2,
+    },
+    timeCriticalHint: {
+        fontSize: 13,
+        color: '#FF6B6B',
+        fontWeight: '500',
+    },
 });
