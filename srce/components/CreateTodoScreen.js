@@ -137,7 +137,9 @@ export default function CreateTodoScreen() {
         }
 
         const expiresWithBuffer = new Date(expiresAt.getTime() + 2 * 60 * 1000);
-        const formattedExpiresAt = expiresWithBuffer.toISOString();
+        const formattedExpiresAt = new Date(
+            expiresWithBuffer.getTime() - expiresWithBuffer.getTimezoneOffset() * 60000
+        ).toISOString().slice(0, 19);
 
         const newTodo = {
             userOfferedId: userId,
@@ -173,7 +175,7 @@ export default function CreateTodoScreen() {
 
             // Reset fields
             setTitle("");
-            setExpiresAt("");
+            setExpiresAt(null);
             setExpiresAtDisplay("");
             setGroupId(null);
             setDescription("");
@@ -281,6 +283,7 @@ export default function CreateTodoScreen() {
                         <DateTimePickerModal
                             isVisible={isDatePickerVisible}
                             mode="datetime"
+                            date={expiresAt || new Date()}     // ✅ zeigt Quick-Button-Zeit korrekt
                             minimumDate={new Date(Date.now())}
                             onConfirm={handleConfirm}
                             onCancel={hidePicker}

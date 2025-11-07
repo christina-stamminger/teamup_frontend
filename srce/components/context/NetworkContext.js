@@ -15,8 +15,52 @@ export const NetworkProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
+  // ✅ Sichere Fetch-Funktion die Offline-Status prüft
+  const safeFetch = async (url, options) => {
+    // Prüfe ob Internet verfügbar ist
+    if (!isConnected) {
+      console.log('⚠️ Offline - request blocked:', url);
+      return { 
+        ok: false, 
+        offline: true,
+        status: 0 
+      };
+    }
+    
+    // Normaler Fetch wenn Online
+    try {
+      const response = await fetch(url, options);
+      return response;
+    } catch (error) {
+      // Network error (z.B. Server nicht erreichbar)
+      if (error.message === 'Network request failed') {
+        console.log('⚠️ Network request failed:', url);
+        return { 
+          ok: false, 
+          offline: true,
+          status: 0 
+        };
+      }
+      // Andere Errors normal werfen
+      throw error;
+    }
+  };
+
+  // ✅ Hilfsfunktion: Soll Error angezeigt werden?
+  const shouldShowError = () => {
+    if (!isConnected) {
+      console.log('⚠️ Suppressing error alert - device offline');
+      return false;
+    }
+    return true;
+  };
+
   return (
-    <NetworkContext.Provider value={{ isConnected }}>
+    <NetworkContext.Provider value={{ 
+      isConnected, 
+      safeFetch,
+      shouldShowError 
+    }}>
       {children}
     </NetworkContext.Provider>
   );
