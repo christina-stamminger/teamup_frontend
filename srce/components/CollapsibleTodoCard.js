@@ -1,177 +1,178 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated'; // ✅ new reanimated animation lib
-
-import { MaterialIcons } from '@expo/vector-icons';
-import { useUser } from '../components/context/UserContext';
-import { getStatusColor } from '../utils/statusHelpers';
-import * as SecureStore from 'expo-secure-store';
-import Icon from 'react-native-vector-icons/FontAwesome';
-import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { useIsFocused } from '@react-navigation/native'; // Import the hook
-import Toast from 'react-native-toast-message'; // toast: for short messages intead of alert
-
+import React, { useState, useRef, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Keyboard,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
+import Animated from "react-native-reanimated";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useUser } from "../components/context/UserContext";
+import { getStatusColor } from "../utils/statusHelpers";
+import * as SecureStore from "expo-secure-store";
+import Icon from "react-native-vector-icons/FontAwesome";
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
+import Toast from "react-native-toast-message";
+import TodoChat from "./TodoChat";
 
 const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { userId, loading } = useUser();
   const isFocused = useIsFocused();
   const swipeableRef = useRef(null);
+  const scrollRef = useRef(null);
 
   const toggleExpand = () => setIsExpanded(!isExpanded);
-
   const statusColor = getStatusColor(todo.status);
 
-  // ✅ Formatierung
-  const formatDateTime = (dateString) => {
-    if (!dateString) return "";
+  // 👇 Keyboard Handling – wenn Keyboard sichtbar wird, nach unten scrollen
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", () => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
+  // 🟢 PATCH Todo Status
+  const updateTodoStatus = async (newStatus = "IN_ARBEIT") => {
     try {
-      const date = new Date(dateString);
-
-      const time = date.toLocaleTimeString("de-DE", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-      const datePart = date.toLocaleDateString("de-DE", {
-        weekday: "short",
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-
-      return `${time}\n${datePart}`;
-    } catch (e) {
-      console.error("❌ Fehler beim Formatieren des Datums:", e);
-      return dateString;
-    }
-  };
-
-  // Update PATCH todostatus
-  const updateTodoStatus = async (newStatus = 'IN_ARBEIT') => {
-    try {
-      const token = await SecureStore.getItemAsync('authToken');
+      const token = await SecureStore.getItemAsync("authToken");
       const currentTime = new Date().toISOString();
 
-      const response = await fetch('http://192.168.50.116:8082/api/todo/status', {
-        method: 'PATCH',
+      const response = await fetch("http://192.168.50.116:8082/api/todo/status", {
+        method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           todoId: todo.todoId,
           userTakenId: userId,
           status: newStatus,
-          completedAt: newStatus === 'ERLEDIGT' ? currentTime : null,
+          completedAt: newStatus === "ERLEDIGT" ? currentTime : null,
         }),
       });
 
       const result = await response.json();
       if (!response.ok) {
         Toast.show({
-          type: 'error',
-          text1: result.errorMessage || 'Todos could not be updated.',
+          type: "error",
+          text1: result.errorMessage || "Todos konnten nicht aktualisiert werden.",
           visibilityTime: 2000,
         });
       } else {
         Toast.show({
-          type: 'success',
-          text1: 'Todo status updated successfully.',
+          type: "success",
+          text1: "Todo-Status erfolgreich geändert.",
           visibilityTime: 1500,
         });
         onStatusUpdated?.();
       }
-
     } catch (error) {
-      console.error('Fehler beim Aktualisieren:', error);
-      alert('Netzwerkfehler.');
+      console.error("Fehler beim Aktualisieren:", error);
+      alert("Netzwerkfehler.");
     }
   };
 
   if (loading) return <Text>Loading...</Text>;
 
-  // Swipe to delete
+  // 🗑️ Todo löschen
   const deleteTodo = async () => {
-    try {
-      const token = await SecureStore.getItemAsync('authToken');
-      const response = await fetch(`http://192.168.50.116:8082/api/todo/${todo.todoId}/trash`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+    if ((todo.status || "").toUpperCase() === "IN_ARBEIT") {
+      Toast.show({
+        type: "error",
+        text1: "Todos in Arbeit können nicht gelöscht werden.",
+        visibilityTime: 2000,
       });
+      swipeableRef.current?.close();
+      return;
+    }
+
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      const response = await fetch(
+        `http://192.168.50.116:8082/api/todo/${todo.todoId}/trash`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       const result = await response.json();
-
       if (!response.ok) {
         Toast.show({
-          type: 'error',
-          text1: result.errorMessage || 'Todo could not be deleted.',
+          type: "error",
+          text1: result.errorMessage || "Todo konnte nicht gelöscht werden.",
           visibilityTime: 2000,
         });
       } else {
         Toast.show({
-          type: 'success',
-          text1: 'Todo moved to trash successfully!',
+          type: "success",
+          text1: "Todo in Papierkorb verschoben.",
           visibilityTime: 1500,
         });
-
         onDelete?.(todo.todoId);
-
-        if (isFocused) {
-          onStatusUpdated?.();
-        }
-
+        if (isFocused) onStatusUpdated?.();
         swipeableRef.current?.close();
       }
     } catch (error) {
-      console.error('Fehler beim Löschen:', error);
-      alert('Netzwerkfehler.');
+      console.error("Fehler beim Löschen:", error);
+      Toast.show({
+        type: "error",
+        text1: "Netzwerkfehler.",
+        visibilityTime: 2000,
+      });
     }
   };
 
-  const renderRightActions = () => {
-    return (
-      <View style={styles.deleteButton}>
-        <TouchableOpacity onPress={deleteTodo} style={styles.deleteButtonContent}>
-          <MaterialIcons name="delete" size={24} color="white" />
-        </TouchableOpacity>
-      </View>
-    );
-  };
+  const renderRightActions = () => (
+    <View style={styles.deleteButton}>
+      <TouchableOpacity onPress={deleteTodo} style={styles.deleteButtonContent}>
+        <MaterialIcons name="delete" size={24} color="white" />
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <Swipeable ref={swipeableRef} renderRightActions={renderRightActions}>
       <TouchableOpacity
         style={[
           styles.card,
-         // { borderColor: statusColor },
-          // ⏰ Zeitkritisch = dicker roter Rand
-          todo.isTimeCritical && styles.timeCriticalCard
+          todo.isTimeCritical && styles.timeCriticalCard,
         ]}
         onPress={toggleExpand}
+        activeOpacity={0.9}
       >
-        {/* ⏰ NEU: Zeitkritisch-Badge (oben rechts) */}
-     
-
-        {/* Status badge */}
+        {/* Status Badge */}
         <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
           <Text style={styles.statusBadgeText}>{todo.status}</Text>
         </View>
 
-        {/* Title */}
+        {/* Titel */}
         <Text style={styles.title}>{todo.title}</Text>
 
-        {/* Issuer / Taken by */}
+        {/* User Infos */}
         <View style={styles.userBlock}>
           <View style={styles.userRow}>
             <Icon name="user" size={16} color="#666" style={styles.icon} />
             <Text style={styles.userValue}>
-              {todo.username} {userId === todo.userOfferedId ? '(You)' : ''}
+              {todo.username} {userId === todo.userOfferedId ? "(You)" : ""}
             </Text>
           </View>
 
@@ -179,135 +180,209 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
             <View style={styles.userRow}>
               <Icon name="check" size={16} color="#28a745" style={styles.icon} />
               <Text style={styles.userValue}>
-                {todo.userTakenUsername} {userId === todo.userTakenId ? '(You)' : ''}
+                {todo.userTakenUsername}{" "}
+                {userId === todo.userTakenId ? "(You)" : ""}
               </Text>
             </View>
           )}
         </View>
 
+        {/* EXPANDED CONTENT */}
         {isExpanded && (
-          <View style={styles.additionalContent}>
-            {/* Description */}
-            {todo.description && (
-              <View style={styles.detailRow}>
-                <Feather name="file-text" size={18} color="#4B5563" style={styles.icon} />
-                <Text style={styles.detailText}>{todo.description}</Text>
-              </View>
-            )}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+          >
+            <ScrollView
+              ref={scrollRef}
+              contentContainerStyle={{ paddingBottom: 160 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.additionalContent}>
+                {/* Description */}
+                {todo.description && (
+                  <View style={styles.detailRow}>
+                    <Feather
+                      name="file-text"
+                      size={18}
+                      color="#4B5563"
+                      style={styles.icon}
+                    />
+                    <Text style={styles.detailText}>{todo.description}</Text>
+                  </View>
+                )}
 
-            {!todo.userTakenId && (
-              <Text style={styles.userTakenText}>No user has taken this task yet.</Text>
-            )}
+                {!todo.userTakenId && (
+                  <Text style={styles.userTakenText}>
+                    No user has taken this task yet.
+                  </Text>
+                )}
 
-            {/* ⏰ NEU: Zeitkritisch-Warnung (expanded) */}
-            {todo.isTimeCritical && (
-              <View style={styles.timeCriticalWarning}>
-                <Icon name="exclamation-triangle" size={16} color="#FF6B6B" style={{ marginRight: 8 }} />
-                <Text style={styles.timeCriticalWarningText}>
-                  Zeitkritisch: Nach Ablauf automatisch expired
-                </Text>
-              </View>
-            )}
+                {/* Zeitkritisch */}
+                {todo.isTimeCritical && (
+                  <View style={styles.timeCriticalWarning}>
+                    <Icon
+                      name="exclamation-triangle"
+                      size={16}
+                      color="#FF6B6B"
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text style={styles.timeCriticalWarningText}>
+                      Zeitkritisch: Nach Ablauf automatisch abgelaufen
+                    </Text>
+                  </View>
+                )}
 
-            {/* Zeitabschnitt */}
-            <View style={styles.timeContainer}>
-              {/* ExpiresAt */}
-              <View style={styles.timeBlock}>
-                <View style={styles.timeHeader}>
-                  <Icon name="clock-o" size={14} color={statusColor} style={{ marginRight: 6 }} />
-                  <Text style={[styles.timeLabel, { color: statusColor }]}>Expires</Text>
-                </View>
-
-                <Text style={[styles.timeMain, { color: statusColor }]}>
-                  {new Date(todo.expiresAt).toLocaleTimeString("de-DE", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </Text>
-                <Text style={styles.timeSub}>
-                  {new Date(todo.expiresAt).toLocaleDateString("de-DE", {
-                    weekday: "short",
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </Text>
-              </View>
-
-              {/* CompletedAt */}
-              {todo.completedAt && (
-                <View style={[styles.timeBlock, { borderLeftWidth: 1, borderLeftColor: "#e0e0e0" }]}>
-                  <View style={styles.timeHeader}>
-                    <Icon name="check" size={14} color="#4CAF50" style={{ marginRight: 6 }} />
-                    <Text style={[styles.timeLabel, { color: "#4CAF50" }]}>Completed</Text>
+                {/* Zeitabschnitt */}
+                <View style={styles.timeContainer}>
+                  {/* Expires */}
+                  <View style={styles.timeBlock}>
+                    <View style={styles.timeHeader}>
+                      <Icon
+                        name="clock-o"
+                        size={14}
+                        color={statusColor}
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text style={[styles.timeLabel, { color: statusColor }]}>
+                        Expires
+                      </Text>
+                    </View>
+                    <Text style={[styles.timeMain, { color: statusColor }]}>
+                      {new Date(todo.expiresAt).toLocaleTimeString("de-DE", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </Text>
+                    <Text style={styles.timeSub}>
+                      {new Date(todo.expiresAt).toLocaleDateString("de-DE", {
+                        weekday: "short",
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </Text>
                   </View>
 
-                  <Text style={[styles.timeMain, { color: "#4CAF50" }]}>
-                    {new Date(todo.completedAt).toLocaleTimeString("de-DE", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Text>
-                  <Text style={styles.timeSub}>
-                    {new Date(todo.completedAt).toLocaleDateString("de-DE", {
-                      weekday: "short",
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </Text>
+                  {/* Completed */}
+                  {todo.completedAt && (
+                    <View
+                      style={[
+                        styles.timeBlock,
+                        { borderLeftWidth: 1, borderLeftColor: "#e0e0e0" },
+                      ]}
+                    >
+                      <View style={styles.timeHeader}>
+                        <Icon
+                          name="check"
+                          size={14}
+                          color="#4CAF50"
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text
+                          style={[styles.timeLabel, { color: "#4CAF50" }]}
+                        >
+                          Completed
+                        </Text>
+                      </View>
+                      <Text style={[styles.timeMain, { color: "#4CAF50" }]}>
+                        {new Date(todo.completedAt).toLocaleTimeString("de-DE", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </Text>
+                      <Text style={styles.timeSub}>
+                        {new Date(todo.completedAt).toLocaleDateString("de-DE", {
+                          weekday: "short",
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
 
-            {/* Take button if open */}
-            {todo.status === 'OFFEN' && todo.userOfferedId !== userId && (
-              <TouchableOpacity
-                style={styles.takeButton}
-                onPress={() => updateTodoStatus('IN_ARBEIT')}
-              >
-                <Text style={styles.takeButtonText}>I'll bring it</Text>
-              </TouchableOpacity>
-            )}
+                {/* Buttons */}
+                {todo.status === "OFFEN" && todo.userOfferedId !== userId && (
+                  <TouchableOpacity
+                    style={styles.takeButton}
+                    onPress={() => updateTodoStatus("IN_ARBEIT")}
+                  >
+                    <Text style={styles.takeButtonText}>I'll bring it</Text>
+                  </TouchableOpacity>
+                )}
 
-            {/* Fulfilled & Cancel buttons */}
-            {todo.userTakenUsername && todo.userTakenId === userId && todo.status === 'IN_ARBEIT' && (
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  style={[styles.statusButton, { backgroundColor: '#6BA8D1' }]}
-                  onPress={() => updateTodoStatus('ERLEDIGT')}
-                >
-                  <Icon name="check" size={16} color="#fff" style={styles.buttonIcon} />
-                  <Text style={styles.statusButtonText}>Completed</Text>
-                </TouchableOpacity>
+                {todo.userTakenUsername &&
+                  todo.userTakenId === userId &&
+                  todo.status === "IN_ARBEIT" && (
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity
+                        style={[
+                          styles.statusButton,
+                          { backgroundColor: "#6BA8D1" },
+                        ]}
+                        onPress={() => updateTodoStatus("ERLEDIGT")}
+                      >
+                        <Icon
+                          name="check"
+                          size={16}
+                          color="#fff"
+                          style={styles.buttonIcon}
+                        />
+                        <Text style={styles.statusButtonText}>Completed</Text>
+                      </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.statusButton, { backgroundColor: '#e0e0e0' }]}
-                  onPress={() =>
-                    Alert.alert(
-                      'Cancel',
-                      'Do you want to give back todo?',
-                      [
-                        { text: 'No', style: 'cancel' },
-                        { text: 'Yes', onPress: () => updateTodoStatus('OFFEN') },
-                      ]
-                    )
-                  }
-                >
-                  <Icon name="times" size={16} color="#fff" style={styles.buttonIcon} />
-                  <Text style={styles.statusButtonText}>Cancel</Text>
-                </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.statusButton,
+                          { backgroundColor: "#e0e0e0" },
+                        ]}
+                        onPress={() =>
+                          Alert.alert(
+                            "Cancel",
+                            "Do you want to give back todo?",
+                            [
+                              { text: "No", style: "cancel" },
+                              {
+                                text: "Yes",
+                                onPress: () => updateTodoStatus("OFFEN"),
+                              },
+                            ]
+                          )
+                        }
+                      >
+                        <Icon
+                          name="times"
+                          size={16}
+                          color="#fff"
+                          style={styles.buttonIcon}
+                        />
+                        <Text style={styles.statusButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                {/* 💬 Chat unten */}
+                <TodoChat
+                  todoId={todo.todoId}
+                  userId={userId}
+                  issuerId={todo.userOfferedId}
+                  fulfillerId={todo.userTakenId}
+                  todoStatus={todo.status}
+                  parentScrollRef={scrollRef}
+                />
               </View>
-            )}
-          </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         )}
       </TouchableOpacity>
     </Swipeable>
   );
 };
 
-const styles = StyleSheet.create({
 
+const styles = StyleSheet.create({
   completedRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -317,15 +392,15 @@ const styles = StyleSheet.create({
   completedText: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#28A745', // Green color to indicate completion
+    color: '#28A745',
   },
   card: {
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 15,
     marginVertical: 10,
-    borderWidth: 1,  // to avoid gray corners on android
-    borderColor: '#fff',
+    borderWidth: 0,
+    borderColor: '#ddd',
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 5,
@@ -351,7 +426,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#333',
     marginBottom: 10,
-    paddingRight: 70, // to avoid overlap with status badge
+    paddingRight: 70,
   },
   userBlock: {
     marginBottom: 10,
@@ -382,16 +457,11 @@ const styles = StyleSheet.create({
     color: '#555',
     marginBottom: 5,
   },
-
   userTakenText: {
     fontSize: 14,
     fontStyle: 'italic',
     color: '#333',
     marginBottom: 10,
-  },
-  expiresAt: {
-    fontSize: 14,
-    marginTop: 5,
   },
   takeButton: {
     marginTop: 10,
@@ -433,10 +503,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 10,
   },
-  icon: {
-    marginRight: 8,
-    marginTop: 2,
-  },
   detailText: {
     fontSize: 16,
     color: '#444',
@@ -444,35 +510,26 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   expiryRow: {
-    alignItems: "center",
+    alignItems: 'center',
     marginTop: 10,
   },
-
   expiryTime: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
   },
-
   expiryDate: {
     fontSize: 13,
-    color: "#555",
+    color: '#555',
     marginTop: 2,
   },
-
   expiryText: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#DC2626', // subtle red
-  },
-  completedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 4,
+    color: '#DC2626',
   },
   completedDate: {
     fontSize: 14,
-    textAlign: "center",
+    textAlign: 'center',
     marginTop: 2,
     lineHeight: 18,
   },
@@ -493,69 +550,64 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   timeContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginTop: 14,
     paddingVertical: 6,
     borderTopWidth: 0.5,
-    borderTopColor: "#ddd",
+    borderTopColor: '#ddd',
   },
-
   timeBlock: {
     flex: 1,
-    alignItems: "center",
+    alignItems: 'center',
     paddingHorizontal: 8,
   },
-
   timeHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
-
   timeLabel: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   timeMain: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: '700',
     lineHeight: 20,
   },
   timeSub: {
     fontSize: 13,
-    color: "#777",
+    color: '#777',
     marginTop: 2,
-    textAlign: "center",
+    textAlign: 'center',
   },
-  // ⏰ Zeitkritisch-Styles
-timeCriticalCard: {
-  borderLeftWidth: 4,
-  //borderColor: '#FF6B6B', // Roter Rand
-  shadowColor: '#FF6B6B',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.2,
-  shadowRadius: 4,
-  elevation: 4,
-  borderLeftColor: '#FF3B3B',
-},
-timeCriticalWarning: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#FFE5E5',
-  padding: 10,
-  borderRadius: 8,
-  marginBottom: 12,
-  borderLeftWidth: 4,
-  borderLeftColor: '#FF6B6B',
-},
-timeCriticalWarningText: {
-  flex: 1,
-  fontSize: 13,
-  color: '#C92A2A',
-  fontWeight: '500',
-},
+  timeCriticalCard: {
+    borderLeftWidth: 4,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    borderLeftColor: '#FF3B3B',
+  },
+  timeCriticalWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFE5E5',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF6B6B',
+  },
+  timeCriticalWarningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#C92A2A',
+    fontWeight: '500',
+  },
 });
 
 export default CollapsibleTodoCard;

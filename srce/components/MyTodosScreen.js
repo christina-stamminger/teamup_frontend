@@ -308,6 +308,20 @@ export default function MyTodosScreen() {
 
   const handleDeleteTodo = async (todoId) => {
     try {
+      // ✅ Hole das betroffene Todo aus dem aktuellen State
+      const todo = todos.find((t) => t.todoId === todoId);
+      const status = (todo?.status || '').toUpperCase();
+
+      // 🚫 Schutz: Todos mit Status "IN_ARBEIT" dürfen nicht gelöscht werden
+      if (status === 'IN_ARBEIT') {
+        Alert.alert(
+          'Nicht erlaubt',
+          'To-Dos im Status "In Arbeit" können nicht gelöscht werden.'
+        );
+        return; // ⛔️ Keine Löschung durchführen
+      }
+
+      // ✅ Normale Löschlogik
       const auth = await getAuthToken();
       const response = await safeFetch(`http://192.168.50.116:8082/api/todo/${todoId}`, {
         method: 'DELETE',
@@ -319,14 +333,23 @@ export default function MyTodosScreen() {
         return;
       }
 
-      if (!response?.ok) throw new Error('Failed to delete todo');
+      if (!response?.ok) {
+        throw new Error('Failed to delete todo');
+      }
 
+      // Aus Liste entfernen
       setTodos((prev) => prev.filter((t) => t.todoId !== todoId));
-      Toast.show({ type: 'success', text1: 'Todo deleted successfully!' });
+
+      Toast.show({
+        type: 'success',
+        text1: 'Todo gelöscht',
+      });
     } catch (error) {
-      Alert.alert('Error', 'Error deleting todo: ' + (error?.message || ''));
+      console.error('Error deleting todo:', error);
+      Alert.alert('Fehler', 'Todo konnte nicht gelöscht werden.');
     }
   };
+
 
   const handleSelectFilter = (filterValue) => {
     if (filterValue === 'ALL') {
