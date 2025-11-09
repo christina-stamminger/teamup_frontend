@@ -23,7 +23,7 @@ export default function MyTodosScreen() {
   const [newMembers, setNewMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
-  const [selectedGroupName, setSelectedGroupName] = useState('Select Group');
+  const [selectedGroupName, setSelectedGroupName] = useState('Gruppe wählen');
   const [groups, setGroups] = useState([]);
   const [userRoleInGroup, setUserRoleInGroup] = useState(null);
   const [isGroupModalVisible, setIsGroupModalVisible] = useState(false);
@@ -50,11 +50,11 @@ export default function MyTodosScreen() {
 
   // FilterBar-Optionen
   const FILTER_OPTIONS = [
-    { label: 'All', value: 'ALL' },
-    { label: 'Open', value: 'OFFEN' },
-    { label: 'In Progress', value: 'IN_ARBEIT' },
-    { label: 'Completed', value: 'ERLEDIGT' },
-    { label: 'Expired', value: 'ABGELAUFEN' },
+    { label: 'Alle', value: 'ALL' },
+    { label: 'Offen', value: 'OFFEN' },
+    { label: 'In Arbeit', value: 'IN_ARBEIT' },
+    { label: 'Erledigt', value: 'ERLEDIGT' },
+    { label: 'Abgelaufen', value: 'ABGELAUFEN' },
   ];
 
   const [selectedFilters, setSelectedFilters] = useState(['ALL']);
@@ -394,12 +394,12 @@ export default function MyTodosScreen() {
     <View style={styles.container}>
       <View style={{ paddingVertical: 10 }}>
         <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>My Todos</Text>
+          <Text style={styles.headerTitle}>Meine Todos</Text>
         </View>
 
         <TouchableOpacity onPress={toggleGroupModal} style={styles.groupSelectorUnderline}>
           <Text style={styles.groupSelectorUnderlineText}>
-            {selectedGroupName || 'Select Group'}
+            {selectedGroupName || 'Gruppe wählen'}
           </Text>
           <View style={styles.underline} />
         </TouchableOpacity>

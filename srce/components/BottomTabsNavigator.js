@@ -129,13 +129,13 @@ export default function BottomTabsNavigator({ navigation }) {
               <User2Icon size={24} color="#5fc9c9" />
             </TouchableOpacity>
           ),
-          headerTitle: username ? `Hi, ${username}` : "Loading...",
+          headerTitle: username ? `Hallo, ${username}` : "Loading...",
           headerTitleAlign: "center",
           headerTitleStyle: { fontSize: 22 },
         }}
       >
         <Tab.Screen
-          name="MyTodos"
+          name="Meine Todos"
           component={MyTodosScreen}
           options={{
             tabBarIcon: ({ color }) => <Home size={24} color={color} />,
@@ -143,7 +143,7 @@ export default function BottomTabsNavigator({ navigation }) {
         />
 
         <Tab.Screen
-          name="OpenTodos"
+          name="Offene Todos"
           component={OpenTodosScreen}
           options={{
             tabBarIcon: ({ color }) => <ClipboardList size={24} color={color} />,
@@ -152,7 +152,7 @@ export default function BottomTabsNavigator({ navigation }) {
 
         {/* ✅ CreateTodo mit Gruppen-Check */}
         <Tab.Screen
-          name="CreateTodo"
+          name="Todo erstellen"
           component={CreateTodoScreen}
           listeners={{
             tabPress: (e) => {
@@ -180,7 +180,7 @@ export default function BottomTabsNavigator({ navigation }) {
         />
 
         <Tab.Screen
-          name="MyGroups"
+          name="Meine Gruppen"
           component={MyGroups}
           options={{
             tabBarIcon: ({ color }) => <Users size={24} color={color} />,

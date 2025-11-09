@@ -5,58 +5,61 @@ import * as SecureStore from "expo-secure-store";
 
 export default function LogoutButton({ navigation }) {
   const handleLogout = async () => {
-    console.log("🔑 Attempting to delete authToken...");
+    console.log("🔑 Versuche, authToken zu löschen...");
     try {
       await SecureStore.deleteItemAsync("authToken");
-      console.log("✅ authToken deleted successfully.");
+      console.log("✅ authToken erfolgreich gelöscht.");
 
       if (!navigation || typeof navigation.replace !== "function") {
-        console.error("❌ Navigation object is invalid:", navigation);
-        Alert.alert("Error", "Navigation is not available.");
+        console.error("❌ Navigation ist ungültig:", navigation);
+        Alert.alert("Fehler", "Navigation ist nicht verfügbar.");
         return;
       }
 
-      console.log("🔁 Navigating to Login screen...");
+      console.log("🔁 Navigiere zum Login-Screen...");
       navigation.replace("Login");
     } catch (error) {
-      console.error("❌ Error clearing auth token:", error);
-      Alert.alert("Logout Failed", "Something went wrong. Please try again.");
+      console.error("❌ Fehler beim Löschen des Tokens:", error);
+      Alert.alert(
+        "Abmeldung fehlgeschlagen",
+        "Beim Abmelden ist ein Fehler aufgetreten. Bitte versuche es erneut."
+      );
     }
   };
 
   const handlePress = () => {
-    console.log("🧭 Logout button pressed. Showing alert...");
-    Alert.alert("Logging out", "Are you sure?", [
-      { text: "Cancel", style: "cancel", onPress: () => console.log("🚫 Logout canceled") },
-      { text: "Logout", onPress: () => {
-          console.log("✅ Logout confirmed");
+    console.log("🧭 Logout-Button gedrückt. Zeige Bestätigungsdialog...");
+    Alert.alert("Abmelden", "Möchtest du dich wirklich abmelden?", [
+      { text: "Abbrechen", style: "cancel", onPress: () => console.log("🚫 Logout abgebrochen") },
+      {
+        text: "Abmelden",
+        onPress: () => {
+          console.log("✅ Logout bestätigt");
           handleLogout();
-        }
+        },
       },
     ]);
   };
 
   useEffect(() => {
     const backAction = () => {
-      Alert.alert("Logging out", "Are you sure you want to log out?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Logout", onPress: handleLogout },
+      Alert.alert("Abmelden", "Möchtest du dich wirklich abmelden?", [
+        { text: "Abbrechen", style: "cancel" },
+        { text: "Abmelden", onPress: handleLogout },
       ]);
-      return true; // Prevent default back action (exit app)
+      return true; // verhindert, dass die App beim Zurück-Button geschlossen wird
     };
 
-    // Use BackHandler.addEventListener and handle cleanup properly
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       backAction
     );
 
-    // Cleanup correctly when component unmounts
     return () => {
-      console.log("🧹 Cleaning up back handler...");
-      backHandler.remove(); // Correct cleanup method for React Native 0.70+
+      console.log("🧹 BackHandler aufräumen...");
+      backHandler.remove();
     };
-  }, []); // Empty dependency array ensures this effect only runs once
+  }, []);
 
   return (
     <TouchableOpacity onPress={handlePress} style={{ marginRight: 16 }}>

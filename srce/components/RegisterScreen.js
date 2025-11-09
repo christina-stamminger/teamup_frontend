@@ -1,77 +1,76 @@
 import React, { useState, useCallback } from "react";
-import { View, TextInput, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  View,
+  TextInput,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import get from "lodash.get";
 import { Eye, EyeOff } from "lucide-react-native";
 import { Handshake } from "lucide-react-native";
+import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch + shouldShowError
 
-
-// Validation Schema
-// MVP: Validation Schema - nur 3 Felder
+// ✅ Validation Schema – Deutsch
 const validationSchema = Yup.object({
-  username: Yup.string().required("Username is required."),
+  username: Yup.string().required("Benutzername ist erforderlich."),
   email: Yup.string()
-    .email("Please enter a valid email address.")
-    .required("Email address is required."),
+    .email("Bitte gib eine gültige E-Mail-Adresse ein.")
+    .required("E-Mail-Adresse ist erforderlich."),
   password: Yup.string()
-    .min(8, "Password must be at least 8 characters.")
-    .required("Password is required."),
+    .min(8, "Das Passwort muss mindestens 8 Zeichen lang sein.")
+    .required("Passwort ist erforderlich."),
 
-  // MVP: Auskommentiert - werden später im Profil editiert
   /*
   address: Yup.object({
     streetNumber: Yup.string(),
-    postalCode: Yup.string().length(4, "Postal Code must be exactly 4 characters long."),
+    postalCode: Yup.string().length(4, "PLZ muss genau 4 Zeichen haben."),
     city: Yup.string(),
   }),
-  firstName: Yup.string()
-    .matches(
-      /^[a-zA-Z\s'-]+$/,
-      "First name can only contain letters, spaces, hyphens, and apostrophes."
-    ),
-  lastName: Yup.string()
-    .matches(
-      /^[a-zA-Z\s'-]+$/,
-      "Last name can only contain letters, spaces, hyphens, and apostrophes."
-    )
-    .required("Last name is required."),
-  dateOfBirth: Yup.date()
-    .required("Date of Birth is required.")
-    .test("age", "You must be at least 12 years old", function (value) {
-      return value && new Date().getFullYear() - value.getFullYear() >= 12;
-    }),
-  phone: Yup.string(),
   */
 });
 
-// API request for new user registration
-const postNewUser = async (userData) => {
+// ✅ API Request – jetzt mit safeFetch
+const postNewUser = async (userData, safeFetch) => {
   try {
-    const response = await fetch("http://192.168.50.116:8082/api/user/signup", {
+    // ⚙️ safeFetch statt fetch → funktioniert auch offline
+    const response = await safeFetch("http://192.168.50.116:8082/api/user/signup", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData),
     });
 
-    if (response.status === 409) {
-      return { success: false, message: "Username already exists." };
-    } else if (response.ok) {
-      return { success: true };
-    } else {
-      const data = await response.json();
-      return {
-        success: false,
-        message: data.message || "Error registering user. Please try again.",
-      };
+    // 🧭 1. Offline-Check
+    if (response.offline) {
+      return { success: false, message: "Keine Internetverbindung." };
     }
-  } catch (error) {
-    console.error("Error registering user:", error);
+
+    // 🧭 2. Duplicate Username (409)
+    if (response.status === 409) {
+      return { success: false, message: "Benutzername existiert bereits." };
+    }
+
+    // 🧭 3. Erfolgreich
+    if (response.ok) {
+      return { success: true };
+    }
+
+    // 🧭 4. Fehlerhafte Antwort
+    const data = await response.json().catch(() => ({}));
     return {
       success: false,
-      message: "Error registering user. Please try again.",
+      message: data.message || "Fehler bei der Registrierung. Bitte erneut versuchen.",
+    };
+  } catch (error) {
+    console.error("❌ Fehler bei der Registrierung:", error);
+    return {
+      success: false,
+      message: "Netzwerkfehler. Bitte überprüfe deine Verbindung.",
     };
   }
 };
@@ -79,14 +78,12 @@ const postNewUser = async (userData) => {
 const RegisterScreen = ({ navigation }) => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [registrationMessage, setRegistrationMessage] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // Password visibility
+  const [showPassword, setShowPassword] = useState(false);
 
-  // ✅ FIX: useCallback für toggle
+  const { safeFetch } = useNetwork(); // ✅ Zugriff auf safeFetch aus Context
+
   const togglePasswordVisibility = useCallback(() => {
-    setShowPassword(prev => {
-      console.log('Toggle password from', prev, 'to', !prev); // DEBUG
-      return !prev;
-    });
+    setShowPassword((prev) => !prev);
   }, []);
 
   const formik = useFormik({
@@ -94,30 +91,18 @@ const RegisterScreen = ({ navigation }) => {
       username: "",
       email: "",
       password: "",
-
-      // MVP: Auskommentiert
-      /*
-      address: {
-        streetNumber: "",
-        postalCode: "",
-        city: "",
-      },
-      firstName: "",
-      lastName: "",
-      dateOfBirth: "",
-      phone: "",
-      */
     },
-    validationSchema: validationSchema,
+    validationSchema,
     onSubmit: async (values) => {
-      // MVP: Nur 3 Felder senden
       const userData = {
         username: values.username,
         email: values.email,
         password: values.password,
       };
 
-      const { success, message } = await postNewUser(userData);
+      // ✅ Registrierung über safeFetch
+      const { success, message } = await postNewUser(userData, safeFetch);
+
       if (success) {
         setIsSubmitted(true);
       } else {
@@ -125,6 +110,7 @@ const RegisterScreen = ({ navigation }) => {
       }
     },
   });
+
   const handleBackButton = () => {
     navigation.goBack();
   };
@@ -132,15 +118,15 @@ const RegisterScreen = ({ navigation }) => {
   if (isSubmitted) {
     return (
       <View style={styles.registrationSaved}>
-        <Text>Account created successfully!</Text>
-        <Text>Please login now.</Text>
+        <Text style={styles.successText}>Konto erfolgreich erstellt!</Text>
+        <Text style={styles.successText}>Bitte melde dich jetzt an.</Text>
 
         <TouchableOpacity
           style={styles.closeButton}
           onPress={() => {
             setIsSubmitted(false);
             setRegistrationMessage("");
-            navigation.navigate("Login"); // Navigate back to login screen
+            navigation.navigate("Login");
             formik.resetForm();
           }}
         >
@@ -152,14 +138,13 @@ const RegisterScreen = ({ navigation }) => {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"} // Adjust for iOS and Android
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollViewContainer}
-
-        keyboardShouldPersistTaps="handled" // ← THIS IS THE FIX
+      <ScrollView
+        contentContainerStyle={styles.scrollViewContainer}
+        keyboardShouldPersistTaps="handled"
       >
-
         {/* Logo */}
         <View style={styles.logoContainer}>
           <View style={styles.iconContainer}>
@@ -169,29 +154,17 @@ const RegisterScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.formWrapper}>
-          <Text style={styles.title}>Register</Text>
-          <View style={styles.form}>
-            {/* MVP: Nur noch 3 Felder */}
-            {[
-              { name: "username", placeholder: "Username", type: "text" },
-              { name: "email", placeholder: "Email", type: "email-address" },
-              { name: "password", placeholder: "Password", type: "password" },
+          <Text style={styles.title}>Registrieren</Text>
 
-              // MVP: Auskommentiert - werden später im Profil editiert
-              /*
-              { name: "firstName", placeholder: "First Name (optional)", type: "text" },
-              { name: "lastName", placeholder: "Last Name", type: "text" },
-              { name: "dateOfBirth", placeholder: "Date of Birth", type: "date", hint: "Format: YYYY-MM-DD" },
-              { name: "phone", placeholder: "Phone Number (optional)", type: "phone-pad" },
-              { name: "address.streetNumber", placeholder: "Street & Number (optional)", type: "text" },
-              { name: "address.postalCode", placeholder: "Postal Code (optional)", type: "numeric" },
-              { name: "address.city", placeholder: "City (optional)", type: "text" },
-              */
-            ].map(({ name, placeholder, type, hint }) => {
+          <View style={styles.form}>
+            {[
+              { name: "username", placeholder: "Benutzername", type: "text" },
+              { name: "email", placeholder: "E-Mail-Adresse", type: "email-address" },
+              { name: "password", placeholder: "Passwort", type: "password" },
+            ].map(({ name, placeholder, type }) => {
               const fieldError = get(formik.errors, name);
               const fieldTouched = get(formik.touched, name);
 
-              // 👉 Passwortfeld bekommt Icon
               if (name === "password") {
                 return (
                   <View key={name} style={styles.inputContainer}>
@@ -202,10 +175,9 @@ const RegisterScreen = ({ navigation }) => {
                         placeholder={placeholder}
                         value={get(formik.values, name)}
                         onChangeText={formik.handleChange(name)}
-                        onFocus={() => console.log("PASSWORD got focus")}
                         onBlur={formik.handleBlur(name)}
                         secureTextEntry={!showPassword}
-                        autoCapitalize="none" // ← WICHTIG für Password!
+                        autoCapitalize="none"
                       />
                       <TouchableOpacity
                         onPress={togglePasswordVisibility}
@@ -227,7 +199,6 @@ const RegisterScreen = ({ navigation }) => {
                 );
               }
 
-              // 👉 alle anderen Felder bleiben wie gehabt
               return (
                 <View key={name} style={styles.inputContainer}>
                   <TextInput
@@ -240,7 +211,6 @@ const RegisterScreen = ({ navigation }) => {
                     keyboardType={type === "numeric" ? "numeric" : "default"}
                     secureTextEntry={type === "password"}
                   />
-                  {hint && <Text style={styles.hint}>{hint}</Text>}
                   {fieldTouched && fieldError && (
                     <Text style={styles.error}>{fieldError}</Text>
                   )}
@@ -253,11 +223,11 @@ const RegisterScreen = ({ navigation }) => {
             )}
 
             <TouchableOpacity style={styles.button} onPress={formik.handleSubmit}>
-              <Text style={styles.buttonText}>Register</Text>
+              <Text style={styles.buttonText}>Registrieren</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.backButton} onPress={handleBackButton}>
-              <Text style={styles.buttonText}>Back</Text>
+              <Text style={styles.buttonText}>Zurück</Text>
             </TouchableOpacity>
           </View>
         </View>

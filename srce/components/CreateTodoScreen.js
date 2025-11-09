@@ -15,12 +15,12 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import { useUser } from "../components/context/UserContext";
 import { Dropdown } from 'react-native-element-dropdown';
-//import { MaskedTextInput } from 'react-native-mask-text';
 import Toast from 'react-native-toast-message';
 import { useFocusEffect } from '@react-navigation/native';
-import { ChevronDown, ChevronUp } from 'lucide-react-native'; // ← Icons für Collapse
+import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch importiert
 
 export default function CreateTodoScreen() {
     const [title, setTitle] = useState("");
@@ -30,21 +30,23 @@ export default function CreateTodoScreen() {
     const [groups, setGroups] = useState([]);
     const [description, setDescription] = useState("");
     const [showDescription, setShowDescription] = useState(false);
-    const [isTimeCritical, setIsTimeCritical] = useState(false); // ← NEU
+    const [isTimeCritical, setIsTimeCritical] = useState(false);
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
     const { userId } = useUser();
+    const { safeFetch } = useNetwork(); // ✅ Zugriff auf safeFetch
 
     useEffect(() => {
         console.log("userId from context:", userId);
     }, [userId]);
 
+    // ✅ Gruppen laden mit safeFetch
     useFocusEffect(
         useCallback(() => {
             const fetchGroups = async () => {
                 try {
                     const token = await SecureStore.getItemAsync("authToken");
-                    const response = await fetch(
+                    const response = await safeFetch(
                         "http://192.168.50.116:8082/api/groups/myGroups",
                         {
                             method: "GET",
@@ -55,8 +57,13 @@ export default function CreateTodoScreen() {
                         }
                     );
 
+                    if (response.offline) {
+                        Alert.alert("Offline", "Keine Internetverbindung.");
+                        return;
+                    }
+
                     if (!response.ok) {
-                        throw new Error("Failed to fetch groups");
+                        throw new Error("Fehler beim Laden der Gruppen.");
                     }
 
                     const data = await response.json();
@@ -66,15 +73,15 @@ export default function CreateTodoScreen() {
                     }));
                     setGroups(formattedGroups);
                 } catch (error) {
-                    console.error("Error fetching groups:", error);
+                    console.error("Fehler beim Laden der Gruppen:", error);
                     Alert.alert(
-                        "Error",
-                        "Failed to fetch groups. Please try again."
+                        "Fehler",
+                        "Gruppen konnten nicht geladen werden. Bitte versuche es erneut."
                     );
                 }
             };
             fetchGroups();
-        }, [])
+        }, [safeFetch])
     );
 
     const showPicker = () => setDatePickerVisible(true);
@@ -87,7 +94,6 @@ export default function CreateTodoScreen() {
 
     const formatDateTime = (dateString) => {
         if (!dateString) return "";
-
         try {
             const date = new Date(dateString);
             return date.toLocaleString("de-DE", {
@@ -126,13 +132,14 @@ export default function CreateTodoScreen() {
         setExpiresAtDisplay(formatDateTime(newDate));
     };
 
+    // ✅ Todo erstellen mit safeFetch
     const handleCreateTodo = async () => {
         if (!userId) {
-            Alert.alert("Error", "User not logged in. Please log in again.");
+            Alert.alert("Fehler", "Benutzer ist nicht eingeloggt. Bitte erneut anmelden.");
             return;
         }
         if (!title || !expiresAt || !groupId) {
-            Alert.alert("Error", "Title, Expiration Date, and Group are required!");
+            Alert.alert("Fehler", "Titel, Ablaufzeit und Gruppe sind erforderlich!");
             return;
         }
 
@@ -146,13 +153,13 @@ export default function CreateTodoScreen() {
             title,
             expiresAt: formattedExpiresAt,
             groupId: parseInt(groupId, 10),
-            isTimeCritical, // ← NEU: An Backend senden
+            isTimeCritical,
             ...(description && { description }),
         };
 
         try {
             const token = await SecureStore.getItemAsync("authToken");
-            const response = await fetch("http://192.168.50.116:8082/api/todo/create", {
+            const response = await safeFetch("http://192.168.50.116:8082/api/todo/create", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -161,30 +168,34 @@ export default function CreateTodoScreen() {
                 body: JSON.stringify(newTodo),
             });
 
+            if (response.offline) {
+                Alert.alert("Offline", "Keine Internetverbindung.");
+                return;
+            }
+
             if (!response.ok) {
-                const errorData = await response.json();
-                console.error("Error from backend:", errorData);
-                throw new Error("Failed to create todo!");
+                const errorData = await response.json().catch(() => ({}));
+                console.error("Fehler vom Backend:", errorData);
+                throw new Error("Fehler beim Erstellen des Todos!");
             }
 
             Toast.show({
                 type: "info",
-                text1: "Todo created successfully.",
+                text1: "Todo wurde erfolgreich erstellt.",
                 visibilityTime: 1500,
             });
 
-            // Reset fields
+            // Reset der Felder
             setTitle("");
             setExpiresAt(null);
             setExpiresAtDisplay("");
             setGroupId(null);
             setDescription("");
             setShowDescription(false);
-            setIsTimeCritical(false); // ← NEU: Reset
-
+            setIsTimeCritical(false);
         } catch (error) {
-            console.error("Error:", error);
-            Alert.alert("Error", "Failed to create todo. Please try again.");
+            console.error("Fehler:", error);
+            Alert.alert("Fehler", "Todo konnte nicht erstellt werden. Bitte erneut versuchen.");
         }
     };
 
@@ -199,24 +210,24 @@ export default function CreateTodoScreen() {
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.inner}>
-                        <Text style={styles.screenTitle}>Create Todo</Text>
+                        <Text style={styles.screenTitle}>Neues Todo erstellen</Text>
 
                         {/* Title */}
-                        <Text style={styles.label}>Title</Text>
+                        <Text style={styles.label}>Titel</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Enter todo title"
+                            placeholder="Titel eingeben"
                             value={title}
                             onChangeText={setTitle}
                         />
 
-                        {/* Optional: Collapsible Description */}
+                        {/* Optional: Beschreibung */}
                         <TouchableOpacity
                             style={styles.collapseButton}
                             onPress={() => setShowDescription(!showDescription)}
                         >
                             <Text style={styles.collapseButtonText}>
-                                {showDescription ? "Hide" : "Add"} Description (optional)
+                                {showDescription ? "Beschreibung ausblenden" : "Beschreibung hinzufügen (optional)"}
                             </Text>
                             {showDescription ? (
                                 <ChevronUp size={20} color="#5FC9C9" />
@@ -229,7 +240,7 @@ export default function CreateTodoScreen() {
                             <View style={styles.collapsibleSection}>
                                 <TextInput
                                     style={[styles.input, styles.textArea]}
-                                    placeholder="Add more details..."
+                                    placeholder="Weitere Details hinzufügen..."
                                     multiline
                                     numberOfLines={4}
                                     textAlignVertical="top"
@@ -246,7 +257,7 @@ export default function CreateTodoScreen() {
                             maxHeight={300}
                             labelField="label"
                             valueField="value"
-                            placeholder="Select Group"
+                            placeholder="Gruppe auswählen"
                             value={groupId}
                             onChange={(item) => setGroupId(item.value)}
                         />
@@ -257,7 +268,7 @@ export default function CreateTodoScreen() {
                                 style={styles.quickButtonModern}
                                 onPress={() => applyQuickButton("sofort")}
                             >
-                                <Text style={styles.quickButtonModernText}>Now (1h)</Text>
+                                <Text style={styles.quickButtonModernText}>Jetzt (1h)</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.quickButtonModern}
@@ -273,23 +284,23 @@ export default function CreateTodoScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* DateTime Picker Button */}
+                        {/* DateTime Picker */}
                         <TouchableOpacity style={styles.dateTimeButton} onPress={showPicker}>
                             <Text style={styles.dateTimeButtonText}>
-                                {expiresAtDisplay ? expiresAtDisplay : "Pick Date & Time"}
+                                {expiresAtDisplay ? expiresAtDisplay : "Datum & Uhrzeit wählen"}
                             </Text>
                         </TouchableOpacity>
 
                         <DateTimePickerModal
                             isVisible={isDatePickerVisible}
                             mode="datetime"
-                            date={expiresAt || new Date()}     // ✅ zeigt Quick-Button-Zeit korrekt
+                            date={expiresAt || new Date()}
                             minimumDate={new Date(Date.now())}
                             onConfirm={handleConfirm}
                             onCancel={hidePicker}
                         />
 
-                        {/* ⏰ NEU: Zeitkritisch Checkbox */}
+                        {/* ⏰ Zeitkritisch Checkbox */}
                         <TouchableOpacity
                             style={styles.timeCriticalContainer}
                             onPress={() => setIsTimeCritical(!isTimeCritical)}
@@ -311,15 +322,14 @@ export default function CreateTodoScreen() {
                                     style={{ marginRight: 6 }}
                                 />
                                 <Text style={styles.timeCriticalHint}>
-                                    Nach Ablauf automatisch expired
+                                    Nach Ablauf automatisch auf „Abgelaufen“ gesetzt
                                 </Text>
                             </View>
-
                         </TouchableOpacity>
 
-                        {/* Create Todo */}
+                        {/* Create Button */}
                         <TouchableOpacity style={styles.createButton} onPress={handleCreateTodo}>
-                            <Text style={styles.createButtonText}>Create Todo</Text>
+                            <Text style={styles.createButtonText}>Todo erstellen</Text>
                         </TouchableOpacity>
                     </View>
                 </ScrollView>

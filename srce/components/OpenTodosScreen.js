@@ -11,11 +11,14 @@ import * as SecureStore from "expo-secure-store";
 import CollapsibleTodoCard from "../components/CollapsibleTodoCard";
 import { useIsFocused } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
+import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch importiert
 
 export default function OpenTodosScreen() {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
   const isFocused = useIsFocused();
+
+  const { safeFetch } = useNetwork(); // ✅ Zugriff auf safeFetch
 
   // 🧹 Entfernt Todo lokal, wenn Status geändert oder gelöscht wurde
   const handleLocalTodoUpdate = (todoId) => {
@@ -38,7 +41,7 @@ export default function OpenTodosScreen() {
     });
   };
 
-  // 📦 Todos abrufen + gefiltert setzen
+  // 📦 Todos abrufen (mit safeFetch)
   const fetchTodos = useCallback(async () => {
     try {
       setLoading(true);
@@ -49,7 +52,8 @@ export default function OpenTodosScreen() {
         return;
       }
 
-      const response = await fetch(
+      // ✅ safeFetch statt fetch()
+      const response = await safeFetch(
         "http://192.168.50.116:8082/api/todo/group",
         {
           method: "GET",
@@ -60,10 +64,23 @@ export default function OpenTodosScreen() {
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // ✅ Offline-Prüfung
+      if (response.offline) {
+        Alert.alert("Offline", "Keine Internetverbindung.");
+        setLoading(false);
+        return;
       }
 
+      // ✅ Serverfehler prüfen
+      if (!response.ok) {
+        const errText = await response.text?.().catch(() => "");
+        console.warn("❌ Fehler beim Laden der Todos:", errText);
+        Alert.alert("Fehler", "Todos konnten nicht geladen werden.");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Erfolgreiche Antwort
       const data = await response.json();
       console.log("📦 fetched todos:", data);
 
@@ -87,7 +104,7 @@ export default function OpenTodosScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [safeFetch]);
 
   // 🔁 Refetch bei Fokus
   useEffect(() => {
@@ -98,7 +115,7 @@ export default function OpenTodosScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitle}>Open Todos</Text>
+      <Text style={styles.headerTitle}>Offene Todos</Text>
 
       {loading ? (
         <ActivityIndicator size="large" color="#888" />

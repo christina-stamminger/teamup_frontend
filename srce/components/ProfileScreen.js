@@ -12,12 +12,13 @@ import {
   ScrollView,
 } from 'react-native';
 import Modal from 'react-native-modal';
-
 import { useNavigation } from '@react-navigation/native';
 import { useUser } from './context/UserContext';
+import { useNetwork } from '../components/context/NetworkContext'; // ✅ safeFetch importiert
 
 const ProfileScreen = () => {
   const { userId, token, loading: userContextLoading } = useUser();
+  const { safeFetch } = useNetwork(); // ✅ Zugriff auf safeFetch
   const navigation = useNavigation();
 
   const [userDetails, setUserDetails] = useState({
@@ -37,27 +38,20 @@ const ProfileScreen = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-
-
-
   useEffect(() => {
-    if (userContextLoading) return; // wait for user context to load
-
+    if (userContextLoading) return;
     if (!token || !userId) {
-      Alert.alert('Error', 'Session data missing. Please log in again.');
+      Alert.alert('Fehler', 'Sitzungsdaten fehlen. Bitte erneut einloggen.');
       return;
     }
-
     fetchUserProfile();
-    //fetchTrashedTodos(); // ✅ <--- hier hinzufügen
-
   }, [userContextLoading, userId, token]);
 
-
+  // ✅ Profil abrufen
   const fetchUserProfile = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
+      const response = await safeFetch(
         `http://192.168.50.116:8082/api/users/profile/${userId}`,
         {
           method: 'GET',
@@ -67,6 +61,11 @@ const ProfileScreen = () => {
           },
         }
       );
+
+      if (response.offline) {
+        Alert.alert('Offline', 'Keine Internetverbindung.');
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -84,23 +83,21 @@ const ProfileScreen = () => {
           },
         });
       } else {
-        Alert.alert('Error', 'Failed to fetch user details.');
+        Alert.alert('Fehler', 'Profil konnte nicht geladen werden.');
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
-      Alert.alert('Error', 'There was an issue fetching your profile.');
+      console.error('Fehler beim Abrufen des Profils:', error);
+      Alert.alert('Fehler', 'Beim Laden deines Profils ist ein Problem aufgetreten.');
     } finally {
       setLoading(false);
     }
   };
 
-
-
+  // ✅ Änderungen speichern
   const handleSave = async () => {
     setSaving(true);
-
     try {
-      const response = await fetch('http://192.168.50.116:8082/api/user', {
+      const response = await safeFetch('http://192.168.50.116:8082/api/user', {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -108,107 +105,106 @@ const ProfileScreen = () => {
         },
         body: JSON.stringify({
           userId,
-          // Only sending address fields for now — add more if needed
           address: {
             streetNumber: userDetails.address.streetNumber,
             postalCode: userDetails.address.postalCode,
             city: userDetails.address.city,
           },
-          // If you want to allow updating other fields, add them here
-          // firstName: userDetails.firstName,
-          // lastName: userDetails.lastName,
-          // email: userDetails.email,
-          // etc.
         }),
       });
 
+      if (response.offline) {
+        Alert.alert('Offline', 'Keine Internetverbindung.');
+        return;
+      }
+
       if (response.ok) {
-        Alert.alert('Success', 'Profile saved successfully!');
+        Alert.alert('Erfolg', 'Profil erfolgreich gespeichert.');
       } else {
         const errData = await response.json();
-        const msg = errData.errors?.join('\n') || 'Failed to save profile.';
-        Alert.alert('Error', msg);
+        const msg = errData.errors?.join('\n') || 'Profil konnte nicht gespeichert werden.';
+        Alert.alert('Fehler', msg);
       }
     } catch (error) {
-      console.error('Error saving profile:', error);
-      Alert.alert('Error', 'There was an issue saving your profile.');
+      console.error('Fehler beim Speichern des Profils:', error);
+      Alert.alert('Fehler', 'Beim Speichern deines Profils ist ein Problem aufgetreten.');
     } finally {
       setSaving(false);
     }
   };
 
-  // Handle account deletion check
+  // ✅ Accountlösch-Check
   const handleCheckAccountDeletion = async () => {
     try {
-      const response = await fetch(
+      const response = await safeFetch(
         `http://192.168.50.116:8082/api/user/${userId}/canDelete`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      if (!response.ok) throw new Error("Failed to check account status");
+      if (response.offline) {
+        Alert.alert('Offline', 'Keine Internetverbindung.');
+        return;
+      }
+
+      if (!response.ok) throw new Error('Fehler beim Prüfen des Accountstatus');
       const data = await response.json();
 
       if (!data.canDelete) {
         Alert.alert(
-          "Account kann nicht gelöscht werden",
+          'Account kann nicht gelöscht werden',
           data.reason ||
-          "Du bist noch Admin einer Gruppe oder hast To-Dos in Arbeit."
+          'Du bist noch Admin einer Gruppe oder hast To-Dos in Arbeit.'
         );
         return;
       }
 
-      // ✅ Wenn alles passt → Bestätigungsmodal öffnen
       Alert.alert(
-        "Account wirklich löschen?",
-        "Offene To-Dos werden gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+        'Account wirklich löschen?',
+        'Offene To-Dos werden gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.',
         [
-          { text: "Abbrechen", style: "cancel" },
-          { text: "Löschen", style: "destructive", onPress: handleDeleteAccount },
+          { text: 'Abbrechen', style: 'cancel' },
+          { text: 'Löschen', style: 'destructive', onPress: handleDeleteAccount },
         ]
       );
     } catch (error) {
-      console.error("Error checking account deletion:", error);
-      Alert.alert("Fehler", "Konnte Accountstatus nicht prüfen.");
+      console.error('Fehler beim Prüfen der Accountlöschung:', error);
+      Alert.alert('Fehler', 'Konnte Accountstatus nicht prüfen.');
     }
   };
 
-  // Handle actual account deletion
+  // ✅ Account löschen
   const handleDeleteAccount = async () => {
     try {
-      const response = await fetch(
+      const response = await safeFetch(
         `http://192.168.50.116:8082/api/user/${userId}`,
         {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      if (!response.ok) throw new Error("Fehler beim Löschen des Accounts");
+      if (response.offline) {
+        Alert.alert('Offline', 'Keine Internetverbindung.');
+        return;
+      }
 
-      Alert.alert("Account gelöscht", "Dein Account wurde erfolgreich gelöscht.");
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Login" }],
-      });
+      if (!response.ok) throw new Error('Fehler beim Löschen des Accounts');
+
+      Alert.alert('Account gelöscht', 'Dein Account wurde erfolgreich gelöscht.');
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     } catch (error) {
-      console.error("Error deleting account:", error);
-      Alert.alert("Fehler", "Account konnte nicht gelöscht werden.");
+      console.error('Fehler beim Löschen des Accounts:', error);
+      Alert.alert('Fehler', 'Account konnte nicht gelöscht werden.');
     }
   };
-
-
 
   if (loading || userContextLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#5FC9C9" />
-        <Text style={{ marginTop: 10 }}>Loading profile...</Text>
+        <Text style={{ marginTop: 10 }}>Profil wird geladen...</Text>
       </View>
     );
   }
@@ -223,17 +219,17 @@ const ProfileScreen = () => {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.container}>
-          <Text style={styles.header}>User Profile</Text>
+          <Text style={styles.header}>Benutzerprofil</Text>
 
           <View style={styles.infoContainer}>
-            <LabelValue label="Username" value={userDetails.username} />
-            <LabelValue label="First Name" value={userDetails.firstName} />
-            <LabelValue label="Last Name" value={userDetails.lastName} />
-            <LabelValue label="Date of Birth" value={userDetails.dateOfBirth} />
-            <LabelValue label="Email" value={userDetails.email} />
-            <LabelValue label="Password" value={userDetails.password} />
+            <LabelValue label="Benutzername" value={userDetails.username} />
+            <LabelValue label="Vorname" value={userDetails.firstName} />
+            <LabelValue label="Nachname" value={userDetails.lastName} />
+            <LabelValue label="Geburtsdatum" value={userDetails.dateOfBirth} />
+            <LabelValue label="E-Mail" value={userDetails.email} />
+            <LabelValue label="Passwort" value={userDetails.password} />
 
-            <Text style={styles.label}>Street and Number:</Text>
+            <Text style={styles.label}>Straße und Hausnummer:</Text>
             <TextInput
               style={styles.input}
               value={userDetails.address.streetNumber}
@@ -246,7 +242,7 @@ const ProfileScreen = () => {
               editable={!saving}
             />
 
-            <Text style={styles.label}>Postal Code:</Text>
+            <Text style={styles.label}>Postleitzahl:</Text>
             <TextInput
               style={styles.input}
               value={userDetails.address.postalCode}
@@ -260,7 +256,7 @@ const ProfileScreen = () => {
               keyboardType="numeric"
             />
 
-            <Text style={styles.label}>City:</Text>
+            <Text style={styles.label}>Stadt:</Text>
             <TextInput
               style={styles.input}
               value={userDetails.address.city}
@@ -283,7 +279,7 @@ const ProfileScreen = () => {
               {saving ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.saveButtonText}>Save Profile</Text>
+                <Text style={styles.saveButtonText}>Profil speichern</Text>
               )}
             </TouchableOpacity>
 
@@ -292,11 +288,9 @@ const ProfileScreen = () => {
               onPress={() => navigation.goBack()}
               disabled={saving}
             >
-              <Text style={styles.backButtonText}>Back</Text>
+              <Text style={styles.backButtonText}>Zurück</Text>
             </TouchableOpacity>
           </View>
-
-
 
           {/* 🔴 Danger Zone */}
           <View style={styles.dangerZone}>
@@ -317,7 +311,6 @@ const ProfileScreen = () => {
       </ScrollView>
     </KeyboardAvoidingView>
   );
-
 };
 
 const LabelValue = ({ label, value }) => (

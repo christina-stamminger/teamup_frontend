@@ -8,7 +8,7 @@ export default function GroupListModal({ isVisible, groups, selectedGroupId, onC
   return (
     <Modal isVisible={isVisible} onBackdropPress={onClose}>
       <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>Select a Group</Text>
+        <Text style={styles.modalTitle}>Wähle eine Gruppe</Text>
 
         <FlatList
           data={groups}

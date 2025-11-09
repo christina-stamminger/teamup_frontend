@@ -172,7 +172,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
           <View style={styles.userRow}>
             <Icon name="user" size={16} color="#666" style={styles.icon} />
             <Text style={styles.userValue}>
-              {todo.username} {userId === todo.userOfferedId ? "(You)" : ""}
+              {todo.username} {userId === todo.userOfferedId ? "(Du)" : ""}
             </Text>
           </View>
 
@@ -181,7 +181,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
               <Icon name="check" size={16} color="#28a745" style={styles.icon} />
               <Text style={styles.userValue}>
                 {todo.userTakenUsername}{" "}
-                {userId === todo.userTakenId ? "(You)" : ""}
+                {userId === todo.userTakenId ? "(Du)" : ""}
               </Text>
             </View>
           )}
@@ -195,7 +195,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
           >
             <ScrollView
               ref={scrollRef}
-              contentContainerStyle={{ paddingBottom: 160 }}
+              contentContainerStyle={{ paddingBottom: isExpanded ? 20 : 0 }}
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.additionalContent}>
@@ -214,7 +214,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
 
                 {!todo.userTakenId && (
                   <Text style={styles.userTakenText}>
-                    No user has taken this task yet.
+                    Dieses Todo wurde noch nicht übernommen.
                   </Text>
                 )}
 
@@ -245,7 +245,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
                         style={{ marginRight: 6 }}
                       />
                       <Text style={[styles.timeLabel, { color: statusColor }]}>
-                        Expires
+                        Läuft ab:
                       </Text>
                     </View>
                     <Text style={[styles.timeMain, { color: statusColor }]}>
@@ -282,7 +282,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
                         <Text
                           style={[styles.timeLabel, { color: "#4CAF50" }]}
                         >
-                          Completed
+                          Erledigt
                         </Text>
                       </View>
                       <Text style={[styles.timeMain, { color: "#4CAF50" }]}>
@@ -309,7 +309,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
                     style={styles.takeButton}
                     onPress={() => updateTodoStatus("IN_ARBEIT")}
                   >
-                    <Text style={styles.takeButtonText}>I'll bring it</Text>
+                    <Text style={styles.takeButtonText}>Ich mach's</Text>
                   </TouchableOpacity>
                 )}
 
@@ -330,7 +330,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
                           color="#fff"
                           style={styles.buttonIcon}
                         />
-                        <Text style={styles.statusButtonText}>Completed</Text>
+                        <Text style={styles.statusButtonText}>Erledigt</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
@@ -358,7 +358,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
                           color="#fff"
                           style={styles.buttonIcon}
                         />
-                        <Text style={styles.statusButtonText}>Cancel</Text>
+                        <Text style={styles.statusButtonText}>Abbrechen</Text>
                       </TouchableOpacity>
                     </View>
                   )}

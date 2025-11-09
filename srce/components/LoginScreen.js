@@ -9,14 +9,14 @@ import {
   Pressable,
   Keyboard,
   TouchableOpacity,
-  TouchableWithoutFeedback
 } from "react-native";
 import { Handshake } from "lucide-react-native";
 import UsernameInput from "./UsernameInput";
 import PasswordInput from "./PasswordInput";
-import * as SecureStore from 'expo-secure-store';
-import { jwtDecode } from 'jwt-decode';
-import { useUser } from '../components/context/UserContext';
+import * as SecureStore from "expo-secure-store";
+import { jwtDecode } from "jwt-decode";
+import { useUser } from "../components/context/UserContext";
+import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch + shouldShowError
 
 const LoginScreen = ({ navigation }) => {
   const [inputUsername, setInputUsername] = useState("");
@@ -25,14 +25,18 @@ const LoginScreen = ({ navigation }) => {
 
   const { setUserId, setUsername, setToken, setHasLoggedInOnce } = useUser();
 
+  // ✅ Zugriff auf safeFetch aus dem NetworkContext
+  const { isConnected, safeFetch, shouldShowError } = useNetwork();
+
   const handleLogin = async () => {
     if (!inputUsername.trim() || !password.trim()) {
-      setErrorMessage("Invalid username or password.");
+      setErrorMessage("Bitte Benutzername und Passwort eingeben.");
       return;
     }
 
     try {
-      const response = await fetch("http://192.168.50.116:8082/api/user/auth/login", {
+      // ✅ Verwende safeFetch anstelle von fetch()
+      const response = await safeFetch("http://192.168.50.116:8082/api/user/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -41,28 +45,48 @@ const LoginScreen = ({ navigation }) => {
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const { token } = data;
-        const decoded = jwtDecode(token);
-        const userId = decoded.userId ?? decoded.sub;
-        if (!userId) throw new Error("User ID not found in token");
-
-        await SecureStore.setItemAsync('authToken', token);
-        await SecureStore.setItemAsync('userId', userId.toString());
-
-        setUserId(userId);
-        setUsername(decoded.sub);
-        setToken(token);
-        setHasLoggedInOnce(true);
-
-        navigation.replace('HomeTabs');
-      } else {
-        setErrorMessage("Invalid login credentials");
+      // ✅ 1. Prüfe, ob der Benutzer offline ist
+      if (response.offline) {
+        setErrorMessage("Keine Internetverbindung.");
+        return; // ⛔ nichts weiter tun
       }
+
+      // ✅ 2. Prüfe, ob die Antwort vom Server erfolgreich war (HTTP 200–299)
+      if (!response.ok) {
+        const errText = await response.text?.().catch(() => "Fehlerhafte Antwort vom Server");
+        console.warn("❌ Fehler beim Login:", errText);
+        setErrorMessage("Benutzername oder Passwort ungültig.");
+        return; // ⛔ nichts weiter tun
+      }
+
+      // ✅ 3. Wenn alles ok → Response sicher auswerten
+      const data = await response.json();
+
+      const { token } = data;
+      const decoded = jwtDecode(token);
+      const userId = decoded.userId ?? decoded.sub;
+
+      if (!userId) throw new Error("User ID not found in token");
+
+      // ✅ 4. Token lokal speichern
+      await SecureStore.setItemAsync("authToken", token);
+      await SecureStore.setItemAsync("userId", userId.toString());
+
+      // ✅ 5. Userdaten in Context übernehmen
+      setUserId(userId);
+      setUsername(decoded.sub);
+      setToken(token);
+      setHasLoggedInOnce(true);
+
+      // ✅ 6. Weiterleiten zum HomeScreen
+      navigation.replace("HomeTabs");
+
     } catch (error) {
+      // ✅ 7. Falls safeFetch selbst einen Fehler wirft (z. B. anderer JS-Fehler)
       console.error("Login error:", error);
-      setErrorMessage("An error occurred. Please try again.");
+      if (shouldShowError()) {
+        setErrorMessage("Ein Fehler ist aufgetreten. Bitte erneut versuchen.");
+      }
     }
   };
 
@@ -78,10 +102,7 @@ const LoginScreen = ({ navigation }) => {
           Keyboard.dismiss();
         }}
       >
-        <ScrollView
-          contentContainerStyle={styles.inner}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
           {/* Logo */}
           <View style={styles.logoContainer}>
             <View style={styles.iconContainer}>
@@ -90,62 +111,53 @@ const LoginScreen = ({ navigation }) => {
             <Text style={styles.appName}>BringIt</Text>
           </View>
 
-          {/* Card */}
+          {/* Login Card */}
           <View style={styles.card}>
-            <Text style={styles.title}>Welcome to BringIt</Text>
+            <Text style={styles.title}>Willkommen bei Bringit</Text>
 
             <View style={styles.form}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Username</Text>
+                <Text style={styles.label}>Benutzername</Text>
                 <UsernameInput
                   value={inputUsername}
                   onChangeText={setInputUsername}
-                  placeholder="Enter username"
+                  placeholder="Benutzername eingeben"
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
+                <Text style={styles.label}>Passwort</Text>
                 <PasswordInput
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="Enter password"
+                  placeholder="Passwort eingeben"
                 />
               </View>
 
-              <Text
-                style={styles.forgotPassword}
-                onPress={() => navigation.navigate("ForgotPassword")}
-              >
-                Forgot password?
-              </Text>
-
-              {errorMessage ? (
-                <Text style={styles.errorText}>{errorMessage}</Text>
-              ) : null}
+              {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
               <TouchableOpacity style={styles.button} onPress={handleLogin}>
                 <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>
 
               <Text style={styles.registerText}>
-                Don’t have an account?{" "}
+                Noch kein Konto?{" "}
                 <Text
                   style={styles.registerLink}
                   onPress={() => navigation.navigate("Register")}
                 >
-                  Register here
+                  Hier registrieren
                 </Text>
               </Text>
             </View>
           </View>
 
-          <Text style={styles.footer}>© 2025 BringIt. All rights reserved.</Text>
+          <Text style={styles.footer}>© 2025 BringIt. Alle Rechte vorbehalten.</Text>
         </ScrollView>
       </Pressable>
     </KeyboardAvoidingView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -166,7 +178,6 @@ const styles = StyleSheet.create({
   appName: {
     marginTop: 10,
     fontSize: 24,
-    fontWeight: "bold",
   },
   card: {
     backgroundColor: "#f9f9f9",

@@ -65,14 +65,14 @@ export default function GroupCreationModal({
       <View style={styles.modalContent}>
         <TextInput
           style={styles.input}
-          placeholder="Enter group name"
+          placeholder="Gruppenname eingeben"
           placeholderTextColor="#aaa"
           value={groupName}
           onChangeText={setGroupName}
         />
         <TextInput
           style={styles.input}
-          placeholder="Enter group description"
+          placeholder="Beschreibung eingeben"
           placeholderTextColor="#aaa"
           value={description}
           onChangeText={setDescription}
@@ -84,7 +84,7 @@ export default function GroupCreationModal({
           disabled={loading}
         >
           <Text style={styles.createButtonText}>
-            {loading ? 'Creating...' : 'Create Group'}
+            {loading ? 'Creating...' : 'Gruppe erstellen'}
           </Text>
         </TouchableOpacity>
       </View>

@@ -7,12 +7,13 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Modal from "react-native-modal";
 import Toast from "react-native-toast-message";
-
+import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch importiert
 
 export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress }) {
     const [groups, setGroups] = useState([]);
     const { userId } = useUser();
     const navigation = useNavigation();
+    const { safeFetch } = useNetwork(); // ✅ Zugriff auf safeFetch
 
     const [isCreationModalVisible, setIsCreationModalVisible] = useState(false);
     const toggleCreationModal = () => setIsCreationModalVisible(prev => !prev);
@@ -20,35 +21,40 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
     const [selectedGroupForDelete, setSelectedGroupForDelete] = useState(null);
 
-    // ✅ Korrigierte Layout-Berechnung
     const screenWidth = Dimensions.get('window').width;
     const numColumns = 3;
-    const horizontalPadding = 10; // padding links/rechts der FlatList
-    const cardMargin = 12; // Abstand zwischen Karten
-    const availableWidth = screenWidth - (horizontalPadding * 2); // Verfügbare Breite
-    const totalMarginSpace = cardMargin * (numColumns + 1); // Margins zwischen und außen
+    const horizontalPadding = 10;
+    const cardMargin = 12;
+    const availableWidth = screenWidth - (horizontalPadding * 2);
+    const totalMarginSpace = cardMargin * (numColumns + 1);
     const cardWidth = (availableWidth - totalMarginSpace) / numColumns;
 
-
+    // ✅ Gruppen abrufen mit safeFetch
     const fetchGroups = useCallback(async () => {
         try {
             const token = await SecureStore.getItemAsync("authToken");
-            const response = await fetch(`http://192.168.50.116:8082/api/groups/myGroups`, {
+            const response = await safeFetch(`http://192.168.50.116:8082/api/groups/myGroups`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
             });
 
-            if (!response.ok) throw new Error("Failed to fetch groups");
+            if (response.offline) {
+                Alert.alert("Offline", "Keine Internetverbindung.");
+                return;
+            }
+
+            if (!response.ok) throw new Error("Fehler beim Abrufen der Gruppen");
+
             const data = await response.json();
             setGroups(data);
-            console.log("Fetched groups:", data);
+            console.log("📦 Gruppen geladen:", data);
         } catch (error) {
-            console.error("Error fetching groups:", error);
-            Alert.alert("Error", "Could not fetch your groups.");
+            console.error("Fehler beim Laden der Gruppen:", error);
+            Alert.alert("Fehler", "Deine Gruppen konnten nicht geladen werden.");
         }
-    }, []);
+    }, [safeFetch]);
 
     useFocusEffect(
         useCallback(() => {
@@ -76,93 +82,83 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
         setIsDeleteModalVisible(true);
     };
 
+    // ✅ Gruppendeletion mit safeFetch
     const handleDeleteGroup = async () => {
         try {
-            console.log("🟦 [Delete] Starting deletion process...");
             const token = await SecureStore.getItemAsync("authToken");
             if (!token) {
-                console.log("❌ [Delete] No auth token found");
-                Alert.alert("Fehler", "Kein Token gefunden. Bitte erneut einloggen.");
+                Alert.alert("Fehler", "Kein Token gefunden. Bitte erneut anmelden.");
                 return;
             }
 
-            console.log("🟨 [CheckTodos] Checking for open todos in group:", selectedGroupForDelete.groupId);
-
-            const checkResponse = await fetch(
+            // 🟨 CheckTodos
+            const checkResponse = await safeFetch(
                 `http://192.168.50.116:8082/api/groups/${selectedGroupForDelete.groupId}/checkTodos`,
                 {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+                    headers: { Authorization: `Bearer ${token}` },
                 }
             );
 
-            console.log("🟩 [CheckTodos] Response status:", checkResponse.status);
+            if (checkResponse.offline) {
+                Alert.alert("Offline", "Keine Internetverbindung.");
+                return;
+            }
 
             if (!checkResponse.ok) {
-                const text = await checkResponse.text();
-                console.log("❌ [CheckTodos] Failed. Raw response:", text);
-                throw new Error(`CheckTodos request failed: ${checkResponse.status}`);
+                const text = await checkResponse.text?.();
+                console.log("Fehler bei CheckTodos:", text);
+                throw new Error("Fehler beim Überprüfen der offenen Todos");
             }
 
             const checkData = await checkResponse.json();
-            console.log("🟢 [CheckTodos] JSON response:", checkData);
-
             if (checkData.hasOpenTodos) {
-                console.log("⚠️ [CheckTodos] Open or in-progress todos found → cancelling deletion.");
                 Alert.alert(
                     "Löschen nicht möglich",
-                    "In dieser Gruppe gibt es noch offene oder in Arbeit befindliche To-Dos. Bitte schließe sie zuerst."
+                    "In dieser Gruppe gibt es noch offene oder in Arbeit befindliche Todos. Bitte schließe sie zuerst."
                 );
                 setIsDeleteModalVisible(false);
                 return;
             }
 
-            console.log("🟨 [Delete] No open todos. Sending DELETE request...");
-
-            const deleteResponse = await fetch(
+            // 🟥 Gruppe löschen
+            const deleteResponse = await safeFetch(
                 `http://192.168.50.116:8082/api/groups/${selectedGroupForDelete.groupId}/delete`,
                 {
                     method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+                    headers: { Authorization: `Bearer ${token}` },
                 }
             );
 
-            console.log("🟩 [Delete] Response status:", deleteResponse.status);
-
-            if (!deleteResponse.ok) {
-                const errorText = await deleteResponse.text();
-                console.log("❌ [Delete] Failed. Response:", errorText);
-                throw new Error(`Failed to delete group: ${deleteResponse.status}`);
+            if (deleteResponse.offline) {
+                Alert.alert("Offline", "Keine Internetverbindung.");
+                return;
             }
 
-            console.log("✅ [Delete] Group deleted successfully.");
+            if (!deleteResponse.ok) {
+                const errorText = await deleteResponse.text?.();
+                console.log("Fehler beim Löschen:", errorText);
+                throw new Error("Fehler beim Löschen der Gruppe.");
+            }
+
             Toast.show({
                 type: "success",
-                text1: "Gruppe gelöscht",
+                text1: "Gruppe erfolgreich gelöscht",
                 visibilityTime: 2000,
             });
 
             setIsDeleteModalVisible(false);
-            console.log("🔁 [Delete] Refreshing group list...");
             fetchGroups();
 
         } catch (error) {
-            console.error("🔥 [Delete] Error deleting group:", error);
+            console.error("Fehler beim Löschen der Gruppe:", error);
             Alert.alert("Fehler", "Die Gruppe konnte nicht gelöscht werden.");
         }
     };
 
-
     return (
         <View style={{ flex: 1, marginTop: 30 }}>
-
-
             <View style={styles.headerContainer}>
-
-                <Text style={styles.headerTitle}>My Groups</Text>
+                <Text style={styles.headerTitle}>Meine Gruppen</Text>
             </View>
 
             <FlatList
@@ -245,7 +241,7 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
                 <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Gruppe verwalten</Text>
                     <Text style={styles.modalText}>
-                        Möchtest du die Gruppe "{selectedGroupForDelete?.groupName}" löschen?
+                        Möchtest du die Gruppe "{selectedGroupForDelete?.groupName}" wirklich löschen?
                     </Text>
 
                     <View style={styles.modalButtons}>
