@@ -15,15 +15,36 @@ import get from "lodash.get";
 import { Eye, EyeOff } from "lucide-react-native";
 import { Handshake } from "lucide-react-native";
 import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch + shouldShowError
+import Toast from "react-native-toast-message";
+
+// Email und PW VALIDIERUNGSCHEMA mit Yup
+const usernameRegex = /^[A-Za-z0-9._-]{3,20}$/;
+
+const passwordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+const emailRegex =
+  /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
 
 // ✅ Validation Schema – Deutsch
 const validationSchema = Yup.object({
-  username: Yup.string().required("Benutzername ist erforderlich."),
+  username: Yup.string()
+    .matches(
+      usernameRegex,
+      "Benutzername muss 3–20 Zeichen haben. Erlaubt: Buchstaben, Zahlen, ., -, _."
+    )
+    .required("Benutzername ist erforderlich."),
+
   email: Yup.string()
-    .email("Bitte gib eine gültige E-Mail-Adresse ein.")
-    .required("E-Mail-Adresse ist erforderlich."),
+    .matches(emailRegex, "Bitte gib eine gültige E-Mail ein.")
+    .required("E-Mail ist erforderlich."),
+
   password: Yup.string()
-    .min(8, "Das Passwort muss mindestens 8 Zeichen lang sein.")
+    .matches(
+      passwordRegex,
+      "Passwort muss min. 8 Zeichen, Groß-/Kleinbuchstaben, Zahl & Sonderzeichen enthalten."
+    )
     .required("Passwort ist erforderlich."),
 
   /*
@@ -104,8 +125,17 @@ const RegisterScreen = ({ navigation }) => {
       const { success, message } = await postNewUser(userData, safeFetch);
 
       if (success) {
-        setIsSubmitted(true);
-      } else {
+        Toast.show({
+          type: "success",
+          text1: "Konto erfolgreich erstellt!",
+          text2: "Bitte melde dich jetzt an.",
+        });
+
+        navigation.navigate("Login");
+        formik.resetForm();
+        return;
+      }
+      else {
         setRegistrationMessage(message);
       }
     },
@@ -115,26 +145,6 @@ const RegisterScreen = ({ navigation }) => {
     navigation.goBack();
   };
 
-  if (isSubmitted) {
-    return (
-      <View style={styles.registrationSaved}>
-        <Text style={styles.successText}>Konto erfolgreich erstellt!</Text>
-        <Text style={styles.successText}>Bitte melde dich jetzt an.</Text>
-
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => {
-            setIsSubmitted(false);
-            setRegistrationMessage("");
-            navigation.navigate("Login");
-            formik.resetForm();
-          }}
-        >
-          <Text style={styles.closeButtonText}>X</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
   return (
     <KeyboardAvoidingView

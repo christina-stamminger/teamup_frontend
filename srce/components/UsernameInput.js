@@ -12,8 +12,6 @@ const UsernameInput = ({ value, onChangeText, placeholder, onSubmitEditing }) =>
         onChangeText={onChangeText}
         autoCapitalize="none"
         autoCorrect={false}
-        returnKeyType="next"
-        onSubmitEditing={onSubmitEditing}
         onFocus={() => console.log("USERNAME got focus")}
         onBlur={() => console.log("USERNAME lost focus")}
       />

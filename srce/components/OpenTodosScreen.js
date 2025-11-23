@@ -45,7 +45,7 @@ export default function OpenTodosScreen() {
   const fetchTodos = useCallback(async () => {
     try {
       setLoading(true);
-      const token = await SecureStore.getItemAsync("authToken");
+      const token = await SecureStore.getItemAsync("accessToken");
       if (!token) {
         Alert.alert("Nicht eingeloggt", "Bitte logge dich ein.");
         setLoading(false);

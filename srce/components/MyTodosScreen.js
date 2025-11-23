@@ -5,23 +5,38 @@ import * as SecureStore from 'expo-secure-store';
 import CollapsibleTodoCard from '../components/CollapsibleTodoCard';
 import { useUser } from "../components/context/UserContext";
 import Modal from 'react-native-modal';
-import GroupCreationModal from "../components/GroupCreationModal"; // (optional, wird unten nicht gemountet – belassen, falls an anderer Stelle genutzt)
+import GroupCreationModal from "../components/GroupCreationModal";
 import AddMemberCard from '../components/AddMemberCard';
-import AddMemberModal from '../components/AddMemberModal'; // (optional – nur mounten, wenn vorhanden)
+import AddMemberModal from '../components/AddMemberModal';
 import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import GroupListModal from '../components/GroupListModal'
 import { getAvatarColor } from '../utils/getAvatarColor';
 import Toast from 'react-native-toast-message';
 import FilterBar from '../components/FilterBar';
-import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch + shouldShowError
+import { useNetwork } from "../components/context/NetworkContext";
 
 export default function MyTodosScreen() {
-  const { userId, token: tokenFromCtx, loading: userContextLoading } = useUser();
-  const { isConnected, safeFetch, shouldShowError } = useNetwork(); // ✅ nutzt Response-kompatibles Objekt + {offline}
+  const {
+    userId,
+    accessToken: tokenFromCtx,
+    refreshToken,
+    loading: userContextLoading
+  } = useUser();
+
+  const { isConnected, safeFetch, shouldShowError } = useNetwork();
+
+  // ✅ DEBUG: Log userId beim Mount
+  useEffect(() => {
+    console.log('👤 MyTodosScreen - UserContext:', {
+      userId,
+      hasToken: !!tokenFromCtx,
+      userContextLoading
+    });
+  }, [userId, tokenFromCtx, userContextLoading]);
 
   const [todos, setTodos] = useState([]);
   const [newMembers, setNewMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // ✅ Initial false!
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [selectedGroupName, setSelectedGroupName] = useState('Gruppe wählen');
   const [groups, setGroups] = useState([]);
@@ -62,54 +77,129 @@ export default function MyTodosScreen() {
   // GroupListData
   const groupListData = [...groups, { isCreateButton: true }];
 
-  // Helper: Token bevorzugt aus Context, Fallback SecureStore
+  // ✅ FIXED: Helper mit korrektem Key
   const getAuthToken = useCallback(async () => {
-    if (tokenFromCtx) return tokenFromCtx;
-    const stored = await SecureStore.getItemAsync('authToken');
+    if (tokenFromCtx) {
+      console.log('🔑 Using token from context');
+      return tokenFromCtx;
+    }
+    const stored = await SecureStore.getItemAsync('accessToken'); // ✅ Korrekter Key!
+    console.log('🔑 Using token from SecureStore:', stored ? 'found' : 'not found');
     return stored || null;
   }, [tokenFromCtx]);
 
-  // Gruppen laden bei User-Änderung
-  useEffect(() => {
-    if (!userId || userContextLoading) return;
-    fetchGroups();
-  }, [userId, userContextLoading]);
+  // ✅ GUARD CLAUSE: Warte auf userId
+  if (userContextLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#5FC9C9" />
+        <Text style={{ marginTop: 10, color: '#666' }}>Lade Benutzerdaten...</Text>
+      </View>
+    );
+  }
 
-  // Trash-Inhalte laden, wenn Modal geöffnet ist
+  if (!userId) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Icon name="exclamation-circle" size={48} color="#FF6B6B" />
+        <Text style={{ color: '#FF6B6B', fontSize: 16, marginTop: 16, fontWeight: '600' }}>
+          Keine Benutzer-ID verfügbar
+        </Text>
+        <Text style={{ color: '#666', marginTop: 8, textAlign: 'center', paddingHorizontal: 40 }}>
+          Bitte melde dich erneut an
+        </Text>
+      </View>
+    );
+  }
+
+  // Trash laden...
   useEffect(() => {
     if (!isTrashModalVisible) return;
-    if (userContextLoading || !userId) return;
+    if (!userId) return;
     fetchTrashedTodos();
-  }, [isTrashModalVisible, userId, userContextLoading]);
+  }, [isTrashModalVisible, userId]);
 
-  // Bei Screen-Fokus Gruppen refetchen (leichtgewichtig) & Mitglieder-Refetch für gewählte Gruppe
+  // ✅ FIXED: useFocusEffect ohne fetchTodos in Dependencies
   useFocusEffect(
     useCallback(() => {
-      fetchGroups();
-      if (selectedGroupId) fetchNewMembers(selectedGroupId);
-    }, [selectedGroupId])
+      console.log('📋 MyTodos Screen focused, userId:', userId);
+
+      if (!userId) {
+        console.warn('⚠️ No userId available');
+        return;
+      }
+
+      // Gruppen laden
+      const loadGroups = async () => {
+        try {
+          console.log('📡 Fetching groups...');
+          const auth = await getAuthToken();
+
+          if (!auth) {
+            console.error('❌ No auth token available');
+            return;
+          }
+
+          const response = await safeFetch(`http://192.168.50.116:8082/api/groups/myGroups`, {
+            headers: {
+              'Authorization': `Bearer ${auth}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response?.offline) {
+            console.log('⚠️ Offline mode');
+            return;
+          }
+
+          if (!response?.ok) {
+            console.error('❌ Groups fetch failed:', response?.status);
+            throw new Error('Failed to fetch groups');
+          }
+
+          const data = await response.json();
+          console.log('✅ Loaded groups:', data.length);
+          setGroups(Array.isArray(data) ? data : []);
+        } catch (error) {
+          console.error('❌ Error fetching groups:', error);
+          if (shouldShowError()) {
+            Alert.alert('Error', 'Failed to fetch groups.');
+          }
+        }
+      };
+
+      loadGroups();
+
+      // Members & Todos wenn Gruppe ausgewählt
+      if (selectedGroupId) {
+        console.log('📡 Loading members & todos for group:', selectedGroupId);
+        fetchNewMembers(selectedGroupId);
+        fetchTodos(selectedGroupId);
+      }
+
+    }, [userId, selectedGroupId]) // ✅ Keine Funktionen!
   );
 
-  // Re-Load Todos bei Fokus
-  const isFocused = useIsFocused();
+  // Wenn Verbindung wiederkommt
   useEffect(() => {
-    if (isFocused && selectedGroupId) fetchTodos(selectedGroupId);
-  }, [isFocused, selectedGroupId, fetchTodos]);
+    if (!isConnected || !userId) return;
 
-  // Wenn Verbindung wiederkommt: aktualisiere Gruppe & Todos
-  useEffect(() => {
-    if (!isConnected) return;
     if (selectedGroupId) {
       fetchTodos(selectedGroupId);
       fetchNewMembers(selectedGroupId);
-    } else {
-      fetchGroups();
     }
-  }, [isConnected]);
+  }, [isConnected, userId, selectedGroupId]);
 
   const fetchGroups = async () => {
     try {
+      console.log('📡 fetchGroups called');
       const auth = await getAuthToken();
+
+      if (!auth) {
+        console.error('❌ No token available');
+        return;
+      }
+
       const response = await safeFetch(`http://192.168.50.116:8082/api/groups/myGroups`, {
         headers: {
           'Authorization': `Bearer ${auth}`,
@@ -118,15 +208,19 @@ export default function MyTodosScreen() {
       });
 
       if (response?.offline) {
-        // stilles Fail – keine Störung der UX
         return;
       }
 
-      if (!response?.ok) throw new Error('Failed to fetch groups');
+      if (!response?.ok) {
+        console.error('❌ fetchGroups failed:', response?.status);
+        throw new Error('Failed to fetch groups');
+      }
+
       const data = await response.json();
+      console.log('✅ fetchGroups success:', data.length);
       setGroups(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching groups:', error);
+      console.error('❌ Error fetching groups:', error);
       if (shouldShowError()) {
         Alert.alert('Error', 'Failed to fetch groups.');
       }
@@ -145,10 +239,7 @@ export default function MyTodosScreen() {
         },
       });
 
-      if (response?.offline) {
-        // kein Alert hier – Hintergrundaktion
-        return;
-      }
+      if (response?.offline) return;
 
       if (!response?.ok) {
         const errorText = response ? (await response.text?.()) : '';
@@ -203,8 +294,10 @@ export default function MyTodosScreen() {
   });
 
   const fetchTodos = useCallback(async (groupId) => {
-    if (!groupId) return;
-    if (userContextLoading) return;
+    if (!groupId || !userId) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -218,7 +311,6 @@ export default function MyTodosScreen() {
       });
 
       if (response?.offline) {
-        // Nutzerfreundlicher Hinweis, weil dies eine sichtbare Aktion ist
         Toast.show({ type: 'info', text1: 'Offline', text2: 'Keine Internetverbindung' });
         return;
       }
@@ -226,40 +318,24 @@ export default function MyTodosScreen() {
       if (!response?.ok) throw new Error('Failed to fetch todos');
 
       const data = await response.json();
-
-      // Normalisieren & filtern
       const normalized = Array.isArray(data) ? data : [];
       const filtered = normalized.filter((todo) => {
         const status = (todo.status || '').toUpperCase();
         const isMine = todo.userOfferedId === userId || todo.userTakenId === userId;
         const notDeleted = !todo.deletedAt;
         const isOffen = status === 'OFFEN';
-        // Nur "OFFEN" sehen, wenn vom Nutzer angeboten
         const offenVisible = !isOffen || todo.userOfferedId === userId;
         return isMine && notDeleted && offenVisible;
       });
 
       setTodos(filtered);
-      Toast.show({ type: 'info', text1: 'Todos aktualisiert', visibilityTime: 1000 });
     } catch (error) {
       console.error('Error fetching todos:', error);
       if (shouldShowError()) Alert.alert('Fehler', 'Todos konnten nicht geladen werden');
     } finally {
       setLoading(false);
     }
-  }, [getAuthToken, userId, shouldShowError, safeFetch, userContextLoading]);
-
-  // Auto-Refresh alle 60s bei Fokus
-  useFocusEffect(
-    useCallback(() => {
-      if (!selectedGroupId) return undefined;
-      fetchTodos(selectedGroupId);
-      const interval = setInterval(() => {
-        fetchTodos(selectedGroupId);
-      }, 60000);
-      return () => clearInterval(interval);
-    }, [selectedGroupId, fetchTodos])
-  );
+  }, [userId]); // ✅ Nur userId!
 
   const fetchNewMembers = async (groupId) => {
     try {
@@ -285,12 +361,12 @@ export default function MyTodosScreen() {
     }
   };
 
-  const handleGroupCreated = (newGroup) => {
-    setGroups((prev) => [...prev, newGroup]);
+  const handleGroupCreated = async (newGroup) => {
+    setIsCreationModalVisible(false);
+    await fetchGroups();
     setSelectedGroupId(newGroup.groupId);
     setSelectedGroupName(newGroup.groupName);
     setUserRoleInGroup(newGroup.role);
-    setIsCreationModalVisible(false);
   };
 
   const handleGroupSelect = (groupId) => {
@@ -308,20 +384,17 @@ export default function MyTodosScreen() {
 
   const handleDeleteTodo = async (todoId) => {
     try {
-      // ✅ Hole das betroffene Todo aus dem aktuellen State
       const todo = todos.find((t) => t.todoId === todoId);
       const status = (todo?.status || '').toUpperCase();
 
-      // 🚫 Schutz: Todos mit Status "IN_ARBEIT" dürfen nicht gelöscht werden
       if (status === 'IN_ARBEIT') {
         Alert.alert(
           'Nicht erlaubt',
           'To-Dos im Status "In Arbeit" können nicht gelöscht werden.'
         );
-        return; // ⛔️ Keine Löschung durchführen
+        return;
       }
 
-      // ✅ Normale Löschlogik
       const auth = await getAuthToken();
       const response = await safeFetch(`http://192.168.50.116:8082/api/todo/${todoId}`, {
         method: 'DELETE',
@@ -337,7 +410,6 @@ export default function MyTodosScreen() {
         throw new Error('Failed to delete todo');
       }
 
-      // Aus Liste entfernen
       setTodos((prev) => prev.filter((t) => t.todoId !== todoId));
 
       Toast.show({
@@ -349,7 +421,6 @@ export default function MyTodosScreen() {
       Alert.alert('Fehler', 'Todo konnte nicht gelöscht werden.');
     }
   };
-
 
   const handleSelectFilter = (filterValue) => {
     if (filterValue === 'ALL') {
@@ -389,6 +460,7 @@ export default function MyTodosScreen() {
       Alert.alert('Error', 'Could not remove user from the group.');
     }
   };
+
 
   return (
     <View style={styles.container}>

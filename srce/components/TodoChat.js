@@ -60,7 +60,7 @@ export default function TodoChat({ todoId, userId, issuerId, fulfillerId, todoSt
     const fetchMessages = async () => {
         console.log("📡 Fetching messages for todo:", todoId);
         try {
-            const token = await SecureStore.getItemAsync("authToken");
+            const token = await SecureStore.getItemAsync("accessToken");
             if (!token) {
                 console.warn("⚠️ Kein Auth Token gefunden!");
                 return;
@@ -95,7 +95,7 @@ export default function TodoChat({ todoId, userId, issuerId, fulfillerId, todoSt
 
         console.log("📤 Sende Nachricht:", newMessage);
         try {
-            const token = await SecureStore.getItemAsync("authToken");
+            const token = await SecureStore.getItemAsync("accessToken");
             if (!token) {
                 console.log("token: !" + token);
                 return;

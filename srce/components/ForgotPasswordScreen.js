@@ -49,15 +49,25 @@ const ForgotPasswordScreen = ({ navigation }) => {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
           <View style={styles.card}>
-            <Text style={styles.title}>Reset Your Password</Text>
+            <Text style={styles.title}>Passwort zurücksetzen</Text>
 
             {submitted ? (
-              <Text style={styles.confirmationText}>
-                If an account exists, a password reset link has been sent to your email.
-              </Text>
+              <>
+                <Text style={styles.confirmationText}>
+                  Wenn du einen Account hast, haben wir dir einen Link zum Zurücksetzen des Passwortes an deine Email-Adresse geschickt.
+                </Text>
+
+                {/* ⬇️ Neu eingefügter Button */}
+                <TouchableOpacity
+                  style={[styles.button, { marginTop: 20 }]}
+                  onPress={() => navigation.navigate("Login")}
+                >
+                  <Text style={styles.buttonText}>Zurück zum Login</Text>
+                </TouchableOpacity>
+              </>
             ) : (
               <>
-                <Text style={styles.label}>Enter your email address:</Text>
+                <Text style={styles.label}>Gib deine Email-Adresse ein:</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
@@ -70,11 +80,11 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
 
                 <TouchableOpacity style={styles.button} onPress={handlePasswordReset}>
-                  <Text style={styles.buttonText}>Send reset link</Text>
+                  <Text style={styles.buttonText}>Link senden</Text>
                 </TouchableOpacity>
 
                 <Text style={styles.backToLogin} onPress={() => navigation.goBack()}>
-                  Back to Login
+                  Zurück zum Login
                 </Text>
               </>
             )}

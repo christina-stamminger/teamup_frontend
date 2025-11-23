@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -20,7 +20,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch importiert
+import { useNetwork } from "../components/context/NetworkContext";
 
 export default function CreateTodoScreen() {
     const [title, setTitle] = useState("");
@@ -32,20 +32,25 @@ export default function CreateTodoScreen() {
     const [showDescription, setShowDescription] = useState(false);
     const [isTimeCritical, setIsTimeCritical] = useState(false);
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+    const [loadingGroups, setLoadingGroups] = useState(false);
 
     const { userId } = useUser();
-    const { safeFetch } = useNetwork(); // ✅ Zugriff auf safeFetch
+    const { safeFetch } = useNetwork();
 
-    useEffect(() => {
-        console.log("userId from context:", userId);
-    }, [userId]);
-
-    // ✅ Gruppen laden mit safeFetch
+    // ✅ Gruppen laden bei Screen-Fokus
     useFocusEffect(
         useCallback(() => {
+            let isMounted = true; // ✅ Cleanup-Flag
+
             const fetchGroups = async () => {
+                if (!isMounted) return;
+                
+                console.log("📋 Fetching groups on screen focus...");
+                
                 try {
-                    const token = await SecureStore.getItemAsync("authToken");
+                    setLoadingGroups(true);
+                    const token = await SecureStore.getItemAsync("accessToken");
+                    
                     const response = await safeFetch(
                         "http://192.168.50.116:8082/api/groups/myGroups",
                         {
@@ -57,35 +62,70 @@ export default function CreateTodoScreen() {
                         }
                     );
 
-                    if (response.offline) {
-                        Alert.alert("Offline", "Keine Internetverbindung.");
+                    if (!isMounted) return; // ✅ Abbruch falls unmounted
+
+                    if (response?.offline) {
+                        Toast.show({
+                            type: 'info',
+                            text1: 'Offline',
+                            text2: 'Keine Internetverbindung',
+                            visibilityTime: 2000
+                        });
                         return;
                     }
 
-                    if (!response.ok) {
+                    if (!response?.ok) {
                         throw new Error("Fehler beim Laden der Gruppen.");
                     }
 
                     const data = await response.json();
+                    console.log("✅ Loaded groups:", data.length);
+                    
                     const formattedGroups = data.map((group) => ({
                         label: group.groupName,
                         value: group.groupId.toString(),
                     }));
-                    setGroups(formattedGroups);
+                    
+                    if (isMounted) {
+                        setGroups(formattedGroups);
+                        
+                        // ✅ Wenn nur 1 Gruppe → automatisch auswählen
+                        if (formattedGroups.length === 1 && !groupId) {
+                            setGroupId(formattedGroups[0].value);
+                            console.log("✅ Auto-selected single group:", formattedGroups[0].label);
+                        }
+                    }
+                    
                 } catch (error) {
-                    console.error("Fehler beim Laden der Gruppen:", error);
-                    Alert.alert(
-                        "Fehler",
-                        "Gruppen konnten nicht geladen werden. Bitte versuche es erneut."
-                    );
+                    console.error("❌ Fehler beim Laden der Gruppen:", error);
+                    if (isMounted) {
+                        Toast.show({
+                            type: 'error',
+                            text1: 'Fehler',
+                            text2: 'Gruppen konnten nicht geladen werden',
+                            visibilityTime: 2000
+                        });
+                    }
+                } finally {
+                    if (isMounted) {
+                        setLoadingGroups(false);
+                    }
                 }
             };
+
             fetchGroups();
-        }, [safeFetch])
+
+            // ✅ Cleanup-Funktion
+            return () => {
+                isMounted = false;
+                console.log("🧹 CreateTodoScreen cleanup");
+            };
+        }, []) // ✅ Leere Dependencies - lädt bei jedem Fokus
     );
 
     const showPicker = () => setDatePickerVisible(true);
     const hidePicker = () => setDatePickerVisible(false);
+    
     const handleConfirm = (date) => {
         setExpiresAt(date);
         setExpiresAtDisplay(formatDateTime(date));
@@ -132,14 +172,25 @@ export default function CreateTodoScreen() {
         setExpiresAtDisplay(formatDateTime(newDate));
     };
 
-    // ✅ Todo erstellen mit safeFetch
     const handleCreateTodo = async () => {
+        // ✅ Validierung
         if (!userId) {
             Alert.alert("Fehler", "Benutzer ist nicht eingeloggt. Bitte erneut anmelden.");
             return;
         }
-        if (!title || !expiresAt || !groupId) {
-            Alert.alert("Fehler", "Titel, Ablaufzeit und Gruppe sind erforderlich!");
+        
+        if (!title.trim()) {
+            Alert.alert("Fehler", "Bitte einen Titel eingeben!");
+            return;
+        }
+        
+        if (!expiresAt) {
+            Alert.alert("Fehler", "Bitte eine Ablaufzeit wählen!");
+            return;
+        }
+        
+        if (!groupId) {
+            Alert.alert("Fehler", "Bitte eine Gruppe auswählen!");
             return;
         }
 
@@ -150,52 +201,63 @@ export default function CreateTodoScreen() {
 
         const newTodo = {
             userOfferedId: userId,
-            title,
+            title: title.trim(),
             expiresAt: formattedExpiresAt,
             groupId: parseInt(groupId, 10),
             isTimeCritical,
-            ...(description && { description }),
+            ...(description.trim() && { description: description.trim() }),
         };
 
-        try {
-            const token = await SecureStore.getItemAsync("authToken");
-            const response = await safeFetch("http://192.168.50.116:8082/api/todo/create", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(newTodo),
-            });
+        console.log("📤 Creating todo:", newTodo);
 
-            if (response.offline) {
+        try {
+            const token = await SecureStore.getItemAsync("accessToken");
+            const response = await safeFetch(
+                "http://192.168.50.116:8082/api/todo/create",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(newTodo),
+                }
+            );
+
+            if (response?.offline) {
                 Alert.alert("Offline", "Keine Internetverbindung.");
                 return;
             }
 
-            if (!response.ok) {
+            if (!response?.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                console.error("Fehler vom Backend:", errorData);
+                console.error("❌ Fehler vom Backend:", errorData);
                 throw new Error("Fehler beim Erstellen des Todos!");
             }
 
+            console.log("✅ Todo created successfully");
+
             Toast.show({
-                type: "info",
-                text1: "Todo wurde erfolgreich erstellt.",
-                visibilityTime: 1500,
+                type: "success",
+                text1: "Todo erfolgreich erstellt!",
+                visibilityTime: 2000,
             });
 
-            // Reset der Felder
+            // ✅ Reset der Felder
             setTitle("");
             setExpiresAt(null);
             setExpiresAtDisplay("");
-            setGroupId(null);
+            // ✅ groupId NICHT zurücksetzen (User bleibt in Gruppe)
             setDescription("");
             setShowDescription(false);
             setIsTimeCritical(false);
+            
         } catch (error) {
-            console.error("Fehler:", error);
-            Alert.alert("Fehler", "Todo konnte nicht erstellt werden. Bitte erneut versuchen.");
+            console.error("❌ Fehler:", error);
+            Alert.alert(
+                "Fehler", 
+                "Todo konnte nicht erstellt werden. Bitte erneut versuchen."
+            );
         }
     };
 
@@ -216,7 +278,7 @@ export default function CreateTodoScreen() {
                         <Text style={styles.label}>Titel</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Titel eingeben"
+                            placeholder="z.B. Hafermilch kaufen"
                             value={title}
                             onChangeText={setTitle}
                         />
@@ -227,12 +289,15 @@ export default function CreateTodoScreen() {
                             onPress={() => setShowDescription(!showDescription)}
                         >
                             <Text style={styles.collapseButtonText}>
-                                {showDescription ? "Beschreibung ausblenden" : "Beschreibung hinzufügen (optional)"}
+                                {showDescription 
+                                    ? "Beschreibung ausblenden" 
+                                    : "Beschreibung hinzufügen (optional)"
+                                }
                             </Text>
                             {showDescription ? (
-                                <ChevronUp size={20} color="#5FC9C9" />
+                                <ChevronUp size={20} color="#404040" />
                             ) : (
-                                <ChevronDown size={20} color="#5FC9C9" />
+                                <ChevronDown size={20} color="#404040" />
                             )}
                         </TouchableOpacity>
 
@@ -257,10 +322,19 @@ export default function CreateTodoScreen() {
                             maxHeight={300}
                             labelField="label"
                             valueField="value"
-                            placeholder="Gruppe auswählen"
+                            placeholder={loadingGroups ? "Lade Gruppen..." : "Gruppe auswählen"}
                             value={groupId}
-                            onChange={(item) => setGroupId(item.value)}
+                            onChange={(item) => {
+                                setGroupId(item.value);
+                                console.log("✅ Selected group:", item.label);
+                            }}
+                            disable={loadingGroups}
                         />
+
+                        {groups.length === 0 && !loadingGroups && (
+                            <Text style={styles.noGroupsText}>
+                            </Text>
+                        )}
 
                         {/* Quick Buttons */}
                         <View style={styles.quickButtonContainer}>
@@ -322,13 +396,20 @@ export default function CreateTodoScreen() {
                                     style={{ marginRight: 6 }}
                                 />
                                 <Text style={styles.timeCriticalHint}>
-                                    Nach Ablauf automatisch auf „Abgelaufen“ gesetzt
+                                    Nach Ablauf automatisch auf „Abgelaufen" gesetzt
                                 </Text>
                             </View>
                         </TouchableOpacity>
 
                         {/* Create Button */}
-                        <TouchableOpacity style={styles.createButton} onPress={handleCreateTodo}>
+                        <TouchableOpacity 
+                            style={[
+                                styles.createButton,
+                                (!title || !expiresAt || !groupId) && styles.createButtonDisabled
+                            ]} 
+                            onPress={handleCreateTodo}
+                            disabled={!title || !expiresAt || !groupId}
+                        >
                             <Text style={styles.createButtonText}>Todo erstellen</Text>
                         </TouchableOpacity>
                     </View>
@@ -339,48 +420,60 @@ export default function CreateTodoScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 16 },
-    scrollContainer: { flexGrow: 1 },
-    inner: { flex: 1 },
-
-    screenTitle: {
-        fontSize: 26,
-        marginBottom: 20,
-        color: "#333",
-        textAlign: "center",
-    },
-
-    label: { fontWeight: "bold", marginTop: 12 },
-    input: {
-        borderWidth: 1,
-    },
     container: {
         flex: 1,
         backgroundColor: '#F7F7F7',
     },
     scrollContainer: {
         flexGrow: 1,
-        justifyContent: "center",
     },
     inner: {
         padding: 16,
     },
+    screenTitle: {
+        fontSize: 26,
+        marginBottom: 20,
+        marginTop: 20,
+        color: "#333",
+        textAlign: "center",
+        fontWeight: "600",
+    },
     label: {
         fontSize: 16,
-        marginVertical: 8,
+        fontWeight: "600",
+        marginTop: 12,
+        marginBottom: 8,
+        color: "#333",
     },
     input: {
         height: 48,
         borderWidth: 1,
         borderColor: '#D1D5DB',
-        borderRadius: 5,
+        borderRadius: 8,
         paddingHorizontal: 12,
         marginBottom: 16,
         backgroundColor: '#FFF',
+        fontSize: 16,
     },
     textArea: {
         height: 100,
         textAlignVertical: "top",
+        paddingTop: 12,
+    },
+    collapseButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 10,
+        marginBottom: 10,
+    },
+    collapseButtonText: {
+        fontSize: 14,
+        color: '#404040',
+        fontWeight: '500',
+    },
+    collapsibleSection: {
+        marginBottom: 10,
     },
     dropdown: {
         height: 48,
@@ -388,74 +481,58 @@ const styles = StyleSheet.create({
         borderColor: '#D1D5DB',
         borderRadius: 8,
         paddingHorizontal: 12,
-        marginBottom: 30,
-        marginTop: 20,
+        marginBottom: 20,
         backgroundColor: '#FFF',
     },
-    button: {
-        backgroundColor: '#5FC9C9',
-        padding: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-        marginTop: 20,
+    noGroupsText: {
+        fontSize: 14,
+        color: '#FF6B6B',
+        fontStyle: 'italic',
+        marginBottom: 20,
+        textAlign: 'center',
     },
-    buttonText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    // Quick Buttons Modern
     quickButtonContainer: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginVertical: 10,
+        marginBottom: 10,
     },
     quickButtonModern: {
         flex: 1,
         backgroundColor: "#E0F7FA",
-        paddingVertical: 10,
+        paddingVertical: 12,
         marginHorizontal: 4,
-        borderRadius: 12,
+        borderRadius: 8,
         alignItems: "center",
         borderWidth: 1,
         borderColor: "#5FC9C9",
     },
-    quickButtonModernText: { color: "#00796B", fontWeight: "600", fontSize: 14 },
-
-    // DateTime Picker Button
+    quickButtonModernText: {
+        color: "#00796B",
+        fontWeight: "600",
+        fontSize: 14,
+    },
     dateTimeButton: {
         backgroundColor: "#fff",
         borderWidth: 1,
         borderColor: "#5FC9C9",
-        borderRadius: 12,
-        paddingVertical: 12,
+        borderRadius: 8,
+        paddingVertical: 14,
         paddingHorizontal: 16,
         alignItems: "center",
-        marginVertical: 10,
+        marginBottom: 15,
     },
-    dateTimeButtonText: { color: "#5FC9C9", fontWeight: "600", fontSize: 15 },
-
-    // Create Todo Button (unchanged)
-    createButton: {
-        backgroundColor: "#5FC9C9",
-        padding: 12,
-        borderRadius: 8,
-        alignItems: "center",
-        marginVertical: 80,
-    },
-    createButtonText: {
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "600"
+    dateTimeButtonText: {
+        color: "#5FC9C9",
+        fontWeight: "600",
+        fontSize: 15,
     },
     timeCriticalContainer: {
         flexDirection: "row",
         alignItems: "center",
-        marginTop: 15,
+        marginTop: 10,
         marginBottom: 10,
         paddingVertical: 12,
         paddingHorizontal: 15,
-        backgroundColor: "#F8F9FA",
     },
     checkbox: {
         width: 24,
@@ -478,19 +555,30 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
     },
     timeCriticalTextContainer: {
-        flexDirection: 'row',      // 🔹 Icon und Text nebeneinander
-        alignItems: 'center',      // 🔹 vertikal ausgerichtet
-        marginTop: 6,
-    },
-    timeCriticalLabel: {
-        fontSize: 16,
-        fontWeight: "600",
-        color: "#2C3E50",
-        marginBottom: 2,
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
     },
     timeCriticalHint: {
         fontSize: 13,
-        color: '#FF6B6B',
+        color: '#856404',
         fontWeight: '500',
+        flex: 1,
+    },
+    createButton: {
+        backgroundColor: "#5FC9C9",
+        padding: 16,
+        borderRadius: 8,
+        alignItems: "center",
+        marginTop: 30,
+        marginBottom: 40,
+    },
+    createButtonDisabled: {
+        backgroundColor: "#D1D5DB",
+    },
+    createButtonText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "600",
     },
 });

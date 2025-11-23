@@ -7,7 +7,7 @@ import { toastConfig } from './srce/config/toastConfig';
 import { BackHandler } from 'react-native';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { linking } from './srce/components/AppNavigator';
-import { NetworkProvider } from "./srce/components/context/NetworkContext"; // check for internet connectivity
+import { NetworkProvider } from "./srce/components/context/NetworkContext";
 import OfflineBanner from "./srce/components/OfflineBanner";
 
 export default function App() {
@@ -20,17 +20,17 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NetworkProvider>
-        <UserProvider>
+      {/* ✔ FIX: Users provider must wrap everything */}
+      <UserProvider>
+        {/* ✔ NetworkProvider AFTER UserProvider! */}
+        <NetworkProvider>
           <NavigationContainer ref={navigationRef} linking={linking}>
             <OfflineBanner />
             <AppNavigator />
           </NavigationContainer>
           <Toast config={toastConfig} />
-        </UserProvider>
-      </NetworkProvider>
+        </NetworkProvider>
+      </UserProvider>
     </GestureHandlerRootView>
   );
 }
-
-

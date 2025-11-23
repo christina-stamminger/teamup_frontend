@@ -1,53 +1,53 @@
 import React, { useEffect } from "react";
 import { TouchableOpacity, Alert, BackHandler } from "react-native";
 import { LogOut } from "lucide-react-native";
-import * as SecureStore from "expo-secure-store";
+import { useUser } from "../components/context/UserContext"; // <-- WICHTIG
 
 export default function LogoutButton({ navigation }) {
-  const handleLogout = async () => {
-    console.log("🔑 Versuche, authToken zu löschen...");
-    try {
-      await SecureStore.deleteItemAsync("authToken");
-      console.log("✅ authToken erfolgreich gelöscht.");
+  const { logoutUser } = useUser(); // <-- zentraler Logout
 
-      if (!navigation || typeof navigation.replace !== "function") {
-        console.error("❌ Navigation ist ungültig:", navigation);
-        Alert.alert("Fehler", "Navigation ist nicht verfügbar.");
-        return;
-      }
+const handleLogout = async () => {
+  console.log("🔐 Logging out…");
 
-      console.log("🔁 Navigiere zum Login-Screen...");
-      navigation.replace("Login");
-    } catch (error) {
-      console.error("❌ Fehler beim Löschen des Tokens:", error);
-      Alert.alert(
-        "Abmeldung fehlgeschlagen",
-        "Beim Abmelden ist ein Fehler aufgetreten. Bitte versuche es erneut."
-      );
-    }
-  };
+  try {
+    await logoutUser();   // <-- alles wird gelöscht, Context reset
 
-  const handlePress = () => {
-    console.log("🧭 Logout-Button gedrückt. Zeige Bestätigungsdialog...");
-    Alert.alert("Abmelden", "Möchtest du dich wirklich abmelden?", [
-      { text: "Abbrechen", style: "cancel", onPress: () => console.log("🚫 Logout abgebrochen") },
-      {
-        text: "Abmelden",
-        onPress: () => {
-          console.log("✅ Logout bestätigt");
-          handleLogout();
-        },
-      },
-    ]);
-  };
+    console.log("✅ Logout erfolgreich");
 
-  useEffect(() => {
-    const backAction = () => {
-      Alert.alert("Abmelden", "Möchtest du dich wirklich abmelden?", [
+    // ❌ NICHT navigieren!
+    // navigation.replace("Login");  <-- muss weg
+
+    // AppNavigator schaltet automatisch um
+  } catch (e) {
+    console.error("Logout error:", e);
+  }
+};
+
+
+  const confirmLogout = () => {
+    console.log("🧭 Logout-Button gedrückt → Dialog");
+    Alert.alert(
+      "Abmelden",
+      "Möchtest du dich wirklich abmelden?",
+      [
         { text: "Abbrechen", style: "cancel" },
         { text: "Abmelden", onPress: handleLogout },
-      ]);
-      return true; // verhindert, dass die App beim Zurück-Button geschlossen wird
+      ]
+    );
+  };
+
+  // 🔙 Hardware-Back-Button überschreiben (Android)
+  useEffect(() => {
+    const backAction = () => {
+      Alert.alert(
+        "Abmelden",
+        "Möchtest du dich wirklich abmelden?",
+        [
+          { text: "Abbrechen", style: "cancel" },
+          { text: "Abmelden", onPress: handleLogout },
+        ]
+      );
+      return true; // verhindert App-Schließen
     };
 
     const backHandler = BackHandler.addEventListener(
@@ -56,13 +56,13 @@ export default function LogoutButton({ navigation }) {
     );
 
     return () => {
-      console.log("🧹 BackHandler aufräumen...");
+      console.log("🧹 Hardware back cleanup");
       backHandler.remove();
     };
   }, []);
 
   return (
-    <TouchableOpacity onPress={handlePress} style={{ marginRight: 16 }}>
+    <TouchableOpacity onPress={confirmLogout} style={{ marginRight: 16 }}>
       <LogOut size={24} color="#5fc9c9" />
     </TouchableOpacity>
   );

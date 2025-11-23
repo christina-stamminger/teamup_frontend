@@ -77,7 +77,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
           />
 
           <TouchableOpacity style={styles.button} onPress={handleReset}>
-            <Text style={styles.buttonText}>Reset Password</Text>
+            <Text style={styles.buttonText}>Passwort zurücksetzen</Text>
           </TouchableOpacity>
         </View>
       </TouchableWithoutFeedback>

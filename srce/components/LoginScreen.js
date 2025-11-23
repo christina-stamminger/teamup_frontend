@@ -23,7 +23,9 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const { setUserId, setUsername, setToken, setHasLoggedInOnce } = useUser();
+  //const { setUserId, setUsername, setToken, setHasLoggedInOnce } = useUser();
+  const { setUserId, setUsername, saveSession, setHasLoggedInOnce } = useUser();
+
 
   // ✅ Zugriff auf safeFetch aus dem NetworkContext
   const { isConnected, safeFetch, shouldShowError } = useNetwork();
@@ -35,55 +37,67 @@ const LoginScreen = ({ navigation }) => {
     }
 
     try {
-      // ✅ Verwende safeFetch anstelle von fetch()
+      console.log("LOGIN CALL → sending:", inputUsername, password);
+
+      console.log("REQUEST BODY RAW →", {
+        username: inputUsername,
+        password: password
+      });
+      console.log("REQUEST BODY STRINGIFIED →", JSON.stringify({
+        username: inputUsername,
+        password: password
+      }));
+      //console.log("USERNAME RAW:", JSON.stringify(inputUsername));
+      //console.log("USERNAME TRIMMED:", JSON.stringify(inputUsername.trim()));
+      //console.log("🚀 LOGIN PRESSED with", inputUsername, password);
+      //console.log("🚀 SENDING TO URL:", "http://192.168.50.116:8082/api/user/auth/login");
+
+
       const response = await safeFetch("http://192.168.50.116:8082/api/user/auth/login", {
+
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+
           username: inputUsername,
           password,
         }),
       });
 
-      // ✅ 1. Prüfe, ob der Benutzer offline ist
       if (response.offline) {
         setErrorMessage("Keine Internetverbindung.");
-        return; // ⛔ nichts weiter tun
+        return;
       }
 
-      // ✅ 2. Prüfe, ob die Antwort vom Server erfolgreich war (HTTP 200–299)
       if (!response.ok) {
-        const errText = await response.text?.().catch(() => "Fehlerhafte Antwort vom Server");
-        console.warn("❌ Fehler beim Login:", errText);
         setErrorMessage("Benutzername oder Passwort ungültig.");
-        return; // ⛔ nichts weiter tun
+        return;
       }
 
-      // ✅ 3. Wenn alles ok → Response sicher auswerten
       const data = await response.json();
 
-      const { token } = data;
-      const decoded = jwtDecode(token);
-      const userId = decoded.userId ?? decoded.sub;
+      // Neue Backend-API!
+      const { accessToken, refreshToken, userId } = data;
 
-      if (!userId) throw new Error("User ID not found in token");
+      // Token decodieren
+      const decoded = jwtDecode(accessToken);
 
-      // ✅ 4. Token lokal speichern
-      await SecureStore.setItemAsync("authToken", token);
-      await SecureStore.setItemAsync("userId", userId.toString());
+      // ✔ Beste Methode: Context + SecureStore in EINEM Schritt
+      await saveSession({
+        userId,
+        accessToken,
+        refreshToken
+      });
 
-      // ✅ 5. Userdaten in Context übernehmen
-      setUserId(userId);
+      // Username aus JWT
       setUsername(decoded.sub);
-      setToken(token);
       setHasLoggedInOnce(true);
 
-      // ✅ 6. Weiterleiten zum HomeScreen
       navigation.replace("HomeTabs");
 
     } catch (error) {
-      // ✅ 7. Falls safeFetch selbst einen Fehler wirft (z. B. anderer JS-Fehler)
       console.error("Login error:", error);
+
       if (shouldShowError()) {
         setErrorMessage("Ein Fehler ist aufgetreten. Bitte erneut versuchen.");
       }
@@ -133,6 +147,14 @@ const LoginScreen = ({ navigation }) => {
                   placeholder="Passwort eingeben"
                 />
               </View>
+
+              {/* 🔹 Passwort vergessen Link */}
+              <Text
+                style={styles.forgotPassword}
+                onPress={() => navigation.navigate("ForgotPassword")}
+              >
+                Passwort vergessen?
+              </Text>
 
               {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 

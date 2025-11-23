@@ -32,7 +32,7 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
     // ✅ Gruppen abrufen mit safeFetch
     const fetchGroups = useCallback(async () => {
         try {
-            const token = await SecureStore.getItemAsync("authToken");
+            const token = await SecureStore.getItemAsync("accessToken");
             const response = await safeFetch(`http://192.168.50.116:8082/api/groups/myGroups`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -85,7 +85,7 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
     // ✅ Gruppendeletion mit safeFetch
     const handleDeleteGroup = async () => {
         try {
-            const token = await SecureStore.getItemAsync("authToken");
+            const token = await SecureStore.getItemAsync("accessToken");
             if (!token) {
                 Alert.alert("Fehler", "Kein Token gefunden. Bitte erneut anmelden.");
                 return;

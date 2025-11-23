@@ -8,7 +8,7 @@ export default function AddMemberModal({ isVisible, onClose, groupId, onMemberAd
 
   const handleAddMember = async () => {
     try {
-      const token = await SecureStore.getItemAsync('authToken');
+      const token = await SecureStore.getItemAsync('accessToken');
 
       const response = await fetch('http://192.168.50.116:8082/api/groups/addUser', {
         method: 'POST',

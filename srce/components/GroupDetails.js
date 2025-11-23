@@ -41,7 +41,7 @@ export default function GroupDetails({ route, navigation }) {
 
   const fetchNewMembers = async (groupId) => {
     try {
-      const token = await SecureStore.getItemAsync('authToken');
+      const token = await SecureStore.getItemAsync('accessToken');
       const response = await fetch(
         `http://192.168.50.116:8082/api/groups/${groupId}/members`,
         {
@@ -75,7 +75,7 @@ export default function GroupDetails({ route, navigation }) {
 
   const handleRemoveUser = async (userIdToRemove) => {
     try {
-      const token = await SecureStore.getItemAsync('authToken');
+      const token = await SecureStore.getItemAsync('accessToken');
       const response = await fetch(
         `http://192.168.50.116:8082/api/groups/removeUser?userId=${userIdToRemove}&groupId=${group.groupId}`,
         {
@@ -125,7 +125,7 @@ export default function GroupDetails({ route, navigation }) {
     }
 
     try {
-      const token = await SecureStore.getItemAsync("authToken");
+      const token = await SecureStore.getItemAsync("accessToken");
       const response = await fetch(
         `http://192.168.50.116:8082/api/groups/transferAdminAndLeave?groupId=${group.groupId}&oldAdminId=${userId}&newAdminId=${selectedNewAdmin}`,
         {

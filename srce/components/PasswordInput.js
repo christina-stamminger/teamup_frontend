@@ -15,9 +15,10 @@ const PasswordInput = ({ value, onChangeText, placeholder, onSubmitEditing }) =>
         onChangeText={onChangeText}
         onFocus={() => console.log("PASSWORD got focus")}
         onBlur={() => console.log("PASSWORD lost focus")}
-        returnKeyType="done"
-        onSubmitEditing={onSubmitEditing}
+        autoCapitalize="none"
+        autoCorrect={false}
       />
+
       <TouchableOpacity onPress={() => setSecure(!secure)}>
         {secure ? <Eye size={24} color="gray" /> : <EyeOff size={24} color="gray" />}
       </TouchableOpacity>

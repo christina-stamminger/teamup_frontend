@@ -17,7 +17,7 @@ import { useUser } from './context/UserContext';
 import { useNetwork } from '../components/context/NetworkContext'; // ✅ safeFetch importiert
 
 const ProfileScreen = () => {
-  const { userId, token, loading: userContextLoading } = useUser();
+  const { userId, accessToken, loading: userContextLoading } = useUser();
   const { safeFetch } = useNetwork(); // ✅ Zugriff auf safeFetch
   const navigation = useNavigation();
 
@@ -40,12 +40,12 @@ const ProfileScreen = () => {
 
   useEffect(() => {
     if (userContextLoading) return;
-    if (!token || !userId) {
+    if (!accessToken || !userId) {
       Alert.alert('Fehler', 'Sitzungsdaten fehlen. Bitte erneut einloggen.');
       return;
     }
     fetchUserProfile();
-  }, [userContextLoading, userId, token]);
+  }, [userContextLoading, userId, accessToken]);
 
   // ✅ Profil abrufen
   const fetchUserProfile = async () => {
@@ -56,7 +56,7 @@ const ProfileScreen = () => {
         {
           method: 'GET',
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
         }
@@ -100,7 +100,7 @@ const ProfileScreen = () => {
       const response = await safeFetch('http://192.168.50.116:8082/api/user', {
         method: 'PUT',
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -139,7 +139,7 @@ const ProfileScreen = () => {
       const response = await safeFetch(
         `http://192.168.50.116:8082/api/user/${userId}/canDelete`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
 
@@ -175,13 +175,15 @@ const ProfileScreen = () => {
   };
 
   // ✅ Account löschen
+  const { logout } = useUser(); // ⬅️ wichtig: aus dem Kontext holen
+
   const handleDeleteAccount = async () => {
     try {
       const response = await safeFetch(
         `http://192.168.50.116:8082/api/user/${userId}`,
         {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
 
@@ -193,12 +195,19 @@ const ProfileScreen = () => {
       if (!response.ok) throw new Error('Fehler beim Löschen des Accounts');
 
       Alert.alert('Account gelöscht', 'Dein Account wurde erfolgreich gelöscht.');
-      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+
+      // ❗ KEIN navigation.reset() verwenden
+      await SecureStore.deleteItemAsync("authToken");
+      logout();  // ⬅️ setzt accessToken im Context auf null
+
+      // 🔥 AppNavigator erkennt: accessToken = null → zeigt automatisch Login
+
     } catch (error) {
       console.error('Fehler beim Löschen des Accounts:', error);
       Alert.alert('Fehler', 'Account konnte nicht gelöscht werden.');
     }
   };
+
 
   if (loading || userContextLoading) {
     return (

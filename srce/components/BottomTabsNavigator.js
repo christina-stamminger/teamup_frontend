@@ -66,7 +66,7 @@ export default function BottomTabsNavigator({ navigation }) {
   // 📡 Gruppen anhand User-ID laden
   const fetchUserGroups = async () => {
     try {
-      const token = await SecureStore.getItemAsync("authToken");
+      const token = await SecureStore.getItemAsync("accessToken");
       if (!token) throw new Error("Token not found!");
 
       const decodedToken = jwtDecode(token);
