@@ -33,7 +33,7 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
     const fetchGroups = useCallback(async () => {
         try {
             const token = await SecureStore.getItemAsync("accessToken");
-            const response = await safeFetch(`http://192.168.50.116:8082/api/groups/myGroups`, {
+            const response = await safeFetch(`${API_URL}/api/groups/myGroups`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
@@ -93,7 +93,7 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
 
             // 🟨 CheckTodos
             const checkResponse = await safeFetch(
-                `http://192.168.50.116:8082/api/groups/${selectedGroupForDelete.groupId}/checkTodos`,
+                `${API_URL}/api/groups/${selectedGroupForDelete.groupId}/checkTodos`,
                 {
                     headers: { Authorization: `Bearer ${token}` },
                 }
@@ -122,7 +122,7 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
 
             // 🟥 Gruppe löschen
             const deleteResponse = await safeFetch(
-                `http://192.168.50.116:8082/api/groups/${selectedGroupForDelete.groupId}/delete`,
+                `${API_URL}/api/groups/${selectedGroupForDelete.groupId}/delete`,
                 {
                     method: "DELETE",
                     headers: { Authorization: `Bearer ${token}` },

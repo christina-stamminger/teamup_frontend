@@ -38,7 +38,7 @@ export default function BottomTabsNavigator({ navigation }) {
       console.log("📡 Fetching User ID for:", username);
 
       const response = await fetch(
-        `http://192.168.50.116:8082/api/users/username/${username}`,
+        `${API_URL}/api/users/username/${username}`,
         {
           method: "GET",
           headers: {
@@ -78,7 +78,7 @@ export default function BottomTabsNavigator({ navigation }) {
       console.log(`📡 Fetching Groups for User ID: ${userId}`);
 
       const response = await fetch(
-        `http://192.168.50.116:8082/api/groups/myGroups?userId=${userId}`,
+        `${API_URL}/api/groups/myGroups?userId=${userId}`,
         {
           method: "GET",
           headers: {

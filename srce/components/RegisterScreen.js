@@ -60,7 +60,7 @@ const validationSchema = Yup.object({
 const postNewUser = async (userData, safeFetch) => {
   try {
     // ⚙️ safeFetch statt fetch → funktioniert auch offline
-    const response = await safeFetch("http://192.168.50.116:8082/api/user/signup", {
+    const response = await safeFetch(`${API_URL}/api/user/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData),

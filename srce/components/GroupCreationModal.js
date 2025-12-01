@@ -10,19 +10,20 @@ export default function GroupCreationModal({
   onGroupCreated,
 }) {
   const [groupName, setGroupName] = useState('');
-  const [description, setDescription] = useState('');
+  // const [description, setDescription] = useState(''); // ⚠️ Auskommentiert für Release - später evtl. wieder aktivieren
   const [loading, setLoading] = useState(false);
 
   const handleCreateGroup = async () => {
-    if (!groupName.trim() || !description.trim()) {
-      Alert.alert('Error', 'Please enter both a group name and description.');
+    // ✅ Nur Gruppenname ist required, Beschreibung optional
+    if (!groupName.trim()) {
+      Alert.alert('Error', 'Please enter a group name.');
       return;
     }
 
     setLoading(true);
     try {
       const token = await SecureStore.getItemAsync('accessToken');
-      const response = await fetch('http://192.168.50.116:8082/api/groups/create', {
+      const response = await fetch(`${API_URL}/api/groups/create`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -30,7 +31,7 @@ export default function GroupCreationModal({
         },
         body: JSON.stringify({
           groupName: groupName.trim(),
-          description: description.trim(),
+          // description: description.trim() || null, // ⚠️ Auskommentiert für Release
           userId: userId,
         }),
       });
@@ -38,7 +39,6 @@ export default function GroupCreationModal({
       const data = await response.json();
 
       if (!response.ok) {
-        // Spezifische Fehlermeldung vom Backend
         const message = data?.error || 'Failed to create group';
         throw new Error(message);
       }
@@ -50,11 +50,11 @@ export default function GroupCreationModal({
       }
 
       setGroupName('');
-      setDescription('');
+      // setDescription(''); // ⚠️ Auskommentiert für Release
       toggleModal();
     } catch (error) {
-      console.error('Error creating group:', error); // Für Debugging in der Konsole
-      Alert.alert('Error', error.message);           // Userfreundliche Meldung
+      console.error('Error creating group:', error);
+      Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
@@ -70,14 +70,16 @@ export default function GroupCreationModal({
           value={groupName}
           onChangeText={setGroupName}
         />
+        {/* ⚠️ Beschreibung auskommentiert für Release - später evtl. wieder aktivieren
         <TextInput
           style={styles.input}
-          placeholder="Beschreibung eingeben"
+          placeholder="Beschreibung eingeben (optional)"
           placeholderTextColor="#aaa"
           value={description}
           onChangeText={setDescription}
           multiline
         />
+        */}
         <TouchableOpacity
           style={[styles.createButton, loading && { opacity: 0.6 }]}
           onPress={handleCreateGroup}

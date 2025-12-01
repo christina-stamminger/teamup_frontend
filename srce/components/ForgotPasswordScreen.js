@@ -24,7 +24,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
     }
 
     try {
-      const response = await fetch("http://192.168.50.116:8082/api/user/auth/reset-password", {
+      const response = await fetch(`${API_URL}/api/user/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

@@ -43,7 +43,7 @@ export default function GroupDetails({ route, navigation }) {
     try {
       const token = await SecureStore.getItemAsync('accessToken');
       const response = await fetch(
-        `http://192.168.50.116:8082/api/groups/${groupId}/members`,
+        `${API_URL}/api/groups/${groupId}/members`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -77,7 +77,7 @@ export default function GroupDetails({ route, navigation }) {
     try {
       const token = await SecureStore.getItemAsync('accessToken');
       const response = await fetch(
-        `http://192.168.50.116:8082/api/groups/removeUser?userId=${userIdToRemove}&groupId=${group.groupId}`,
+        `${API_URL}/api/groups/removeUser?userId=${userIdToRemove}&groupId=${group.groupId}`,
         {
           method: 'DELETE',
           headers: {
@@ -127,7 +127,7 @@ export default function GroupDetails({ route, navigation }) {
     try {
       const token = await SecureStore.getItemAsync("accessToken");
       const response = await fetch(
-        `http://192.168.50.116:8082/api/groups/transferAdminAndLeave?groupId=${group.groupId}&oldAdminId=${userId}&newAdminId=${selectedNewAdmin}`,
+        `${API_URL}/api/groups/transferAdminAndLeave?groupId=${group.groupId}&oldAdminId=${userId}&newAdminId=${selectedNewAdmin}`,
         {
           method: "PUT",
           headers: {

@@ -29,7 +29,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
     }
 
     try {
-      const response = await fetch("http://192.168.50.116:8082/api/user/auth/update-password", {
+      const response = await fetch(`${API_URL}/api/user/auth/update-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, newPassword: password }),

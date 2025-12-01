@@ -52,7 +52,7 @@ export default function CreateTodoScreen() {
                     const token = await SecureStore.getItemAsync("accessToken");
                     
                     const response = await safeFetch(
-                        "http://192.168.50.116:8082/api/groups/myGroups",
+                        `${API_URL}/api/groups/myGroups`,
                         {
                             method: "GET",
                             headers: {
@@ -213,7 +213,7 @@ export default function CreateTodoScreen() {
         try {
             const token = await SecureStore.getItemAsync("accessToken");
             const response = await safeFetch(
-                "http://192.168.50.116:8082/api/todo/create",
+                `${API_URL}/api/todo/create`,
                 {
                     method: "POST",
                     headers: {

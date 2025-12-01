@@ -14,11 +14,12 @@ import {
 import Modal from 'react-native-modal';
 import { useNavigation } from '@react-navigation/native';
 import { useUser } from './context/UserContext';
-import { useNetwork } from '../components/context/NetworkContext'; // ✅ safeFetch importiert
+import { useNetwork } from '../components/context/NetworkContext';
+import * as SecureStore from 'expo-secure-store';
 
 const ProfileScreen = () => {
-  const { userId, accessToken, loading: userContextLoading } = useUser();
-  const { safeFetch } = useNetwork(); // ✅ Zugriff auf safeFetch
+  const { userId, accessToken, loading: userContextLoading, logout } = useUser();
+  const { safeFetch } = useNetwork();
   const navigation = useNavigation();
 
   const [userDetails, setUserDetails] = useState({
@@ -52,7 +53,7 @@ const ProfileScreen = () => {
     try {
       setLoading(true);
       const response = await safeFetch(
-        `http://192.168.50.116:8082/api/users/profile/${userId}`,
+        `${API_URL}/api/users/profile/${userId}`,
         {
           method: 'GET',
           headers: {
@@ -97,7 +98,7 @@ const ProfileScreen = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await safeFetch('http://192.168.50.116:8082/api/user', {
+      const response = await safeFetch(`${API_URL}/api/user`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -105,6 +106,9 @@ const ProfileScreen = () => {
         },
         body: JSON.stringify({
           userId,
+          firstName: userDetails.firstName,
+          lastName: userDetails.lastName,
+          dateOfBirth: userDetails.dateOfBirth,
           address: {
             streetNumber: userDetails.address.streetNumber,
             postalCode: userDetails.address.postalCode,
@@ -137,7 +141,7 @@ const ProfileScreen = () => {
   const handleCheckAccountDeletion = async () => {
     try {
       const response = await safeFetch(
-        `http://192.168.50.116:8082/api/user/${userId}/canDelete`,
+        `${API_URL}/api/user/${userId}/canDelete`,
         {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
@@ -175,12 +179,10 @@ const ProfileScreen = () => {
   };
 
   // ✅ Account löschen
-  const { logout } = useUser(); // ⬅️ wichtig: aus dem Kontext holen
-
   const handleDeleteAccount = async () => {
     try {
       const response = await safeFetch(
-        `http://192.168.50.116:8082/api/user/${userId}`,
+        `${API_URL}/api/user/${userId}`,
         {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -196,18 +198,13 @@ const ProfileScreen = () => {
 
       Alert.alert('Account gelöscht', 'Dein Account wurde erfolgreich gelöscht.');
 
-      // ❗ KEIN navigation.reset() verwenden
       await SecureStore.deleteItemAsync("authToken");
-      logout();  // ⬅️ setzt accessToken im Context auf null
-
-      // 🔥 AppNavigator erkennt: accessToken = null → zeigt automatisch Login
-
+      logout();
     } catch (error) {
       console.error('Fehler beim Löschen des Accounts:', error);
       Alert.alert('Fehler', 'Account konnte nicht gelöscht werden.');
     }
   };
-
 
   if (loading || userContextLoading) {
     return (
@@ -231,12 +228,42 @@ const ProfileScreen = () => {
           <Text style={styles.header}>Benutzerprofil</Text>
 
           <View style={styles.infoContainer}>
+            {/* 🔒 READ-ONLY Felder */}
             <LabelValue label="Benutzername" value={userDetails.username} />
-            <LabelValue label="Vorname" value={userDetails.firstName} />
-            <LabelValue label="Nachname" value={userDetails.lastName} />
-            <LabelValue label="Geburtsdatum" value={userDetails.dateOfBirth} />
             <LabelValue label="E-Mail" value={userDetails.email} />
             <LabelValue label="Passwort" value={userDetails.password} />
+
+            {/* ✏️ EDITIERBARE Felder */}
+            <Text style={styles.label}>Vorname:</Text>
+            <TextInput
+              style={styles.input}
+              value={userDetails.firstName}
+              onChangeText={(val) =>
+                setUserDetails((prev) => ({ ...prev, firstName: val }))
+              }
+              editable={!saving}
+            />
+
+            <Text style={styles.label}>Nachname:</Text>
+            <TextInput
+              style={styles.input}
+              value={userDetails.lastName}
+              onChangeText={(val) =>
+                setUserDetails((prev) => ({ ...prev, lastName: val }))
+              }
+              editable={!saving}
+            />
+
+            <Text style={styles.label}>Geburtsdatum (YYYY-MM-DD):</Text>
+            <TextInput
+              style={styles.input}
+              value={userDetails.dateOfBirth}
+              onChangeText={(val) =>
+                setUserDetails((prev) => ({ ...prev, dateOfBirth: val }))
+              }
+              editable={!saving}
+              placeholder="1990-01-31"
+            />
 
             <Text style={styles.label}>Straße und Hausnummer:</Text>
             <TextInput
@@ -330,109 +357,117 @@ const LabelValue = ({ label, value }) => (
 );
 
 const styles = StyleSheet.create({
-  scrollViewContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingBottom: 20,
-  },
   container: {
     flex: 1,
+    backgroundColor: '#f9f9f9',
+  },
+  scrollViewContainer: {
     padding: 20,
-  },
-  header: {
-    fontSize: 24,
-
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  infoContainer: {
-    marginBottom: 10,
-  },
-  label: {
-    fontSize: 16,
-    marginTop: 10,
-  },
-  value: {
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  input: {
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingLeft: 10,
-    marginBottom: 10,
-  },
-  buttonContainer: {
-    marginBottom: 10,
-    marginTop: 20,
-  },
-  saveButton: {
-    backgroundColor: '#5FC9C9',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10, //gap /margin between save and back button
-  },
-  disabledButton: {
-    backgroundColor: '#a0d6d6',
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  backButton: {
-    backgroundColor: '#e0e0e0',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  header: {
+    fontSize: 26,
+    color: '#333',
+    marginTop: 20,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  infoContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+    marginTop: 10,
+  },
+  value: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    padding: 10,
+    fontSize: 16,
+    backgroundColor: '#fff',
+    marginBottom: 10,
+  },
+  buttonContainer: {
+    marginTop: 20,
+  },
+  saveButton: {
+    backgroundColor: '#5FC9C9',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  disabledButton: {
+    backgroundColor: '#aaa',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  backButton: {
+    backgroundColor: '#ccc',
+   
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  backButtonText: {
+ color: '#fff',
+     fontSize: 16,
+    fontWeight: 'bold',
+  },
   dangerZone: {
     marginTop: 40,
-    padding: 20,
-    backgroundColor: "#fff",
-    borderRadius: 10,
+    padding: 15,
+    backgroundColor: '#ffe6e6',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#f5c6cb",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderColor: '#ffcccc',
   },
   dangerTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#b71c1c",
-    marginBottom: 8,
-    textAlign: "center",
+    fontWeight: 'bold',
+    color: '#d9534f',
+    marginBottom: 10,
   },
   dangerDescription: {
     fontSize: 14,
-    color: "#555",
-    textAlign: "center",
-    marginBottom: 16,
+    color: '#666',
+    marginBottom: 15,
   },
   deleteButton: {
-    backgroundColor: "#FF5C5C",
-    paddingVertical: 12,
+    backgroundColor: '#d9534f',
+    padding: 12,
     borderRadius: 8,
-    alignItems: "center",
+    alignItems: 'center',
   },
   deleteButtonText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: 'bold',
   },
 });
 

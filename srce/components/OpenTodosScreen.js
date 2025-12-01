@@ -54,7 +54,7 @@ export default function OpenTodosScreen() {
 
       // ✅ safeFetch statt fetch()
       const response = await safeFetch(
-        "http://192.168.50.116:8082/api/todo/group",
+        `${API_URL}/api/todo/group`,
         {
           method: "GET",
           headers: {

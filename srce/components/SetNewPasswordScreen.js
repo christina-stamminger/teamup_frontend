@@ -37,7 +37,7 @@ const SetNewPasswordScreen = () => {
     }
 
     try {
-      const response = await fetch("http://192.168.50.116:8082/api/user/auth/set-new-password", {
+      const response = await fetch(`${API_URL}/api/user/auth/set-new-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, newPassword: password }),

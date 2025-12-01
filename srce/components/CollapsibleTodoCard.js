@@ -52,7 +52,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
       const token = await SecureStore.getItemAsync("accessToken");
       const currentTime = new Date().toISOString();
 
-      const response = await fetch("http://192.168.50.116:8082/api/todo/status", {
+      const response = await fetch(`${API_URL}/api/todo/status`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -104,7 +104,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
     try {
       const token = await SecureStore.getItemAsync("accessToken");
       const response = await fetch(
-        `http://192.168.50.116:8082/api/todo/${todo.todoId}/trash`,
+        `${API_URL}/api/todo/${todo.todoId}/trash`,
         {
           method: "PUT",
           headers: {

@@ -50,10 +50,10 @@ const LoginScreen = ({ navigation }) => {
       //console.log("USERNAME RAW:", JSON.stringify(inputUsername));
       //console.log("USERNAME TRIMMED:", JSON.stringify(inputUsername.trim()));
       //console.log("🚀 LOGIN PRESSED with", inputUsername, password);
-      //console.log("🚀 SENDING TO URL:", "http://192.168.50.116:8082/api/user/auth/login");
+      //console.log("🚀 SENDING TO URL:", "${API_URL}/api/user/auth/login");
 
 
-      const response = await safeFetch("http://192.168.50.116:8082/api/user/auth/login", {
+      const response = await safeFetch(`${API_URL}/api/user/auth/login`, {
 
         method: "POST",
         headers: { "Content-Type": "application/json" },

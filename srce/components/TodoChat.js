@@ -67,7 +67,7 @@ export default function TodoChat({ todoId, userId, issuerId, fulfillerId, todoSt
             }
 
             const response = await fetch(
-                `http://192.168.50.116:8082/api/todo/${todoId}/messages`,
+                `${API_URL}/api/todo/${todoId}/messages`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -102,7 +102,7 @@ export default function TodoChat({ todoId, userId, issuerId, fulfillerId, todoSt
             }
 
             const response = await fetch(
-                `http://192.168.50.116:8082/api/todo/${todoId}/messages`,
+                `${API_URL}/api/todo/${todoId}/messages`,
                 {
                     method: "POST",
                     headers: {

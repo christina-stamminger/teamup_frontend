@@ -86,7 +86,7 @@ export const NetworkProvider = ({ children }) => {
       console.log("🔥 [performRefresh] SENDING refreshToken TO BACKEND:", rt);
 
       const response = await fetch(
-        "http://192.168.50.116:8082/api/user/auth/refresh",
+        `${API_URL}/api/user/auth/refresh`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

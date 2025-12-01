@@ -140,7 +140,7 @@ export default function MyTodosScreen() {
             return;
           }
 
-          const response = await safeFetch(`http://192.168.50.116:8082/api/groups/myGroups`, {
+          const response = await safeFetch(`${API_URL}/api/groups/myGroups`, {
             headers: {
               'Authorization': `Bearer ${auth}`,
               'Content-Type': 'application/json',
@@ -200,7 +200,7 @@ export default function MyTodosScreen() {
         return;
       }
 
-      const response = await safeFetch(`http://192.168.50.116:8082/api/groups/myGroups`, {
+      const response = await safeFetch(`${API_URL}/api/groups/myGroups`, {
         headers: {
           'Authorization': `Bearer ${auth}`,
           'Content-Type': 'application/json',
@@ -231,7 +231,7 @@ export default function MyTodosScreen() {
     try {
       setLoadingTrash(true);
       const auth = await getAuthToken();
-      const response = await safeFetch(`http://192.168.50.116:8082/api/todo/trash/${userId}`, {
+      const response = await safeFetch(`${API_URL}/api/todo/trash/${userId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${auth}`,
@@ -259,7 +259,7 @@ export default function MyTodosScreen() {
   const handleRestore = async (todoId) => {
     try {
       const auth = await getAuthToken();
-      const response = await safeFetch(`http://192.168.50.116:8082/api/todo/${todoId}/restore`, {
+      const response = await safeFetch(`${API_URL}/api/todo/${todoId}/restore`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${auth}`,
@@ -302,7 +302,7 @@ export default function MyTodosScreen() {
     try {
       setLoading(true);
       const auth = await getAuthToken();
-      const response = await safeFetch(`http://192.168.50.116:8082/api/todo/group/${groupId}`, {
+      const response = await safeFetch(`${API_URL}/api/todo/group/${groupId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${auth}`,
@@ -340,7 +340,7 @@ export default function MyTodosScreen() {
   const fetchNewMembers = async (groupId) => {
     try {
       const auth = await getAuthToken();
-      const response = await safeFetch(`http://192.168.50.116:8082/api/groups/${groupId}/members`, {
+      const response = await safeFetch(`${API_URL}/api/groups/${groupId}/members`, {
         headers: {
           'Authorization': `Bearer ${auth}`,
           'Content-Type': 'application/json',
@@ -396,7 +396,7 @@ export default function MyTodosScreen() {
       }
 
       const auth = await getAuthToken();
-      const response = await safeFetch(`http://192.168.50.116:8082/api/todo/${todoId}`, {
+      const response = await safeFetch(`${API_URL}/api/todo/${todoId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${auth}` },
       });
@@ -438,7 +438,7 @@ export default function MyTodosScreen() {
   const handleRemoveUser = async (userIdToRemove) => {
     try {
       const auth = await getAuthToken();
-      const response = await safeFetch(`http://192.168.50.116:8082/api/groups/removeUser?userId=${userIdToRemove}&groupId=${selectedGroupId}`, {
+      const response = await safeFetch(`${API_URL}/api/groups/removeUser?userId=${userIdToRemove}&groupId=${selectedGroupId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${auth}`,
