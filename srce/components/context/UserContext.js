@@ -119,12 +119,12 @@ export const UserProvider = ({ children }) => {
       setAccessToken(null);
       setRefreshToken(null);
       setHasLoggedInOnce(false);
+
     } catch (error) {
       console.error("Error during logout:", error);
-    } finally {
-      setLoading(false);
     }
   };
+
 
   // ==========================================================
   // 🔥 App-Start

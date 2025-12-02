@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Modal from 'react-native-modal';
 import * as SecureStore from 'expo-secure-store';
+import { API_URL } from '@env';
 
 export default function GroupCreationModal({
   isVisible,

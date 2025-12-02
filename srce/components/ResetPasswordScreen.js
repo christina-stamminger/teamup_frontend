@@ -11,6 +11,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
+import { API_URL } from '@env';
 
 export default function ResetPasswordScreen({ route, navigation }) {
   const { token } = route.params || {};

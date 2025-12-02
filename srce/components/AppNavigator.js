@@ -1,5 +1,5 @@
 import React from "react";
-import { useUser } from "./context/UserContext"; 
+import { useUser } from "./context/UserContext";
 
 import AuthNavigator from "./AuthNavigator";
 import AppStackNavigator from "./AppStackNavigator";
@@ -8,15 +8,15 @@ export default function AppNavigator() {
   const { accessToken, loading } = useUser();
 
   if (loading) {
-    // Optional: Splash Screen
+    // Optional: Splash Screen, Loader, Branding etc.
     return null;
   }
 
-  // 🟢 Token vorhanden → App
+  // 🟢 Benutzer eingeloggt
   if (accessToken) {
     return <AppStackNavigator />;
   }
 
-  // 🔴 Kein Token → Auth Screens
+  // 🔴 Benutzer nicht eingeloggt → Login/Register Screens
   return <AuthNavigator />;
 }

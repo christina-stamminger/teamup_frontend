@@ -21,6 +21,7 @@ import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import TodoChat from "./TodoChat";
+import { API_URL } from '@env';
 
 const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => {
   const [isExpanded, setIsExpanded] = useState(false);

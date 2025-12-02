@@ -3,6 +3,7 @@ import { View, Text, TextInput, Button, Alert, StyleSheet, TouchableOpacity } fr
 import Modal from 'react-native-modal';
 import * as SecureStore from 'expo-secure-store';
 import { useNetwork } from '../components/context/NetworkContext';
+import { API_URL } from '@env';
 
 export default function AddMemberModal({ isVisible, onClose, groupId, onMemberAdded }) {
   const [username, setUsername] = useState('');

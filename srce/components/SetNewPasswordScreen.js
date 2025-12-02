@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
+import { API_URL } from '@env';
 
 const SetNewPasswordScreen = () => {
   const route = useRoute();

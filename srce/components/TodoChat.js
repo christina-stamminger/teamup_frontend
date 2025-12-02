@@ -12,6 +12,7 @@ import {
 import * as SecureStore from "expo-secure-store";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Toast from "react-native-toast-message";
+import { API_URL } from '@env';
 
 export default function TodoChat({ todoId, userId, issuerId, fulfillerId, todoStatus }) {
     const [messages, setMessages] = useState([]);

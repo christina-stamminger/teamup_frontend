@@ -11,6 +11,8 @@ import {
   Keyboard,
   Alert,
 } from "react-native";
+import { API_URL } from '@env';
+
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");

@@ -2,7 +2,6 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useNetwork } from "./context/NetworkContext";
 
-
 export default function OfflineBanner() {
   const { isConnected } = useNetwork();
 

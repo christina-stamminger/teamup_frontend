@@ -18,8 +18,7 @@ import { getAvatarColor } from '../utils/getAvatarColor';
 import Modal from "react-native-modal";
 import { Picker } from "@react-native-picker/picker"; // falls nicht installiert: npm install @react-native-picker/picker
 import Toast from "react-native-toast-message";
-
-
+import { API_URL } from '@env';
 
 export default function GroupDetails({ route, navigation }) {
   const { group } = route.params;

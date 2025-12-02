@@ -14,6 +14,7 @@ import { useUser } from "../components/context/UserContext";
 import MyGroups from "../components/MyGroups";
 import Toast from "react-native-toast-message";
 import { Text } from "react-native";
+import { API_URL } from '@env';
 
 const Tab = createBottomTabNavigator();
 
