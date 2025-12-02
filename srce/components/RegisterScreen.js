@@ -56,9 +56,14 @@ const validationSchema = Yup.object({
   */
 });
 
+
+
+
 // ✅ API Request – jetzt mit safeFetch
 const postNewUser = async (userData, safeFetch) => {
   try {
+    console.log("Sending request to:", `${API_URL}/api/user/signup`);
+    console.log("With data:", userData);
     // ⚙️ safeFetch statt fetch → funktioniert auch offline
     const response = await safeFetch(`${API_URL}/api/user/signup`, {
       method: "POST",
