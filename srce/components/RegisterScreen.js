@@ -223,12 +223,14 @@ const RegisterScreen = ({ navigation }) => {
                     style={styles.input}
                     name={name}
                     placeholder={placeholder}
-                    value={get(formik.values, name)}
+                    placeholderTextColor="#999"
+                    value={formik.values[name]}
                     onChangeText={formik.handleChange(name)}
                     onBlur={formik.handleBlur(name)}
-                    keyboardType={type === "numeric" ? "numeric" : "default"}
-                    secureTextEntry={type === "password"}
+                    keyboardType={type === "email-address" ? "email-address" : "default"}
+                    secureTextEntry={false}
                   />
+
                   {fieldTouched && fieldError && (
                     <Text style={styles.error}>{fieldError}</Text>
                   )}
@@ -279,10 +281,6 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 15,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    height: 48,
-
   },
   input: {
     height: 48,
@@ -297,17 +295,17 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderWidth: 1,
     borderRadius: 8,
-    paddingRight: 10,
   },
   passwordInput: {
     flex: 1,
     height: 48,
     paddingLeft: 10,
   },
-  eyeIconButton: {
-    padding: 8, // ← größerer Touch-Bereich
-    justifyContent: 'center',
-    alignItems: 'center',
+  eyeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    justifyContent: "center",
+    alignItems: "center",
   },
   button: {
     backgroundColor: "#5FC9C9",
