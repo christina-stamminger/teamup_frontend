@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Modal from 'react-native-modal';
 import * as SecureStore from 'expo-secure-store';
-import { API_URL } from '@env';
+import Constants from "expo-constants";
+
+const API_URL = Constants.expoConfig.extra.API_URL;
 
 export default function GroupCreationModal({
   isVisible,

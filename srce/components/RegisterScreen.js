@@ -16,7 +16,9 @@ import { Eye, EyeOff } from "lucide-react-native";
 import { Handshake } from "lucide-react-native";
 import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch + shouldShowError
 import Toast from "react-native-toast-message";
-import { API_URL } from '@env';
+import Constants from "expo-constants";
+
+const API_URL = Constants.expoConfig.extra.API_URL;
 
 // Email und PW VALIDIERUNGSCHEMA mit Yup
 const usernameRegex = /^[A-Za-z0-9._-]{3,20}$/;

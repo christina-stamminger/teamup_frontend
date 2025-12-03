@@ -7,18 +7,21 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "APP_ENV": "development"
+        "APP_ENV": "development",
+        "API_URL": "http://192.168.50.116:8082"
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "APP_ENV": "preview"
+        "APP_ENV": "preview",
+        "API_URL": "https://teamup-backend-k8y4.onrender.com"
       }
     },
     "production": {
       "env": {
-        "APP_ENV": "production"
+        "APP_ENV": "production",
+        "API_URL": "https://teamup-backend-k8y4.onrender.com"
       }
     }
   },

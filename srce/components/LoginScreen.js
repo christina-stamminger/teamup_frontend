@@ -17,7 +17,9 @@ import * as SecureStore from "expo-secure-store";
 import { jwtDecode } from "jwt-decode";
 import { useUser } from "../components/context/UserContext";
 import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch + shouldShowError
-import { API_URL } from '@env';
+import Constants from "expo-constants";
+
+const API_URL = Constants.expoConfig.extra.API_URL;
 
 const LoginScreen = ({ navigation }) => {
   const [inputUsername, setInputUsername] = useState("");

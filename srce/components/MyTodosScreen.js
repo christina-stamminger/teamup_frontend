@@ -14,7 +14,9 @@ import { getAvatarColor } from '../utils/getAvatarColor';
 import Toast from 'react-native-toast-message';
 import FilterBar from '../components/FilterBar';
 import { useNetwork } from "../components/context/NetworkContext";
-import { API_URL } from '@env';
+import Constants from "expo-constants";
+
+const API_URL = Constants.expoConfig.extra.API_URL;
 
 export default function MyTodosScreen() {
   const {

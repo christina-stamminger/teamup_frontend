@@ -7,16 +7,19 @@ export default {
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
     newArchEnabled: true,
+
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
+
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.christina.bringit",
       buildNumber: "1.0.0"
     },
+
     android: {
       package: "com.christina.bringit",
       versionCode: 1,
@@ -25,9 +28,11 @@ export default {
         backgroundColor: "#ffffff"
       }
     },
+
     web: {
       favicon: "./assets/favicon.png"
     },
+
     plugins: [
       "expo-secure-store",
       [
@@ -39,11 +44,14 @@ export default {
         }
       ]
     ],
+
     scheme: "bringit",
     platforms: ["ios", "android", "web"],
 
-    // ⬇️ **HIER EINSETZEN**
+    // 🔥 ENV richtig definiert
     extra: {
+      API_URL: process.env.API_URL,
+      APP_ENV: process.env.APP_ENV,
       eas: {
         projectId: "da762c57-1d88-4aba-b0cb-d5c4fb973bdb"
       }

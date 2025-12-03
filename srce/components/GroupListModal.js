@@ -3,7 +3,7 @@ import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import Modal from 'react-native-modal';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { API_URL } from '@env';
+
 
 export default function GroupListModal({ isVisible, groups, selectedGroupId, onClose, onSelect }) {
   return (
