@@ -123,7 +123,7 @@ export default function CreateTodoScreen() {
                 isMounted = false;
                 console.log("🧹 CreateTodoScreen cleanup");
             };
-        }, [userId]) // dependency darf nicht leer sein, useFocusEffect wird sonst nicht erneut bei Fokus ausgeführt
+        }, []) // dependency array leer? mit userId build failed
     );
 
     const showPicker = () => setDatePickerVisible(true);
