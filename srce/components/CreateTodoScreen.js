@@ -40,10 +40,10 @@ export default function CreateTodoScreen() {
     const { userId } = useUser();
     const { safeFetch } = useNetwork();
 
-    // ✅ Gruppen laden bei Screen-Fokus
+    // Gruppen laden bei Screen-Fokus
     useFocusEffect(
         useCallback(() => {
-            let isMounted = true; // ✅ Cleanup-Flag
+            let isMounted = true; // Cleanup-Flag
 
             const fetchGroups = async () => {
                 if (!isMounted) return;
@@ -65,7 +65,7 @@ export default function CreateTodoScreen() {
                         }
                     );
 
-                    if (!isMounted) return; // ✅ Abbruch falls unmounted
+                    if (!isMounted) return; // Abbruch falls unmounted
 
                     if (response?.offline) {
                         Toast.show({
@@ -82,7 +82,7 @@ export default function CreateTodoScreen() {
                     }
 
                     const data = await response.json();
-                    console.log("✅ Loaded groups:", data.length);
+                    console.log("Loaded groups:", data.length);
                     
                     const formattedGroups = data.map((group) => ({
                         label: group.groupName,
@@ -92,15 +92,15 @@ export default function CreateTodoScreen() {
                     if (isMounted) {
                         setGroups(formattedGroups);
                         
-                        // ✅ Wenn nur 1 Gruppe → automatisch auswählen
+                        // Wenn nur 1 Gruppe → automatisch auswählen
                         if (formattedGroups.length === 1 && !groupId) {
                             setGroupId(formattedGroups[0].value);
-                            console.log("✅ Auto-selected single group:", formattedGroups[0].label);
+                            console.log("Auto-selected single group:", formattedGroups[0].label);
                         }
                     }
                     
                 } catch (error) {
-                    console.error("❌ Fehler beim Laden der Gruppen:", error);
+                    console.error("Fehler beim Laden der Gruppen:", error);
                     if (isMounted) {
                         Toast.show({
                             type: 'error',
@@ -118,12 +118,12 @@ export default function CreateTodoScreen() {
 
             fetchGroups();
 
-            // ✅ Cleanup-Funktion
+            // Cleanup-Funktion
             return () => {
                 isMounted = false;
                 console.log("🧹 CreateTodoScreen cleanup");
             };
-        }, []) // ✅ Leere Dependencies - lädt bei jedem Fokus
+        }, [userId]) // dependency darf nicht leer sein, useFocusEffect wird sonst nicht erneut bei Fokus ausgeführt
     );
 
     const showPicker = () => setDatePickerVisible(true);
@@ -148,7 +148,7 @@ export default function CreateTodoScreen() {
                 minute: "2-digit",
             });
         } catch (e) {
-            console.error("❌ Fehler beim Formatieren von expiresAt:", e);
+            console.error("Fehler beim Formatieren von expiresAt:", e);
             return dateString;
         }
     };
@@ -176,7 +176,7 @@ export default function CreateTodoScreen() {
     };
 
     const handleCreateTodo = async () => {
-        // ✅ Validierung
+        // Validierung
         if (!userId) {
             Alert.alert("Fehler", "Benutzer ist nicht eingeloggt. Bitte erneut anmelden.");
             return;
@@ -211,7 +211,7 @@ export default function CreateTodoScreen() {
             ...(description.trim() && { description: description.trim() }),
         };
 
-        console.log("📤 Creating todo:", newTodo);
+        console.log("Creating todo:", newTodo);
 
         try {
             const token = await SecureStore.getItemAsync("accessToken");
