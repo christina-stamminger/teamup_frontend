@@ -40,32 +40,17 @@ const LoginScreen = ({ navigation }) => {
     }
 
     try {
-      console.log("LOGIN CALL → sending:", inputUsername, password);
-
-      console.log("REQUEST BODY RAW →", {
-        username: inputUsername,
-        password: password
-      });
-      console.log("REQUEST BODY STRINGIFIED →", JSON.stringify({
-        username: inputUsername,
-        password: password
-      }));
-      //console.log("USERNAME RAW:", JSON.stringify(inputUsername));
-      //console.log("USERNAME TRIMMED:", JSON.stringify(inputUsername.trim()));
-      //console.log("🚀 LOGIN PRESSED with", inputUsername, password);
-      //console.log("🚀 SENDING TO URL:", "${API_URL}/api/user/auth/login");
-
-
-      const response = await safeFetch(`${API_URL}/api/user/auth/login`, {
-
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-
-          username: inputUsername,
-          password,
-        }),
-      });
+      const response = await safeFetch(
+        `${API_URL}/api/user/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: inputUsername,
+            password,
+          }),
+        }
+      );
 
       if (response.offline) {
         setErrorMessage("Keine Internetverbindung.");
@@ -78,32 +63,18 @@ const LoginScreen = ({ navigation }) => {
       }
 
       const data = await response.json();
+      const { accessToken, refreshToken } = data;
 
-      // Neue Backend-API!
-      const { accessToken, refreshToken, userId } = data;
+      // ✅ EINZIGE Aktion nach Login
+      await saveSession({ accessToken, refreshToken });
 
-      // Token decodieren
-      const decoded = jwtDecode(accessToken);
-
-      // ✔ Beste Methode: Context + SecureStore in EINEM Schritt
-      await saveSession({
-        userId,
-        accessToken,
-        refreshToken
-      });
-
-      // Username aus JWT
-      setUsername(decoded.sub);
-      setHasLoggedInOnce(true);
-
-      navigation.replace("HomeTabs");
+      // ❌ KEIN navigation.replace
+      // ❌ KEIN setUsername
+      // ❌ KEIN setHasLoggedInOnce
 
     } catch (error) {
       console.error("Login error:", error);
-
-      if (shouldShowError()) {
-        setErrorMessage("Ein Fehler ist aufgetreten. Bitte erneut versuchen.");
-      }
+      setErrorMessage("Ein Fehler ist aufgetreten. Bitte erneut versuchen.");
     }
   };
 

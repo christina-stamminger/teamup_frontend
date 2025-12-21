@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { TouchableOpacity } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Home, ClipboardList, PlusCircle, Users, User2Icon } from "lucide-react-native";
+//import { Home, ClipboardList, PlusCircle, Users, User2Icon } from "lucide-react-native";
+import BringitsChip from "../components/BringitsChip";
+import { Icons } from "../ui/icons";
+import { View } from "react-native";
 import MyTodosScreen from "../components/MyTodosScreen";
 import OpenTodosScreen from "../components/OpenTodosScreen";
 import CreateTodoScreen from "../components/CreateTodoScreen";
@@ -21,7 +24,7 @@ const API_URL = Constants.expoConfig.extra.API_URL;
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabsNavigator({ navigation }) {
-  const { username, setUserId } = useUser();
+  const { username, setUserId, bringits } = useUser();
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [groups, setGroups] = useState([]);
@@ -105,14 +108,13 @@ export default function BottomTabsNavigator({ navigation }) {
     }
   };
 
-  // Gruppen sofort beim Start laden
+  const { groupsVersion } = useUser();
+
   useEffect(() => {
-    const init = async () => {
-      console.log("🔁 Initial group fetch on BottomTabsNavigator mount");
-      await fetchUserGroups();
-    };
-    init();
-  }, [username]);
+    console.log("🔁 BottomTabs: Reloading groups because groupsVersion changed →", groupsVersion);
+    fetchUserGroups();
+  }, [username, groupsVersion]);
+
 
   const handleGroupSelect = (group) => {
     setSelectedGroup(group);
@@ -123,13 +125,30 @@ export default function BottomTabsNavigator({ navigation }) {
     <>
       <Tab.Navigator
         screenOptions={{
-          headerRight: () => <LogoutButton navigation={navigation} />,
+          headerRight: () => (
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <BringitsChip
+                value={bringits}
+                onPress={() => navigation.navigate("ProfileScreen")}
+              />
+              <LogoutButton navigation={navigation} />
+            </View>
+          ),
+
+
+          headerStyle: {
+            backgroundColor: "#fff",
+          },
+          headerTitleStyle: {
+            fontSize: 20,
+            fontWeight: "600",
+          },
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate("ProfileScreen")}
               style={{ marginLeft: 16 }}
             >
-              <User2Icon size={24} color="#5fc9c9" />
+              <Icons.User2 size={24} color="#5fc9c9" />
             </TouchableOpacity>
           ),
           headerTitle: username ? `Hallo, ${username}` : "Loading...",
@@ -141,7 +160,7 @@ export default function BottomTabsNavigator({ navigation }) {
           name="Meine Todos"
           component={MyTodosScreen}
           options={{
-            tabBarIcon: ({ color }) => <Home size={24} color={color} />,
+            tabBarIcon: ({ color }) => <Icons.Home size={24} color={color} />,
           }}
         />
 
@@ -149,7 +168,7 @@ export default function BottomTabsNavigator({ navigation }) {
           name="Offene Todos"
           component={OpenTodosScreen}
           options={{
-            tabBarIcon: ({ color }) => <ClipboardList size={24} color={color} />,
+            tabBarIcon: ({ color }) => <Icons.ClipboardList size={24} color={color} />,
           }}
         />
 
@@ -173,7 +192,7 @@ export default function BottomTabsNavigator({ navigation }) {
           options={{
 
             tabBarIcon: ({ color }) => (
-              <PlusCircle
+              <Icons.PlusCircle
                 size={24}
                 color={hasGroups ? color : "#cccccc"}
                 opacity={hasGroups ? 1 : 0.5}
@@ -186,7 +205,7 @@ export default function BottomTabsNavigator({ navigation }) {
           name="Meine Gruppen"
           component={MyGroups}
           options={{
-            tabBarIcon: ({ color }) => <Users size={24} color={color} />,
+            tabBarIcon: ({ color }) => <Icons.Users size={24} color={color} />,
           }}
         />
       </Tab.Navigator>
@@ -201,4 +220,5 @@ export default function BottomTabsNavigator({ navigation }) {
       />
     </>
   );
+
 }

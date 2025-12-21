@@ -1,4 +1,3 @@
-import React from "react";
 import AppNavigator from "./srce/components/AppNavigator";
 import { UserProvider } from "./srce/components/context/UserContext";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -8,14 +7,23 @@ import { NavigationContainer, useNavigationContainerRef } from '@react-navigatio
 import { NetworkProvider } from "./srce/components/context/NetworkContext";
 import OfflineBanner from "./srce/components/OfflineBanner";
 import { BackHandler } from 'react-native';
+import React, { useEffect } from "react";
+import { setupNotifications } from "./srce/notifications/notifications";
+import 'react-native-gesture-handler';
 
 export default function App() {
+    console.log('🔥 App component rendered');
+
   const navigationRef = useNavigationContainerRef();
 
   // **Fix für RN 0.72+: removeEventListener existiert nicht mehr**
   if (!BackHandler.removeEventListener) {
-    BackHandler.removeEventListener = () => {};
+    BackHandler.removeEventListener = () => { };
   }
+
+  useEffect(() => {
+    setupNotifications();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

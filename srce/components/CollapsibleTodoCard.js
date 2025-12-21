@@ -27,7 +27,7 @@ const API_URL = Constants.expoConfig.extra.API_URL;
 
 const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { userId, loading } = useUser();
+  const { userId, loading, setBringits } = useUser();
   const isFocused = useIsFocused();
   const swipeableRef = useRef(null);
   const scrollRef = useRef(null);
@@ -70,6 +70,15 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
       });
 
       const result = await response.json();
+
+
+      // 🔥 DAS WAR DER FEHLENDE TEIL
+      if (response.ok && typeof result.bringIts === "number") {
+        setBringits(result.bringIts);
+      }
+      console.log("XXXXX bringits:", result);
+
+      //const result = await response.json();
       if (!response.ok) {
         Toast.show({
           type: "error",
@@ -192,192 +201,181 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
 
         {/* EXPANDED CONTENT */}
         {isExpanded && (
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
-          >
-            <ScrollView
-              ref={scrollRef}
-              contentContainerStyle={{ paddingBottom: isExpanded ? 20 : 0 }}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.additionalContent}>
-                {/* Description */}
-                {todo.description && (
-                  <View style={styles.detailRow}>
-                    <Feather
-                      name="file-text"
-                      size={18}
-                      color="#4B5563"
-                      style={styles.icon}
-                    />
-                    <Text style={styles.detailText}>{todo.description}</Text>
-                  </View>
-                )}
-
-                {!todo.userTakenId && (
-                  <Text style={styles.userTakenText}>
-                    Dieses Todo wurde noch nicht übernommen.
-                  </Text>
-                )}
-
-                {/* Zeitkritisch */}
-                {todo.isTimeCritical && (
-                  <View style={styles.timeCriticalWarning}>
-                    <Icon
-                      name="exclamation-triangle"
-                      size={16}
-                      color="#FF6B6B"
-                      style={{ marginRight: 8 }}
-                    />
-                    <Text style={styles.timeCriticalWarningText}>
-                      Zeitkritisch: Nach Ablauf automatisch abgelaufen
-                    </Text>
-                  </View>
-                )}
-
-                {/* Zeitabschnitt */}
-                <View style={styles.timeContainer}>
-                  {/* Expires */}
-                  <View style={styles.timeBlock}>
-                    <View style={styles.timeHeader}>
-                      <Icon
-                        name="clock-o"
-                        size={14}
-                        color={statusColor}
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text style={[styles.timeLabel, { color: statusColor }]}>
-                        Läuft ab:
-                      </Text>
-                    </View>
-                    <Text style={[styles.timeMain, { color: statusColor }]}>
-                      {new Date(todo.expiresAt).toLocaleTimeString("de-DE", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </Text>
-                    <Text style={styles.timeSub}>
-                      {new Date(todo.expiresAt).toLocaleDateString("de-DE", {
-                        weekday: "short",
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </Text>
-                  </View>
-
-                  {/* Completed */}
-                  {todo.completedAt && (
-                    <View
-                      style={[
-                        styles.timeBlock,
-                        { borderLeftWidth: 1, borderLeftColor: "#e0e0e0" },
-                      ]}
-                    >
-                      <View style={styles.timeHeader}>
-                        <Icon
-                          name="check"
-                          size={14}
-                          color="#4CAF50"
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text
-                          style={[styles.timeLabel, { color: "#4CAF50" }]}
-                        >
-                          Erledigt
-                        </Text>
-                      </View>
-                      <Text style={[styles.timeMain, { color: "#4CAF50" }]}>
-                        {new Date(todo.completedAt).toLocaleTimeString("de-DE", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </Text>
-                      <Text style={styles.timeSub}>
-                        {new Date(todo.completedAt).toLocaleDateString("de-DE", {
-                          weekday: "short",
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Buttons */}
-                {todo.status === "OFFEN" && todo.userOfferedId !== userId && (
-                  <TouchableOpacity
-                    style={styles.takeButton}
-                    onPress={() => updateTodoStatus("IN_ARBEIT")}
-                  >
-                    <Text style={styles.takeButtonText}>Ich mach's</Text>
-                  </TouchableOpacity>
-                )}
-
-                {todo.userTakenUsername &&
-                  todo.userTakenId === userId &&
-                  todo.status === "IN_ARBEIT" && (
-                    <View style={styles.actionButtons}>
-                      <TouchableOpacity
-                        style={[
-                          styles.statusButton,
-                          { backgroundColor: "#6BA8D1" },
-                        ]}
-                        onPress={() => updateTodoStatus("ERLEDIGT")}
-                      >
-                        <Icon
-                          name="check"
-                          size={16}
-                          color="#fff"
-                          style={styles.buttonIcon}
-                        />
-                        <Text style={styles.statusButtonText}>Erledigt</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.statusButton,
-                          { backgroundColor: "#e0e0e0" },
-                        ]}
-                        onPress={() =>
-                          Alert.alert(
-                            "Cancel",
-                            "Do you want to give back todo?",
-                            [
-                              { text: "No", style: "cancel" },
-                              {
-                                text: "Yes",
-                                onPress: () => updateTodoStatus("OFFEN"),
-                              },
-                            ]
-                          )
-                        }
-                      >
-                        <Icon
-                          name="times"
-                          size={16}
-                          color="#fff"
-                          style={styles.buttonIcon}
-                        />
-                        <Text style={styles.statusButtonText}>Abbrechen</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                {/* 💬 Chat unten */}
-                <TodoChat
-                  todoId={todo.todoId}
-                  userId={userId}
-                  issuerId={todo.userOfferedId}
-                  fulfillerId={todo.userTakenId}
-                  todoStatus={todo.status}
-                  parentScrollRef={scrollRef}
+          <View style={styles.additionalContent}>
+            {/* Description */}
+            {todo.description && (
+              <View style={styles.detailRow}>
+                <Feather
+                  name="file-text"
+                  size={18}
+                  color="#4B5563"
+                  style={styles.icon}
                 />
+                <Text style={styles.detailText}>{todo.description}</Text>
               </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
+            )}
+
+            {!todo.userTakenId && (
+              <Text style={styles.userTakenText}>
+                Dieses Todo wurde noch nicht übernommen.
+              </Text>
+            )}
+
+            {/* Zeitkritisch */}
+            {todo.isTimeCritical && (
+              <View style={styles.timeCriticalWarning}>
+                <Icon
+                  name="exclamation-triangle"
+                  size={16}
+                  color="#FF6B6B"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.timeCriticalWarningText}>
+                  Zeitkritisch: Nach Ablauf automatisch abgelaufen
+                </Text>
+              </View>
+            )}
+
+            {/* Zeitabschnitt */}
+            <View style={styles.timeContainer}>
+              {/* Expires */}
+              <View style={styles.timeBlock}>
+                <View style={styles.timeHeader}>
+                  <Icon
+                    name="clock-o"
+                    size={14}
+                    color={statusColor}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={[styles.timeLabel, { color: statusColor }]}>
+                    Läuft ab:
+                  </Text>
+                </View>
+                <Text style={[styles.timeMain, { color: statusColor }]}>
+                  {new Date(todo.expiresAt).toLocaleTimeString("de-DE", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
+                <Text style={styles.timeSub}>
+                  {new Date(todo.expiresAt).toLocaleDateString("de-DE", {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </Text>
+              </View>
+
+              {/* Completed */}
+              {todo.completedAt && (
+                <View
+                  style={[
+                    styles.timeBlock,
+                    { borderLeftWidth: 1, borderLeftColor: "#e0e0e0" },
+                  ]}
+                >
+                  <View style={styles.timeHeader}>
+                    <Icon
+                      name="check"
+                      size={14}
+                      color="#4CAF50"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={[styles.timeLabel, { color: "#4CAF50" }]}
+                    >
+                      Erledigt
+                    </Text>
+                  </View>
+                  <Text style={[styles.timeMain, { color: "#4CAF50" }]}>
+                    {new Date(todo.completedAt).toLocaleTimeString("de-DE", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </Text>
+                  <Text style={styles.timeSub}>
+                    {new Date(todo.completedAt).toLocaleDateString("de-DE", {
+                      weekday: "short",
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Buttons */}
+            {todo.status === "OFFEN" && todo.userOfferedId !== userId && (
+              <TouchableOpacity
+                style={styles.takeButton}
+                onPress={() => updateTodoStatus("IN_ARBEIT")}
+              >
+                <Text style={styles.takeButtonText}>Ich mach's</Text>
+              </TouchableOpacity>
+            )}
+
+            {todo.userTakenUsername &&
+              todo.userTakenId === userId &&
+              todo.status === "IN_ARBEIT" && (
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.statusButton,
+                      { backgroundColor: "#6BA8D1" },
+                    ]}
+                    onPress={() => updateTodoStatus("ERLEDIGT")}
+                  >
+                    <Icon
+                      name="check"
+                      size={16}
+                      color="#fff"
+                      style={styles.buttonIcon}
+                    />
+                    <Text style={styles.statusButtonText}>Erledigt</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.statusButton,
+                      { backgroundColor: "#e0e0e0" },
+                    ]}
+                    onPress={() =>
+                      Alert.alert(
+                        "Abbrechen",
+                        "Möchtest du das Todo wieder freigeben?",
+                        [
+                          {
+                            text: "Ja",
+                            onPress: () => updateTodoStatus("OFFEN"),
+                          },
+                          { text: "Abbrechen", style: "cancel" },
+                        ]
+                      )
+                    }
+                  >
+                    <Icon
+                      name="times"
+                      size={16}
+                      color="#fff"
+                      style={styles.buttonIcon}
+                    />
+                    <Text style={styles.statusButtonText}>Abbrechen</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+            {/* 💬 Chat unten */}
+            <TodoChat
+              todoId={todo.todoId}
+              userId={userId}
+              issuerId={todo.userOfferedId}
+              fulfillerId={todo.userTakenId}
+              todoStatus={todo.status}
+              parentScrollRef={scrollRef}
+            />
+          </View>
         )}
       </TouchableOpacity>
     </Swipeable>

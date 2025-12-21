@@ -37,98 +37,77 @@ export default function CreateTodoScreen() {
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
     const [loadingGroups, setLoadingGroups] = useState(false);
 
-    const { userId } = useUser();
+    //const { userId } = useUser();
     const { safeFetch } = useNetwork();
 
-    // Gruppen laden bei Screen-Fokus
+    // Fetch groups
+    const { userId, accessToken } = useUser();
+
+    const getAuthToken = useCallback(async () => {
+        if (accessToken) return accessToken;
+        return await SecureStore.getItemAsync("accessToken");
+    }, [accessToken]);
+
+    const fetchGroups = useCallback(async () => {
+        if (!userId) return;
+
+        console.log("📋 Fetching groups on screen focus...");
+
+        try {
+            setLoadingGroups(true);
+            const token = await getAuthToken();
+
+            const response = await safeFetch(`${API_URL}/api/groups/myGroups`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (response?.offline) return;
+
+            if (!response?.ok) throw new Error("Fehler beim Laden der Gruppen.");
+
+            const data = await response.json();
+
+            const formatted = data.map(g => ({
+                label: g.groupName,
+                value: g.groupId, // 
+            }));
+
+            setGroups(formatted);
+
+            // neue Gruppe sofort sichtbar machen
+            //if (!groupId && formatted.length > 0) {
+            //  setGroupId(formatted[0].value);
+            //}
+
+            if (formatted.length > 0) {
+                setGroupId(prev => prev ?? formatted[0].value);
+            }
+
+
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoadingGroups(false);
+        }
+    }, [userId, accessToken, safeFetch]);
+
+
+    const { groupsVersion } = useUser();
+
     useFocusEffect(
         useCallback(() => {
-            let isMounted = true; // Cleanup-Flag
-
-            const fetchGroups = async () => {
-                if (!isMounted) return;
-                
-                console.log("📋 Fetching groups on screen focus...");
-                
-                try {
-                    setLoadingGroups(true);
-                    const token = await SecureStore.getItemAsync("accessToken");
-                    
-                    const response = await safeFetch(
-                        `${API_URL}/api/groups/myGroups`,
-                        {
-                            method: "GET",
-                            headers: {
-                                Authorization: `Bearer ${token}`,
-                                "Content-Type": "application/json",
-                            },
-                        }
-                    );
-
-                    if (!isMounted) return; // Abbruch falls unmounted
-
-                    if (response?.offline) {
-                        Toast.show({
-                            type: 'info',
-                            text1: 'Offline',
-                            text2: 'Keine Internetverbindung',
-                            visibilityTime: 2000
-                        });
-                        return;
-                    }
-
-                    if (!response?.ok) {
-                        throw new Error("Fehler beim Laden der Gruppen.");
-                    }
-
-                    const data = await response.json();
-                    console.log("Loaded groups:", data.length);
-                    
-                    const formattedGroups = data.map((group) => ({
-                        label: group.groupName,
-                        value: group.groupId.toString(),
-                    }));
-                    
-                    if (isMounted) {
-                        setGroups(formattedGroups);
-                        
-                        // Wenn nur 1 Gruppe → automatisch auswählen
-                        if (formattedGroups.length === 1 && !groupId) {
-                            setGroupId(formattedGroups[0].value);
-                            console.log("Auto-selected single group:", formattedGroups[0].label);
-                        }
-                    }
-                    
-                } catch (error) {
-                    console.error("Fehler beim Laden der Gruppen:", error);
-                    if (isMounted) {
-                        Toast.show({
-                            type: 'error',
-                            text1: 'Fehler',
-                            text2: 'Gruppen konnten nicht geladen werden',
-                            visibilityTime: 2000
-                        });
-                    }
-                } finally {
-                    if (isMounted) {
-                        setLoadingGroups(false);
-                    }
-                }
-            };
-
             fetchGroups();
-
-            // Cleanup-Funktion
-            return () => {
-                isMounted = false;
-                console.log("🧹 CreateTodoScreen cleanup");
-            };
-        }, []) // dependency array leer? mit userId build failed
+        }, [groupsVersion])   // Screen lädt neu bei jeder Gruppenänderung
     );
+
 
     const showPicker = () => setDatePickerVisible(true);
     const hidePicker = () => setDatePickerVisible(false);
-    
+
     const handleConfirm = (date) => {
         setExpiresAt(date);
         setExpiresAtDisplay(formatDateTime(date));
@@ -181,17 +160,17 @@ export default function CreateTodoScreen() {
             Alert.alert("Fehler", "Benutzer ist nicht eingeloggt. Bitte erneut anmelden.");
             return;
         }
-        
+
         if (!title.trim()) {
             Alert.alert("Fehler", "Bitte einen Titel eingeben!");
             return;
         }
-        
+
         if (!expiresAt) {
             Alert.alert("Fehler", "Bitte eine Ablaufzeit wählen!");
             return;
         }
-        
+
         if (!groupId) {
             Alert.alert("Fehler", "Bitte eine Gruppe auswählen!");
             return;
@@ -214,7 +193,7 @@ export default function CreateTodoScreen() {
         console.log("Creating todo:", newTodo);
 
         try {
-            const token = await SecureStore.getItemAsync("accessToken");
+            const token = await getAuthToken();
             const response = await safeFetch(
                 `${API_URL}/api/todo/create`,
                 {
@@ -254,11 +233,11 @@ export default function CreateTodoScreen() {
             setDescription("");
             setShowDescription(false);
             setIsTimeCritical(false);
-            
+
         } catch (error) {
             console.error("❌ Fehler:", error);
             Alert.alert(
-                "Fehler", 
+                "Fehler",
                 "Todo konnte nicht erstellt werden. Bitte erneut versuchen."
             );
         }
@@ -292,8 +271,8 @@ export default function CreateTodoScreen() {
                             onPress={() => setShowDescription(!showDescription)}
                         >
                             <Text style={styles.collapseButtonText}>
-                                {showDescription 
-                                    ? "Beschreibung ausblenden" 
+                                {showDescription
+                                    ? "Beschreibung ausblenden"
                                     : "Beschreibung hinzufügen (optional)"
                                 }
                             </Text>
@@ -405,11 +384,11 @@ export default function CreateTodoScreen() {
                         </TouchableOpacity>
 
                         {/* Create Button */}
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={[
                                 styles.createButton,
                                 (!title || !expiresAt || !groupId) && styles.createButtonDisabled
-                            ]} 
+                            ]}
                             onPress={handleCreateTodo}
                             disabled={!title || !expiresAt || !groupId}
                         >

@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 export default {
   expo: {
     name: "bringit",
@@ -7,6 +9,14 @@ export default {
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
     newArchEnabled: true,
+
+    updates: {
+      enabled: true,
+      fallbackToCacheTimeout: 0,
+    },
+    runtimeVersion: {
+      policy: "appVersion",
+    },
 
     splash: {
       image: "./assets/splash-icon.png",

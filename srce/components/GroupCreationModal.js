@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import Modal from 'react-native-modal';
 import * as SecureStore from 'expo-secure-store';
 import Constants from "expo-constants";
+import { useUser } from "../components/context/UserContext";
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
@@ -15,6 +16,9 @@ export default function GroupCreationModal({
   const [groupName, setGroupName] = useState('');
   // const [description, setDescription] = useState(''); // ⚠️ Auskommentiert für Release - später evtl. wieder aktivieren
   const [loading, setLoading] = useState(false);
+
+  const { triggerGroupReload } = useUser();
+
 
   const handleCreateGroup = async () => {
     // ✅ Nur Gruppenname ist required, Beschreibung optional
@@ -52,6 +56,7 @@ export default function GroupCreationModal({
         onGroupCreated(data);
       }
 
+      triggerGroupReload();
       setGroupName('');
       // setDescription(''); // ⚠️ Auskommentiert für Release
       toggleModal();

@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import * as SecureStore from "expo-secure-store";
 import { jwtDecode } from "jwt-decode";
+import Constants from "expo-constants";
+import { registerPushToken } from '../../notifications/registerPushToken';
+import { setupNotifications } from "../../notifications/notifications";
+import { API_URL } from '../../config/env'; // ✅ FIX
 
 const UserContext = createContext();
 export const useUser = () => useContext(UserContext);
@@ -18,25 +22,17 @@ export const UserProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [hasLoggedInOnce, setHasLoggedInOnce] = useState(false);
 
+  // 🟩 Bringits
+  const [bringits, setBringits] = useState(0);
+
+
   // ==========================================================
   // 🔵 Session sichern (Login)
   // ==========================================================
-  const saveSession = async ({ userId, accessToken, refreshToken }) => {
-    if (userId) {
-      await SecureStore.setItemAsync("userId", String(userId));
-      setUserId(userId);
-    }
-
+  const saveSession = async ({ accessToken, refreshToken }) => {
     if (accessToken) {
       await SecureStore.setItemAsync("accessToken", accessToken);
       setAccessToken(accessToken);
-
-      try {
-        const decoded = jwtDecode(accessToken);
-        if (decoded?.sub) setUsername(decoded.sub);
-      } catch (err) {
-        console.warn("JWT decode failed:", err);
-      }
     }
 
     if (refreshToken) {
@@ -45,53 +41,58 @@ export const UserProvider = ({ children }) => {
     }
 
     setHasLoggedInOnce(true);
+
+    // 🔥 WICHTIG: User-Zustand IMMER aus der DB holen
+    await loadUserData();
   };
 
+
   // ==========================================================
-  // 🔥 Session aus SecureStore laden (App-Start)
+  // Session aus SecureStore laden (App-Start)
   // ==========================================================
   const loadUserData = async () => {
     console.log("🔄 Loading session from SecureStore...");
     setLoading(true);
 
     try {
-      const [storedAccess, storedRefresh, storedUserId] = await Promise.all([
+      const [storedAccess, storedRefresh] = await Promise.all([
         SecureStore.getItemAsync("accessToken"),
         SecureStore.getItemAsync("refreshToken"),
-        SecureStore.getItemAsync("userId"),
       ]);
 
-      console.log("🔍 Stored accessToken:", storedAccess);
-      console.log("🔍 Stored refreshToken:", storedRefresh);
-      console.log("🔍 Stored userId:", storedUserId);
-
-      if (storedUserId) {
-        setUserId(storedUserId);
-        setHasLoggedInOnce(true);
-      }
+      console.log("Stored accessToken:", storedAccess);
+      console.log("Stored refreshToken:", storedRefresh);
 
       if (storedAccess) {
         setAccessToken(storedAccess);
 
-        try {
-          const decoded = jwtDecode(storedAccess);
-          if (decoded?.sub) setUsername(decoded.sub);
-        } catch (err) {
-          console.warn("JWT decode failed:", err);
+        const response = await fetch(`${API_URL}/api/users/me`, {
+          headers: {
+            Authorization: `Bearer ${storedAccess}`,
+          },
+        });
+
+        if (response.ok) {
+          const me = await response.json();
+          console.log("Loaded /me data:", me);
+
+          setUserId(me.userId);
+          setUsername(me.username);
+          setBringits(me.bringIts);
+        } else {
+          console.warn("Failed to load /me endpoint");
         }
       }
 
       if (storedRefresh) {
         setRefreshToken(storedRefresh);
       }
-
     } catch (error) {
       console.error("❌ Failed to load user session:", error);
+    } finally {
+      setLoading(false); // ✅ wirklich garantiert am Ende
+      console.log("Session load completed.");
     }
-
-    // WICHTIG ❗ Erst jetzt ist alles sicher geladen
-    setLoading(false);
-    console.log("✅ Session load completed.");
   };
 
   // ==========================================================
@@ -118,6 +119,7 @@ export const UserProvider = ({ children }) => {
       setUsername(null);
       setAccessToken(null);
       setRefreshToken(null);
+      setBringits(0);
       setHasLoggedInOnce(false);
 
     } catch (error) {
@@ -131,7 +133,34 @@ export const UserProvider = ({ children }) => {
   // ==========================================================
   useEffect(() => {
     loadUserData();
+    setupNotifications();
   }, []);
+
+  // ==========================================================
+  // 🔥 Logged-In
+  // ==========================================================
+  useEffect(() => {
+  if (!accessToken) return;
+
+  console.log('🔔 Registering push token...');
+
+  registerPushToken(API_URL, accessToken)
+    .then(() => console.log('✅ Push token registered'))
+    .catch(err => console.error('❌ Push token failed', err));
+
+}, [accessToken]);
+
+
+  // ==========================================================
+  // 🔵 Group Reload System
+  // ==========================================================
+  const [groupsVersion, setGroupsVersion] = useState(0);
+
+  // Trigger: whenever groups change
+  const triggerGroupReload = () => {
+    setGroupsVersion(v => v + 1);
+  };
+
 
   return (
     <UserContext.Provider
@@ -140,6 +169,9 @@ export const UserProvider = ({ children }) => {
         setUserId,
         username,
         setUsername,
+
+        bringits,
+        setBringits,
 
         accessToken,
         setAccessToken,
@@ -153,6 +185,10 @@ export const UserProvider = ({ children }) => {
         loading,
         hasLoggedInOnce,
         setHasLoggedInOnce,
+
+        // Group Reload System
+        groupsVersion,
+        triggerGroupReload,
       }}
     >
       {children}

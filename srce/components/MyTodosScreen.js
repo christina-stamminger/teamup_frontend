@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Alert, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, Alert, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import * as SecureStore from 'expo-secure-store';
 import CollapsibleTodoCard from '../components/CollapsibleTodoCard';
@@ -173,6 +173,8 @@ export default function MyTodosScreen() {
 
       loadGroups();
 
+
+
       // Members & Todos wenn Gruppe ausgewählt
       if (selectedGroupId) {
         console.log('📡 Loading members & todos for group:', selectedGroupId);
@@ -182,6 +184,25 @@ export default function MyTodosScreen() {
 
     }, [userId, selectedGroupId]) // ✅ Keine Funktionen!
   );
+
+  useEffect(() => {
+    if (
+      groups.length === 1 &&
+      !selectedGroupId
+    ) {
+      const onlyGroup = groups[0];
+
+      console.log("✅ Auto-select single group:", onlyGroup.groupName);
+
+      setSelectedGroupId(onlyGroup.groupId);
+      setSelectedGroupName(onlyGroup.groupName);
+      setUserRoleInGroup(onlyGroup.role);
+
+      // gleich Daten laden
+      fetchTodos(onlyGroup.groupId);
+      fetchNewMembers(onlyGroup.groupId);
+    }
+  }, [groups]);
 
   // Wenn Verbindung wiederkommt
   useEffect(() => {
@@ -370,6 +391,8 @@ export default function MyTodosScreen() {
     setSelectedGroupId(newGroup.groupId);
     setSelectedGroupName(newGroup.groupName);
     setUserRoleInGroup(newGroup.role);
+    triggerGroupReload();   // Jetzt weiß CreateTodoScreen Bescheid
+
   };
 
   const handleGroupSelect = (groupId) => {
@@ -498,129 +521,143 @@ export default function MyTodosScreen() {
 
       {selectedGroupId && userRoleInGroup === 'ADMIN' && <></>}
 
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: 16 }} />
-      ) : (
-        <FlatList
-          data={filteredTodos}
-          keyExtractor={(item, index) => (item?.todoId ? String(item.todoId) : String(index))}
-          renderItem={({ item }) => (
-            <View>
-              <CollapsibleTodoCard
-                todo={item}
-                onStatusUpdated={() => fetchTodos(selectedGroupId)}
-                onDelete={(deletedId) => {
-                  setTodos((prev) => prev.filter((t) => t.todoId !== deletedId));
-                  Toast.show({ type: 'info', text1: 'Todo moved to trash', visibilityTime: 1200 });
-                }}
-              />
-            </View>
-          )}
-        />
-      )}
 
-      {/* GroupListModal */}
-      <GroupListModal
-        isVisible={isGroupModalVisible}
-        onClose={toggleGroupModal}
-        groups={groups}
-        selectedGroupId={selectedGroupId}
-        onSelect={handleGroupSelect}
-      />
-
-      {/* Trash Modal */}
-      <Modal
-        isVisible={isTrashModalVisible}
-        onBackdropPress={toggleTrashModal}
-        backdropOpacity={0.4}
-        animationIn="slideInUp"
-        animationOut="slideOutDown"
-        style={{ margin: 0, justifyContent: 'flex-end' }}
+      {/* ✅ KeyboardAvoidingView um FlatList */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        style={{ flex: 1 }}
       >
-        <View style={[styles.trashModalContainer, { minHeight: 250 }]}>
-          <Text style={styles.trashModalTitle}>🗑️ Gelöschte To-Dos</Text>
 
-          {loadingTrash ? (
-            <ActivityIndicator color="#5FC9C9" />
-          ) : trashedTodos.length === 0 ? (
-            <Text style={styles.trashEmpty}>Keine gelöschten To-Dos</Text>
-          ) : (
-            <ScrollView style={{ maxHeight: 400 }}>
-              {trashedTodos.map((todo) => (
-                <View key={todo.todoId} style={styles.trashItem}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.trashText}>{todo.title}</Text>
-                    <Text style={styles.trashDate}>
-                      gelöscht am {new Date(todo.deletedAt).toLocaleDateString('de-DE')}
-                    </Text>
-                  </View>
-                  <TouchableOpacity style={styles.restoreButton} onPress={() => handleRestore(todo.todoId)}>
-                    <Text style={styles.restoreButtonText}>Wiederherstellen</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </ScrollView>
-          )}
-
-          <TouchableOpacity style={styles.closeModalButton} onPress={toggleTrashModal}>
-            <Text style={styles.closeModalButtonText}>Schließen</Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
-
-      {/* Members Modal */}
-      <Modal isVisible={isMembersModalVisible} onBackdropPress={toggleMembersModal} style={{ margin: 0, justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: 'white', padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '60%' }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Group Members</Text>
-
+        {loading ? (
+          <ActivityIndicator style={{ marginTop: 16 }} />
+        ) : (
           <FlatList
-            data={extendedMembers}
-            keyExtractor={(item, index) => (item.userId ? String(item.userId) : `addButton-${index}`)}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-            renderItem={({ item }) => {
-              if (item.type === 'addButton') return <AddMemberCard onPress={handleAddMember} />;
+            data={filteredTodos}
+            keyExtractor={(item, index) => (item?.todoId ? String(item.todoId) : String(index))}
+            renderItem={({ item }) => (
+              <View>
+                <CollapsibleTodoCard
+                  todo={item}
+                  onStatusUpdated={() => fetchTodos(selectedGroupId)}
+                  onDelete={(deletedId) => {
+                    setTodos((prev) => prev.filter((t) => t.todoId !== deletedId));
+                    Toast.show({ type: 'info', text1: 'Todo moved to trash', visibilityTime: 1200 });
+                  }}
+                />
 
-              const isAdmin = item.role === 'ADMIN';
-              return (
-                <View style={styles.memberRow}>
-                  <View style={styles.memberInfo}>
-                    <View style={[styles.avatarSmall, { backgroundColor: getAvatarColor(item.username?.charAt(0) || '?') }]}>
-                      <Text style={styles.avatarInitialMember}>{(item.username?.charAt(0) || '?').toUpperCase()}</Text>
+              </View>
+
+            )}
+          />
+        )}
+
+        {/* GroupListModal */}
+        <GroupListModal
+          isVisible={isGroupModalVisible}
+          onClose={toggleGroupModal}
+          groups={groups}
+          selectedGroupId={selectedGroupId}
+          onSelect={handleGroupSelect}
+        />
+
+        {/* Trash Modal */}
+        <Modal
+          isVisible={isTrashModalVisible}
+          onBackdropPress={toggleTrashModal}
+          backdropOpacity={0.4}
+          animationIn="slideInUp"
+          animationOut="slideOutDown"
+          style={{ margin: 0, justifyContent: 'flex-end' }}
+        >
+          <View style={[styles.trashModalContainer, { minHeight: 250 }]}>
+            <Text style={styles.trashModalTitle}>🗑️ Gelöschte To-Dos</Text>
+
+            {loadingTrash ? (
+              <ActivityIndicator color="#5FC9C9" />
+            ) : trashedTodos.length === 0 ? (
+              <Text style={styles.trashEmpty}>Keine gelöschten To-Dos</Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 400 }}>
+                {trashedTodos.map((todo) => (
+                  <View key={todo.todoId} style={styles.trashItem}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.trashText}>{todo.title}</Text>
+                      <Text style={styles.trashDate}>
+                        gelöscht am {new Date(todo.deletedAt).toLocaleDateString('de-DE')}
+                      </Text>
                     </View>
-                    <Text style={[styles.memberName, isAdmin && styles.adminName]}>{item.username}</Text>
-                    {isAdmin && <Icon name="shield" size={12} color="#FFD700" style={{ marginLeft: 4 }} />}
-                  </View>
-
-                  {userRoleInGroup === 'ADMIN' && (
-                    <TouchableOpacity onPress={() => handleRemoveUser(item.userId)}>
-                      <Icon name="trash" size={18} color="#FF5C5C" />
+                    <TouchableOpacity style={styles.restoreButton} onPress={() => handleRestore(todo.todoId)}>
+                      <Text style={styles.restoreButtonText}>Wiederherstellen</Text>
                     </TouchableOpacity>
-                  )}
-                </View>
-              );
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+
+            <TouchableOpacity style={styles.closeModalButton} onPress={toggleTrashModal}>
+              <Text style={styles.closeModalButtonText}>Schließen</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+
+        {/* Members Modal */}
+        <Modal isVisible={isMembersModalVisible} onBackdropPress={toggleMembersModal} style={{ margin: 0, justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: 'white', padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '60%' }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Group Members</Text>
+
+            <FlatList
+              data={extendedMembers}
+              keyExtractor={(item, index) => (item.userId ? String(item.userId) : `addButton-${index}`)}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+              renderItem={({ item }) => {
+                if (item.type === 'addButton') return <AddMemberCard onPress={handleAddMember} />;
+
+                const isAdmin = item.role === 'ADMIN';
+                return (
+                  <View style={styles.memberRow}>
+                    <View style={styles.memberInfo}>
+                      <View style={[styles.avatarSmall, { backgroundColor: getAvatarColor(item.username?.charAt(0) || '?') }]}>
+                        <Text style={styles.avatarInitialMember}>{(item.username?.charAt(0) || '?').toUpperCase()}</Text>
+                      </View>
+                      <Text style={[styles.memberName, isAdmin && styles.adminName]}>{item.username}</Text>
+                      {isAdmin && <Icon name="shield" size={12} color="#FFD700" style={{ marginLeft: 4 }} />}
+                    </View>
+
+                    {userRoleInGroup === 'ADMIN' && (
+                      <TouchableOpacity onPress={() => handleRemoveUser(item.userId)}>
+                        <Icon name="trash" size={18} color="#FF5C5C" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              }}
+            />
+          </View>
+        </Modal>
+
+        {/* Optional: AddMemberModal mounten, wenn vorhanden */}
+        {typeof AddMemberModal === 'function' && (
+          <AddMemberModal
+            isVisible={isAddMemberModalVisible}
+            onClose={() => setIsAddMemberModalVisible(false)}
+            groupId={selectedGroupId}
+            onMemberAdded={() => {
+              fetchNewMembers(selectedGroupId);
+              triggerGroupReload();   // globales Signal
             }}
           />
-        </View>
-      </Modal>
+        )}
 
-      {/* Optional: AddMemberModal mounten, wenn vorhanden */}
-      {typeof AddMemberModal === 'function' && (
-        <AddMemberModal
-          isVisible={isAddMemberModalVisible}
-          onClose={() => setIsAddMemberModalVisible(false)}
-          groupId={selectedGroupId}
-          onMemberAdded={() => fetchNewMembers(selectedGroupId)}
-        />
-      )}
-
-      {/* Optional: GroupCreationModal – nur anzeigen, wenn per toggleCreationModal genutzt */}
-      {typeof GroupCreationModal === 'function' && (
-        <GroupCreationModal
-          isVisible={isCreationModalVisible}
-          onClose={toggleCreationModal}
-          onGroupCreated={handleGroupCreated}
-        />
-      )}
+        {/* Optional: GroupCreationModal – nur anzeigen, wenn per toggleCreationModal genutzt */}
+        {typeof GroupCreationModal === 'function' && (
+          <GroupCreationModal
+            isVisible={isCreationModalVisible}
+            onClose={toggleCreationModal}
+            onGroupCreated={handleGroupCreated}
+          />
+        )}
+      </KeyboardAvoidingView>
     </View>
   );
 }

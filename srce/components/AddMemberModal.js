@@ -4,12 +4,15 @@ import Modal from 'react-native-modal';
 import * as SecureStore from 'expo-secure-store';
 import { useNetwork } from '../components/context/NetworkContext';
 import Constants from "expo-constants";
+import { useUser } from "../components/context/UserContext";
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
 export default function AddMemberModal({ isVisible, onClose, groupId, onMemberAdded }) {
   const [username, setUsername] = useState('');
   const { safeFetch } = useNetwork();
+  const { triggerGroupReload } = useUser(); // fetch groups nachdem user hinzugefügt wurde
+
 
   const handleAddMember = async () => {
     if (!username.trim()) {
@@ -45,6 +48,7 @@ export default function AddMemberModal({ isVisible, onClose, groupId, onMemberAd
 
       Alert.alert('Erfolg', `${username} wurde zur Gruppe hinzugefügt.`);
       setUsername('');
+      triggerGroupReload();   // Gruppenliste neu laden
       onClose();
       onMemberAdded();
 
