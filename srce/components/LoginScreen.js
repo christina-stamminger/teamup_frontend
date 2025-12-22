@@ -68,9 +68,8 @@ const LoginScreen = ({ navigation }) => {
       // ✅ EINZIGE Aktion nach Login
       await saveSession({ accessToken, refreshToken });
 
-      // ❌ KEIN navigation.replace
-      // ❌ KEIN setUsername
-      // ❌ KEIN setHasLoggedInOnce
+      setHasLoggedInOnce(true);
+
 
     } catch (error) {
       console.error("Login error:", error);

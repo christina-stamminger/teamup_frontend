@@ -1,4 +1,3 @@
-import AppNavigator from "./srce/components/AppNavigator";
 import { UserProvider } from "./srce/components/context/UserContext";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
@@ -10,6 +9,7 @@ import { BackHandler } from 'react-native';
 import React, { useEffect } from "react";
 import { setupNotifications } from "./srce/notifications/notifications";
 import 'react-native-gesture-handler';
+import AppRoot from "./AppRoot";
 
 export default function App() {
     console.log('🔥 App component rendered');
@@ -31,7 +31,7 @@ export default function App() {
         <NetworkProvider>
           <NavigationContainer ref={navigationRef}>
             <OfflineBanner />
-            <AppNavigator />
+            <AppRoot />
           </NavigationContainer>
 
           <Toast config={toastConfig} />

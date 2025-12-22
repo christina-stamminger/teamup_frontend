@@ -25,34 +25,29 @@ export const UserProvider = ({ children }) => {
   // 🟩 Bringits
   const [bringits, setBringits] = useState(0);
 
+  // 🟪 Auth ready flag
+  const [authReady, setAuthReady] = useState(false);
+
+
 
   // ==========================================================
   // 🔵 Session sichern (Login)
   // ==========================================================
   const saveSession = async ({ accessToken, refreshToken }) => {
-    if (accessToken) {
-      await SecureStore.setItemAsync("accessToken", accessToken);
-      setAccessToken(accessToken);
-    }
+    await SecureStore.setItemAsync("accessToken", accessToken);
+    await SecureStore.setItemAsync("refreshToken", refreshToken);
 
-    if (refreshToken) {
-      await SecureStore.setItemAsync("refreshToken", refreshToken);
-      setRefreshToken(refreshToken);
-    }
-
-    setHasLoggedInOnce(true);
-
-    // 🔥 WICHTIG: User-Zustand IMMER aus der DB holen
-    await loadUserData();
+    setAccessToken(accessToken);
+    setRefreshToken(refreshToken);
   };
+
 
 
   // ==========================================================
   // Session aus SecureStore laden (App-Start)
-  // ==========================================================
   const loadUserData = async () => {
-    console.log("🔄 Loading session from SecureStore...");
     setLoading(true);
+    setAuthReady(false);
 
     try {
       const [storedAccess, storedRefresh] = await Promise.all([
@@ -60,38 +55,29 @@ export const UserProvider = ({ children }) => {
         SecureStore.getItemAsync("refreshToken"),
       ]);
 
-      console.log("Stored accessToken:", storedAccess);
-      console.log("Stored refreshToken:", storedRefresh);
+      if (!storedAccess) return;
 
-      if (storedAccess) {
-        setAccessToken(storedAccess);
+      setAccessToken(storedAccess);
+      if (storedRefresh) setRefreshToken(storedRefresh);
 
-        const response = await fetch(`${API_URL}/api/users/me`, {
-          headers: {
-            Authorization: `Bearer ${storedAccess}`,
-          },
-        });
+      const response = await fetch(`${API_URL}/api/users/me`, {
+        headers: {
+          Authorization: `Bearer ${storedAccess}`,
+        },
+      });
 
-        if (response.ok) {
-          const me = await response.json();
-          console.log("Loaded /me data:", me);
+      if (!response.ok) return;
 
-          setUserId(me.userId);
-          setUsername(me.username);
-          setBringits(me.bringIts);
-        } else {
-          console.warn("Failed to load /me endpoint");
-        }
-      }
+      const me = await response.json();
+      setUserId(me.userId);
+      setUsername(me.username);
+      setBringits(me.bringIts);
 
-      if (storedRefresh) {
-        setRefreshToken(storedRefresh);
-      }
-    } catch (error) {
-      console.error("❌ Failed to load user session:", error);
+      setAuthReady(true);
+    } catch (err) {
+      console.error("❌ Failed to load user session", err);
     } finally {
-      setLoading(false); // ✅ wirklich garantiert am Ende
-      console.log("Session load completed.");
+      setLoading(false);
     }
   };
 
@@ -136,19 +122,16 @@ export const UserProvider = ({ children }) => {
     setupNotifications();
   }, []);
 
+
   // ==========================================================
   // 🔥 Logged-In
   // ==========================================================
   useEffect(() => {
-  if (!accessToken) return;
+    if (!authReady || !accessToken) return;
 
-  console.log('🔔 Registering push token...');
+    registerPushToken(accessToken).catch(() => { });
+  }, [authReady, accessToken]);
 
-  registerPushToken(API_URL, accessToken)
-    .then(() => console.log('✅ Push token registered'))
-    .catch(err => console.error('❌ Push token failed', err));
-
-}, [accessToken]);
 
 
   // ==========================================================
