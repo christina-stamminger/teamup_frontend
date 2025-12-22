@@ -2,7 +2,7 @@ import React from "react";
 import { View, ActivityIndicator } from "react-native";
 import { useUser } from "./srce/components/context/UserContext";
 import AppNavigator from "./srce/components/AppNavigator";
-import AuthNavigator from "./srce/navigation/AuthNavigator";
+import AuthNavigator from "./srce/components/AuthNavigator";
 
 export default function AppRoot() {
   const { loading, authReady } = useUser();
