@@ -92,7 +92,7 @@ export const UserProvider = ({ children }) => {
   // 🧨 LOGOUT
   // ==========================================================
   const logoutUser = async () => {
-    console.log("🚪 Logging out user...");
+    //console.log("🚪 Logging out user...");
 
     try {
       await Promise.all([
@@ -119,7 +119,7 @@ export const UserProvider = ({ children }) => {
   // ==========================================================
   useEffect(() => {
     loadUserData();
-    setupNotifications();
+    //setupNotifications();
   }, []);
 
 
