@@ -129,6 +129,7 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     if (!authReady || !accessToken) return;
 
+    setupNotifications();
     registerPushToken(accessToken).catch(() => { });
   }, [authReady, accessToken]);
 

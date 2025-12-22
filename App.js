@@ -21,10 +21,6 @@ export default function App() {
     BackHandler.removeEventListener = () => { };
   }
 
-  useEffect(() => {
-    setupNotifications();
-  }, []);
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UserProvider>
