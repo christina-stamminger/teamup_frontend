@@ -34,11 +34,35 @@ export const UserProvider = ({ children }) => {
   // 🔵 Session sichern (Login)
   // ==========================================================
   const saveSession = async ({ accessToken, refreshToken }) => {
-    await SecureStore.setItemAsync("accessToken", accessToken);
-    await SecureStore.setItemAsync("refreshToken", refreshToken);
+    try {
+      // Token speichern
+      await SecureStore.setItemAsync("accessToken", accessToken);
+      await SecureStore.setItemAsync("refreshToken", refreshToken);
 
-    setAccessToken(accessToken);
-    setRefreshToken(refreshToken);
+      setAccessToken(accessToken);
+      setRefreshToken(refreshToken);
+
+      // 🔥 User-Daten sofort laden
+      const response = await fetch(`${API_URL}/api/users/me`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.ok) {
+        const me = await response.json();
+        setUserId(me.userId);
+        setUsername(me.username);
+        setBringits(me.bringIts);
+        setAuthReady(true);
+        setHasLoggedInOnce(true); // ✅ Flag setzen
+      }
+
+      setLoading(false); // ✅ Loading beenden
+    } catch (err) {
+      console.error("❌ Failed to save session", err);
+      setLoading(false);
+    }
   };
 
 

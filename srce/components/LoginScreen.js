@@ -27,7 +27,7 @@ const LoginScreen = ({ navigation }) => {
   const [errorMessage, setErrorMessage] = useState("");
 
   //const { setUserId, setUsername, setToken, setHasLoggedInOnce } = useUser();
-  const { setUserId, setUsername, saveSession, setHasLoggedInOnce } = useUser();
+  const { setUserId, setUsername, saveSession, reloadUser, setHasLoggedInOnce } = useUser();
 
 
   // ✅ Zugriff auf safeFetch aus dem NetworkContext
@@ -67,6 +67,9 @@ const LoginScreen = ({ navigation }) => {
 
       // ✅ EINZIGE Aktion nach Login
       await saveSession({ accessToken, refreshToken });
+
+      // ✅ User-Daten laden
+      await reloadUser();
 
       setHasLoggedInOnce(true);
 
