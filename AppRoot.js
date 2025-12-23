@@ -5,9 +5,9 @@ import AppNavigator from "./srce/components/AppNavigator";
 import AuthNavigator from "./srce/components/AuthNavigator";
 
 export default function AppRoot() {
-  const { loading, authReady } = useUser();
+  const { loading, accessToken } = useUser();
 
-  // ⏳ App initialisiert sich noch
+  // ⏳ App initialisiert sich (SecureStore, /me, etc.)
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -16,11 +16,11 @@ export default function AppRoot() {
     );
   }
 
-  // 🔐 Nicht eingeloggt → Auth Flow
-  if (!authReady) {
+  // 🔐 Nicht eingeloggt
+  if (!accessToken) {
     return <AuthNavigator />;
   }
 
-  // ✅ Eingeloggt → App Flow
+  // ✅ Eingeloggt
   return <AppNavigator />;
 }

@@ -7,7 +7,6 @@ import { NetworkProvider } from "./srce/components/context/NetworkContext";
 import OfflineBanner from "./srce/components/OfflineBanner";
 import { BackHandler } from 'react-native';
 import React, { useEffect } from "react";
-import { setupNotifications } from "./srce/notifications/notifications";
 import 'react-native-gesture-handler';
 import AppRoot from "./AppRoot";
 
