@@ -2,24 +2,30 @@ import React, { useState } from "react";
 import { TextInput, View, TouchableOpacity, StyleSheet } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
 
-const PasswordInput = ({ value, onChangeText, placeholder, onSubmitEditing }) => {
-  const [secure, setSecure] = useState(true);
+const PasswordInput = ({
+  value,
+  onChangeText,
+  placeholder,
+  secureTextEntry = true,
+  style,
+  ...props
+}) => {
+  const [secure, setSecure] = useState(secureTextEntry);
 
   return (
     <View style={styles.container}>
       <TextInput
-        style={styles.input}
+        {...props}                     // ✅ ALLE Props durchreichen
+        style={[styles.input, style]}
         placeholder={placeholder || "Enter password"}
-        secureTextEntry={secure}
+        secureTextEntry={secure}       // ✅ echtes Boolean
         value={value}
         onChangeText={onChangeText}
-        onFocus={() => console.log("PASSWORD got focus")}
-        onBlur={() => console.log("PASSWORD lost focus")}
         autoCapitalize="none"
         autoCorrect={false}
       />
 
-      <TouchableOpacity onPress={() => setSecure(!secure)}>
+      <TouchableOpacity onPress={() => setSecure(s => !s)}>
         {secure ? <Eye size={24} color="gray" /> : <EyeOff size={24} color="gray" />}
       </TouchableOpacity>
     </View>
@@ -41,6 +47,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
+    color: "#000",        // ✅ wichtig für Samsung (Mask-Farbe)
   },
 });
 

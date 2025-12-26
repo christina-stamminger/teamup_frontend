@@ -125,9 +125,7 @@ const LoginScreen = ({ navigation }) => {
                   value={password}
                   onChangeText={setPassword}
                   placeholder="Passwort eingeben"
-                  secureTextEntry="true"
-                  textContentType={Platform.OS === 'ios' ? 'password' : 'password'}
-                  autoComplete={Platform.OS === 'android' ? 'password' : 'password'}
+                  secureTextEntry
                   autoCapitalize="none"
                   autoCorrect={false}
 

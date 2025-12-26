@@ -24,7 +24,7 @@ const API_URL = Constants.expoConfig.extra.API_URL;
 const usernameRegex = /^[A-Za-z0-9._-]{3,20}$/;
 
 const passwordRegex =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
 const emailRegex =
   /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -124,9 +124,9 @@ const RegisterScreen = ({ navigation }) => {
     validationSchema,
     onSubmit: async (values) => {
       const userData = {
-        username: values.username,
-        email: values.email,
-        password: values.password,
+        username: values.username.trim(),
+        email: values.email.trim(),
+        password: values.password.trim(),
       };
 
       // ✅ Registrierung über safeFetch
