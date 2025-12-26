@@ -65,7 +65,14 @@ export default function CreateTodoScreen() {
                 },
             });
 
-            if (response?.offline) return;
+            if (response?.offline) {
+                Toast.show({
+                    type: 'info',
+                    text1: 'Offline',
+                    text2: 'Keine Internetverbindung',
+                });
+                return;
+            }
 
             if (!response?.ok) throw new Error("Fehler beim Laden der Gruppen.");
 
@@ -212,8 +219,6 @@ export default function CreateTodoScreen() {
             }
 
             if (!response?.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error("❌ Fehler vom Backend:", errorData);
                 throw new Error("Fehler beim Erstellen des Todos!");
             }
 

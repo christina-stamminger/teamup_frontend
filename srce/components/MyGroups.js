@@ -43,8 +43,12 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
                 },
             });
 
-            if (response.offline) {
-                Alert.alert("Offline", "Keine Internetverbindung.");
+            if (response?.offline) {
+                Toast.show({
+                    type: 'info',
+                    text1: 'Offline',
+                    text2: 'Keine Internetverbindung',
+                });
                 return;
             }
 
@@ -88,32 +92,22 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
     // ✅ Gruppendeletion mit safeFetch
     const handleDeleteGroup = async () => {
         try {
-            const token = await SecureStore.getItemAsync("accessToken");
-            if (!token) {
-                Alert.alert("Fehler", "Kein Token gefunden. Bitte erneut anmelden.");
-                return;
-            }
-
-            // 🟨 CheckTodos
+            // 🟨 Check Todos
             const checkResponse = await safeFetch(
-                `${API_URL}/api/groups/${selectedGroupForDelete.groupId}/checkTodos`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
+                `${API_URL}/api/groups/${selectedGroupForDelete.groupId}/checkTodos`
             );
 
-            if (checkResponse.offline) {
+            if (checkResponse?.offline) {
                 Alert.alert("Offline", "Keine Internetverbindung.");
                 return;
             }
 
-            if (!checkResponse.ok) {
-                const text = await checkResponse.text?.();
-                console.log("Fehler bei CheckTodos:", text);
-                throw new Error("Fehler beim Überprüfen der offenen Todos");
+            if (!checkResponse?.ok) {
+                throw new Error(`CheckTodos failed (${checkResponse?.status})`);
             }
 
             const checkData = await checkResponse.json();
+
             if (checkData.hasOpenTodos) {
                 Alert.alert(
                     "Löschen nicht möglich",
@@ -126,21 +120,16 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
             // 🟥 Gruppe löschen
             const deleteResponse = await safeFetch(
                 `${API_URL}/api/groups/${selectedGroupForDelete.groupId}/delete`,
-                {
-                    method: "DELETE",
-                    headers: { Authorization: `Bearer ${token}` },
-                }
+                { method: "DELETE" }
             );
 
-            if (deleteResponse.offline) {
+            if (deleteResponse?.offline) {
                 Alert.alert("Offline", "Keine Internetverbindung.");
                 return;
             }
 
-            if (!deleteResponse.ok) {
-                const errorText = await deleteResponse.text?.();
-                console.log("Fehler beim Löschen:", errorText);
-                throw new Error("Fehler beim Löschen der Gruppe.");
+            if (!deleteResponse?.ok) {
+                throw new Error(`Delete group failed (${deleteResponse?.status})`);
             }
 
             Toast.show({
@@ -157,6 +146,7 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
             Alert.alert("Fehler", "Die Gruppe konnte nicht gelöscht werden.");
         }
     };
+
 
     return (
         <View style={{ flex: 1, marginTop: 30 }}>

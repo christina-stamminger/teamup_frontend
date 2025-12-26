@@ -68,8 +68,12 @@ export default function OpenTodosScreen() {
       );
 
       // ✅ Offline-Prüfung
-      if (response.offline) {
-        Alert.alert("Offline", "Keine Internetverbindung.");
+      if (response?.offline) {
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
         setLoading(false);
         return;
       }

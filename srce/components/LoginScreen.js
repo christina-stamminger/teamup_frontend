@@ -52,8 +52,12 @@ const LoginScreen = ({ navigation }) => {
         }
       );
 
-      if (response.offline) {
-        setErrorMessage("Keine Internetverbindung.");
+      if (response?.offline) {
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
         return;
       }
 
@@ -121,6 +125,19 @@ const LoginScreen = ({ navigation }) => {
                   value={password}
                   onChangeText={setPassword}
                   placeholder="Passwort eingeben"
+                  secureTextEntry="true"
+                  textContentType={Platform.OS === 'ios' ? 'password' : 'password'}
+                  autoComplete={Platform.OS === 'android' ? 'password' : 'password'}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+
+                  // ANDROID-SPECIFIC (safe for all vendors)
+                  importantForAutofill="no"
+                  keyboardType="default"
+
+                  // ACCESSIBILITY
+                  accessibilityLabel="Passwort"
+                  accessibilityRole="text"
                 />
               </View>
 

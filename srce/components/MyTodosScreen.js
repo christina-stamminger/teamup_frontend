@@ -14,11 +14,16 @@ import { getAvatarColor } from '../utils/getAvatarColor';
 import Toast from 'react-native-toast-message';
 import FilterBar from '../components/FilterBar';
 import { useNetwork } from "../components/context/NetworkContext";
+import { useNavigation } from '@react-navigation/native';
+import { BackHandler } from 'react-native';
+
 import Constants from "expo-constants";
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
 export default function MyTodosScreen() {
+  const navigation = useNavigation();
+  const { logout } = useUser();
   const {
     userId,
     accessToken: tokenFromCtx,
@@ -36,6 +41,59 @@ export default function MyTodosScreen() {
       userContextLoading
     });
   }, [userId, tokenFromCtx, userContextLoading]);
+
+  // back button handler
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        // 1️⃣ Modal zuerst schließen
+        if (isTrashModalVisible) {
+          setIsTrashModalVisible(false);
+          return true;
+        }
+
+        if (isGroupModalVisible) {
+          setIsGroupModalVisible(false);
+          return true;
+        }
+
+        if (isMembersModalVisible) {
+          setIsMembersModalVisible(false);
+          return true;
+        }
+
+        // 2️⃣ Normaler Navigation-Back
+        if (navigation.canGoBack()) {
+          return false;
+        }
+
+        // 3️⃣ Root-Screen → Logout fragen
+        Alert.alert(
+          'Abmelden',
+          'Willst du dich wirklich ausloggen?',
+          [
+            { text: 'Abbrechen', style: 'cancel' },
+            {
+              text: 'Logout',
+              style: 'destructive',
+              onPress: logout,
+            },
+          ]
+        );
+
+        return true;
+      };
+
+
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () =>
+        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [navigation, logout,
+      isTrashModalVisible,
+      isGroupModalVisible,
+      isMembersModalVisible,])
+  );
 
   const [todos, setTodos] = useState([]);
   const [newMembers, setNewMembers] = useState([]);
@@ -151,7 +209,11 @@ export default function MyTodosScreen() {
           });
 
           if (response?.offline) {
-            console.log('⚠️ Offline mode');
+            Toast.show({
+              type: 'info',
+              text1: 'Offline',
+              text2: 'Keine Internetverbindung',
+            });
             return;
           }
 
@@ -232,6 +294,11 @@ export default function MyTodosScreen() {
       });
 
       if (response?.offline) {
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
         return;
       }
 
@@ -263,8 +330,14 @@ export default function MyTodosScreen() {
         },
       });
 
-      if (response?.offline) return;
-
+      if (response?.offline) {
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
+        return;
+      }
       if (!response?.ok) {
         const errorText = response ? (await response.text?.()) : '';
         console.warn('Failed to load trashed todos:', response?.status, errorText);
@@ -292,7 +365,11 @@ export default function MyTodosScreen() {
       });
 
       if (response?.offline) {
-        Alert.alert('Offline', 'Keine Internetverbindung');
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
         return;
       }
 
@@ -309,6 +386,83 @@ export default function MyTodosScreen() {
       Alert.alert('Fehler', 'Ein Fehler ist aufgetreten');
     }
   };
+
+  // handle hardDelete!
+  const handlePermanentDelete = (todoId) => {
+    Alert.alert(
+      'Todo endgültig löschen',
+      'Dieses Todo wird unwiderruflich gelöscht. Möchtest du fortfahren?',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Löschen',
+          style: 'destructive',
+          onPress: async () => {
+            const previous = trashedTodos;
+
+            // Optimistisches UI
+            setTrashedTodos(prev => prev.filter(t => t.todoId !== todoId));
+
+            try {
+              const auth = await getAuthToken();
+
+              const response = await safeFetch(
+                `${API_URL}/api/todo/${todoId}`,
+                {
+                  method: 'DELETE',
+                  headers: {
+                    Authorization: `Bearer ${auth}`,
+                  },
+                }
+              );
+
+              if (response?.offline) {
+                Toast.show({
+                  type: 'info',
+                  text1: 'Offline',
+                  text2: 'Keine Internetverbindung',
+                });
+                return;
+              }
+
+              // ⛔ Kein echtes Response-Objekt
+              if (!response || typeof response.ok !== 'boolean') {
+                throw new Error('invalid_response');
+              }
+
+              // ⛔ HTTP-Fehler
+              if (!response.ok) {
+                throw new Error(`delete_failed_${response.status}`);
+              }
+
+              // ✅ SUCCESS (204 = OK)
+              Toast.show({
+                type: 'success',
+                text1: 'Todo endgültig gelöscht',
+              });
+
+              // Optional: Todos neu laden
+              if (selectedGroupId) {
+                fetchTodos(selectedGroupId);
+              }
+
+            } catch (err) {
+              console.error('Permanent delete failed:', err);
+
+              // 🔁 Rollback UI
+              setTrashedTodos(previous);
+
+              Alert.alert(
+                'Fehler',
+                'Todo konnte nicht endgültig gelöscht werden.'
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
 
   // Filter-Logik (UI-Ebene)
   const filteredTodos = todos.filter((todo) => {
@@ -335,7 +489,11 @@ export default function MyTodosScreen() {
       });
 
       if (response?.offline) {
-        Toast.show({ type: 'info', text1: 'Offline', text2: 'Keine Internetverbindung' });
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
         return;
       }
 
@@ -372,7 +530,11 @@ export default function MyTodosScreen() {
       });
 
       if (response?.offline) {
-        Toast.show({ type: 'info', text1: 'Offline', text2: 'Mitglieder konnten nicht geladen werden' });
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
         return;
       }
 
@@ -428,12 +590,16 @@ export default function MyTodosScreen() {
       });
 
       if (response?.offline) {
-        Alert.alert('Offline', 'Keine Internetverbindung');
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
         return;
       }
 
       if (!response?.ok) {
-        throw new Error('Failed to delete todo');
+        throw new Error('Fehler beim Laden der Todos.');
       }
 
       setTodos((prev) => prev.filter((t) => t.todoId !== todoId));
@@ -473,17 +639,21 @@ export default function MyTodosScreen() {
       });
 
       if (response?.offline) {
-        Alert.alert('Offline', 'Keine Internetverbindung');
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
         return;
       }
 
-      if (!response?.ok) throw new Error('Failed to remove user');
+      if (!response?.ok) throw new Error('User konnte nicht entfernt werden.');
 
       fetchNewMembers(selectedGroupId);
-      Alert.alert('Success', 'User removed from the group.');
+      Alert.alert('Erfolg', 'User erfolgreich aus Gruppe entfernt.');
     } catch (error) {
       console.error('Error removing user:', error);
-      Alert.alert('Error', 'Could not remove user from the group.');
+      Alert.alert('Error', 'User konnte nicht aus der Gruppe entfernt werden.');
     }
   };
 
@@ -542,7 +712,7 @@ export default function MyTodosScreen() {
                   onStatusUpdated={() => fetchTodos(selectedGroupId)}
                   onDelete={(deletedId) => {
                     setTodos((prev) => prev.filter((t) => t.todoId !== deletedId));
-                    Toast.show({ type: 'info', text1: 'Todo moved to trash', visibilityTime: 1200 });
+                    Toast.show({ type: 'info', text1: 'Todo in den Papierkorb verschoben.', visibilityTime: 1200 });
                   }}
                 />
 
@@ -587,9 +757,23 @@ export default function MyTodosScreen() {
                         gelöscht am {new Date(todo.deletedAt).toLocaleDateString('de-DE')}
                       </Text>
                     </View>
-                    <TouchableOpacity style={styles.restoreButton} onPress={() => handleRestore(todo.todoId)}>
-                      <Text style={styles.restoreButtonText}>Wiederherstellen</Text>
-                    </TouchableOpacity>
+
+                    {/* Buttons */}
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity
+                        style={styles.restoreButton}
+                        onPress={() => handleRestore(todo.todoId)}
+                      >
+                        <Text style={styles.restoreButtonText}>Wiederherstellen</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.deleteForeverButton}
+                        onPress={() => handlePermanentDelete(todo.todoId)}
+                      >
+                        <Icon name="trash" size={16} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 ))}
               </ScrollView>
@@ -981,4 +1165,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
     borderRadius: 1,
   },
+  deleteForeverButton: {
+    backgroundColor: '#FF5C5C',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
 });

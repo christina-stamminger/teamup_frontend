@@ -66,8 +66,12 @@ const ProfileScreen = () => {
         }
       );
 
-      if (response.offline) {
-        Alert.alert('Offline', 'Keine Internetverbindung.');
+      if (response?.offline) {
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
         return;
       }
 
@@ -192,8 +196,12 @@ const ProfileScreen = () => {
         }
       );
 
-      if (response.offline) {
-        Alert.alert('Offline', 'Keine Internetverbindung.');
+      if (response?.offline) {
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
         return;
       }
 
@@ -432,14 +440,14 @@ const styles = StyleSheet.create({
   },
   backButton: {
     backgroundColor: '#ccc',
-   
+
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
   },
   backButtonText: {
- color: '#fff',
-     fontSize: 16,
+    color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
   dangerZone: {
