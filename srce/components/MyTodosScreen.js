@@ -46,7 +46,7 @@ export default function MyTodosScreen() {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        // 1️⃣ Modal zuerst schließen
+        // 1️⃣ Modals schließen
         if (isTrashModalVisible) {
           setIsTrashModalVisible(false);
           return true;
@@ -62,37 +62,28 @@ export default function MyTodosScreen() {
           return true;
         }
 
-        // 2️⃣ Normaler Navigation-Back
+        // 2️⃣ Kann navigiert werden? → React Navigation machen lassen
         if (navigation.canGoBack()) {
           return false;
         }
 
-        // 3️⃣ Root-Screen → Logout fragen
-        Alert.alert(
-          'Abmelden',
-          'Willst du dich wirklich ausloggen?',
-          [
-            { text: 'Abbrechen', style: 'cancel' },
-            {
-              text: 'Logout',
-              style: 'destructive',
-              onPress: logout,
-            },
-          ]
-        );
-
+        // 3️⃣ Root-Screen → App verlassen (NICHT Logout!)
+        BackHandler.exitApp();
         return true;
       };
 
+      const sub = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
+      );
 
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
-      return () =>
-        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-    }, [navigation, logout,
+      return () => sub.remove();
+    }, [
+      navigation,
       isTrashModalVisible,
       isGroupModalVisible,
-      isMembersModalVisible,])
+      isMembersModalVisible,
+    ])
   );
 
   const [todos, setTodos] = useState([]);

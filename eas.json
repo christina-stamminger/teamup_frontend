@@ -6,6 +6,7 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "channel": "development",
       "env": {
         "APP_ENV": "development",
         "API_URL": "http://192.168.50.116:8082"
@@ -13,12 +14,14 @@
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "env": {
         "APP_ENV": "preview",
         "API_URL": "https://teamup-backend-k8y4.onrender.com"
       }
     },
     "production": {
+      "channel": "production",
       "env": {
         "APP_ENV": "production",
         "API_URL": "https://teamup-backend-k8y4.onrender.com"

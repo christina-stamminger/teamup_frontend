@@ -8,14 +8,16 @@ export default {
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
-    newArchEnabled: true,
+    newArchEnabled: false,
 
     updates: {
       enabled: true,
+      checkAutomatically: "ON_LOAD",
       fallbackToCacheTimeout: 0,
     },
+
     runtimeVersion: {
-      policy: "appVersion",
+      policy: "sdkVersion",
     },
 
     splash: {
@@ -32,7 +34,7 @@ export default {
 
     android: {
       package: "com.christina.bringit",
-      versionCode: 1,
+      versionCode: 2,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff"
