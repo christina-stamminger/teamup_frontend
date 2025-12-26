@@ -8,7 +8,7 @@ export default {
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
-    newArchEnabled: false,
+    newArchEnabled: true,
 
     updates: {
       enabled: true,

@@ -1,4 +1,5 @@
 import React from "react";
+import { View, ActivityIndicator } from "react-native";
 import { useUser } from "./context/UserContext";
 
 import AuthNavigator from "./AuthNavigator";
@@ -7,16 +8,20 @@ import AppStackNavigator from "./AppStackNavigator";
 export default function AppNavigator() {
   const { accessToken, loading } = useUser();
 
+  // ✅ NIE null rendern
   if (loading) {
-    // Optional: Splash Screen, Loader, Branding etc.
-    return null;
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
 
-  // 🟢 Benutzer eingeloggt
+  // 🟢 Eingeloggt
   if (accessToken) {
     return <AppStackNavigator />;
   }
 
-  // 🔴 Benutzer nicht eingeloggt → Login/Register Screens
+  // 🔴 Nicht eingeloggt
   return <AuthNavigator />;
 }

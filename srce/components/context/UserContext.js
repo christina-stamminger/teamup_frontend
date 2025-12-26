@@ -35,40 +35,43 @@ export const UserProvider = ({ children }) => {
   // ==========================================================
   const saveSession = async ({ accessToken, refreshToken }) => {
     try {
-      // Token speichern
+      setLoading(true);
+
       await SecureStore.setItemAsync("accessToken", accessToken);
       await SecureStore.setItemAsync("refreshToken", refreshToken);
 
       setAccessToken(accessToken);
       setRefreshToken(refreshToken);
 
-      // 🔥 User-Daten sofort laden
       const response = await fetch(`${API_URL}/api/users/me`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
       });
 
-      if (response.ok) {
-        const me = await response.json();
-        setUserId(me.userId);
-        setUsername(me.username);
-        setBringits(me.bringIts);
-        setAuthReady(true);
-        setHasLoggedInOnce(true); // ✅ Flag setzen
+      if (!response.ok) {
+        throw new Error("Failed to fetch /me after login");
       }
 
-      setLoading(false); // ✅ Loading beenden
+      const me = await response.json();
+      setUserId(me.userId);
+      setUsername(me.username);
+      setBringits(me.bringIts);
+
+      setAuthReady(true);
+      setHasLoggedInOnce(true);
     } catch (err) {
       console.error("❌ Failed to save session", err);
+      setAuthReady(false);
+    } finally {
       setLoading(false);
     }
   };
 
-
-
   // ==========================================================
   // Session aus SecureStore laden (App-Start)
+  // ==========================================================
+
   const loadUserData = async () => {
     setLoading(true);
     setAuthReady(false);
@@ -79,7 +82,15 @@ export const UserProvider = ({ children }) => {
         SecureStore.getItemAsync("refreshToken"),
       ]);
 
-      if (!storedAccess) return;
+      if (!storedAccess) {
+        // ⛔️ WICHTIG: explizit finalisieren
+        setAccessToken(null);
+        setRefreshToken(null);
+        setUserId(null);
+        setUsername(null);
+        setAuthReady(false);
+        return;
+      }
 
       setAccessToken(storedAccess);
       if (storedRefresh) setRefreshToken(storedRefresh);
@@ -90,7 +101,9 @@ export const UserProvider = ({ children }) => {
         },
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        throw new Error("Failed to fetch /me");
+      }
 
       const me = await response.json();
       setUserId(me.userId);
@@ -100,7 +113,9 @@ export const UserProvider = ({ children }) => {
       setAuthReady(true);
     } catch (err) {
       console.error("❌ Failed to load user session", err);
+      setAuthReady(false);
     } finally {
+      // ✅ GARANTIERTES Ende
       setLoading(false);
     }
   };
