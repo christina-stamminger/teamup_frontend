@@ -1,13 +1,13 @@
 import React from "react";
 import { View, ActivityIndicator } from "react-native";
-import { useUser } from "./context/UserContext";
-import AuthNavigator from "./AuthNavigator";
-import AppStackNavigator from "./AppStackNavigator";
+import { useUser } from "./srce/components/context/UserContext";
+import AuthNavigator from "./srce/components/AuthNavigator";
+import AppStackNavigator from "./srce/components/AppStackNavigator";
 
 export default function AppRoot() {
   const { loading, authReady, accessToken } = useUser();
 
-  if (loading || !authReady) {
+  if (!authReady) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -15,5 +15,11 @@ export default function AppRoot() {
     );
   }
 
-  return accessToken ? <AppStackNavigator /> : <AuthNavigator />;
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 }
