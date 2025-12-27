@@ -13,11 +13,10 @@ import {
 import { Handshake } from "lucide-react-native";
 import UsernameInput from "./UsernameInput";
 import PasswordInput from "./PasswordInput";
-import * as SecureStore from "expo-secure-store";
-import { jwtDecode } from "jwt-decode";
 import { useUser } from "../components/context/UserContext";
-import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch + shouldShowError
+import { useNetwork } from "../components/context/NetworkContext";
 import Constants from "expo-constants";
+import Toast from "react-native-toast-message";
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
@@ -25,19 +24,23 @@ const LoginScreen = ({ navigation }) => {
   const [inputUsername, setInputUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  //const { setUserId, setUsername, setToken, setHasLoggedInOnce } = useUser();
-  const { setUserId, setUsername, saveSession, reloadUser, setHasLoggedInOnce } = useUser();
-
-
-  // ✅ Zugriff auf safeFetch aus dem NetworkContext
-  const { isConnected, safeFetch, shouldShowError } = useNetwork();
+  const { saveSession } = useUser();
+  const { safeFetch } = useNetwork();
 
   const handleLogin = async () => {
+    // Validierung
     if (!inputUsername.trim() || !password.trim()) {
       setErrorMessage("Bitte Benutzername und Passwort eingeben.");
       return;
     }
+
+    // Verhindere doppelte Login-Versuche
+    if (isLoading) return;
+
+    setIsLoading(true);
+    setErrorMessage("");
 
     try {
       const response = await safeFetch(
@@ -52,6 +55,7 @@ const LoginScreen = ({ navigation }) => {
         }
       );
 
+      // Offline
       if (response?.offline) {
         Toast.show({
           type: 'info',
@@ -61,26 +65,27 @@ const LoginScreen = ({ navigation }) => {
         return;
       }
 
+      // Login fehlgeschlagen
       if (!response.ok) {
         setErrorMessage("Benutzername oder Passwort ungültig.");
         return;
       }
 
+      // ✅ Login erfolgreich
       const data = await response.json();
       const { accessToken, refreshToken } = data;
 
-      // ✅ EINZIGE Aktion nach Login
+      // ✅ Session speichern (lädt automatisch User-Daten)
       await saveSession({ accessToken, refreshToken });
 
-      // ✅ User-Daten laden
-      await reloadUser();
-
-      setHasLoggedInOnce(true);
-
+      // ✅ saveSession setzt hasLoggedInOnce bereits auf true
+      // ✅ Navigation erfolgt automatisch durch AppRoot
 
     } catch (error) {
       console.error("Login error:", error);
       setErrorMessage("Ein Fehler ist aufgetreten. Bitte erneut versuchen.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -91,12 +96,12 @@ const LoginScreen = ({ navigation }) => {
     >
       <Pressable
         style={{ flex: 1 }}
-        onPress={() => {
-          console.log("Background tapped → dismissing keyboard");
-          Keyboard.dismiss();
-        }}
+        onPress={Keyboard.dismiss}
       >
-        <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
+        <ScrollView 
+          contentContainerStyle={styles.inner} 
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Logo */}
           <View style={styles.logoContainer}>
             <View style={styles.iconContainer}>
@@ -116,6 +121,7 @@ const LoginScreen = ({ navigation }) => {
                   value={inputUsername}
                   onChangeText={setInputUsername}
                   placeholder="Benutzername eingeben"
+                  editable={!isLoading}
                 />
               </View>
 
@@ -128,36 +134,41 @@ const LoginScreen = ({ navigation }) => {
                   secureTextEntry
                   autoCapitalize="none"
                   autoCorrect={false}
-
-                  // ANDROID-SPECIFIC (safe for all vendors)
+                  editable={!isLoading}
                   importantForAutofill="no"
                   keyboardType="default"
-
-                  // ACCESSIBILITY
                   accessibilityLabel="Passwort"
                   accessibilityRole="text"
                 />
               </View>
 
-              {/* 🔹 Passwort vergessen Link */}
+              {/* Passwort vergessen Link */}
               <Text
                 style={styles.forgotPassword}
-                onPress={() => navigation.navigate("ForgotPassword")}
+                onPress={() => !isLoading && navigation.navigate("ForgotPassword")}
               >
                 Passwort vergessen?
               </Text>
 
-              {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+              {errorMessage ? (
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              ) : null}
 
-              <TouchableOpacity style={styles.button} onPress={handleLogin}>
-                <Text style={styles.buttonText}>Login</Text>
+              <TouchableOpacity 
+                style={[styles.button, isLoading && styles.buttonDisabled]} 
+                onPress={handleLogin}
+                disabled={isLoading}
+              >
+                <Text style={styles.buttonText}>
+                  {isLoading ? "Wird angemeldet..." : "Login"}
+                </Text>
               </TouchableOpacity>
 
               <Text style={styles.registerText}>
                 Noch kein Konto?{" "}
                 <Text
                   style={styles.registerLink}
-                  onPress={() => navigation.navigate("Register")}
+                  onPress={() => !isLoading && navigation.navigate("Register")}
                 >
                   Hier registrieren
                 </Text>
@@ -228,6 +239,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginTop: 10,
+  },
+  buttonDisabled: {
+    backgroundColor: "#a0d9d9",
+    opacity: 0.7,
   },
   buttonText: {
     color: "#fff",

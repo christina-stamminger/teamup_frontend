@@ -9,13 +9,9 @@ import OfflineBanner from "./srce/components/OfflineBanner";
 import 'react-native-gesture-handler';
 import AppRoot from "./AppRoot";
 
-
 export default function App() {
-  console.log('🔥 App component rendered');
-
   const navigationRef = useNavigationContainerRef();
 
- 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UserProvider>

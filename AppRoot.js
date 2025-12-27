@@ -1,14 +1,13 @@
 import React from "react";
 import { View, ActivityIndicator } from "react-native";
-import { useUser } from "./srce/components/context/UserContext";
-import AppNavigator from "./srce/components/AppNavigator";
-import AuthNavigator from "./srce/components/AuthNavigator";
+import { useUser } from "./context/UserContext";
+import AuthNavigator from "./AuthNavigator";
+import AppStackNavigator from "./AppStackNavigator";
 
 export default function AppRoot() {
-  const { loading, accessToken } = useUser();
+  const { loading, authReady, accessToken } = useUser();
 
-  // ⏳ App initialisiert sich (SecureStore, /me, etc.)
-  if (loading) {
+  if (loading || !authReady) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -16,11 +15,5 @@ export default function AppRoot() {
     );
   }
 
-  // 🔐 Nicht eingeloggt
-  if (!accessToken) {
-    return <AuthNavigator />;
-  }
-
-  // ✅ Eingeloggt
-  return <AppNavigator />;
+  return accessToken ? <AppStackNavigator /> : <AuthNavigator />;
 }

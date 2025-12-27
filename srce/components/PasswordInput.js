@@ -11,17 +11,17 @@ const PasswordInput = ({
 }) => {
   const [secure, setSecure] = useState(true);
 
+  const handleChangeText = useCallback(
+    (text) => {
+      // RN Bugfix: trailing whitespace entfernen
+      const cleaned = text.replace(/\s+$/, "");
+      onChangeText(cleaned);
+    },
+    [onChangeText]
+  );
   const toggleSecure = useCallback(() => {
     setSecure(prev => !prev);
-
-    // ✅ RN Bugfix: trailing space entfernen
-    if (typeof value === "string") {
-      const cleaned = value.replace(/\s+$/, "");
-      if (cleaned !== value) {
-        onChangeText(cleaned);
-      }
-    }
-  }, [value, onChangeText]);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -31,7 +31,7 @@ const PasswordInput = ({
         value={value}
         placeholder={placeholder}
         secureTextEntry={secure}
-        onChangeText={onChangeText}
+        onChangeText={handleChangeText}
         autoCapitalize="none"
         autoCorrect={false}
         textContentType="password"

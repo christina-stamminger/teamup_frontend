@@ -4,7 +4,7 @@ import { jwtDecode } from "jwt-decode";
 import Constants from "expo-constants";
 import { registerPushToken } from '../../notifications/registerPushToken';
 import { setupNotifications } from "../../notifications/notifications";
-import { API_URL } from '../../config/env'; // ✅ FIX
+import { API_URL } from '../../config/env';
 
 const UserContext = createContext();
 export const useUser = () => useContext(UserContext);
@@ -27,8 +27,6 @@ export const UserProvider = ({ children }) => {
 
   // 🟪 Auth ready flag
   const [authReady, setAuthReady] = useState(false);
-
-
 
   // ==========================================================
   // 🔵 Session sichern (Login)
@@ -62,7 +60,8 @@ export const UserProvider = ({ children }) => {
       setHasLoggedInOnce(true);
     } catch (err) {
       console.error("❌ Failed to save session", err);
-      setAuthReady(false);
+      // ✅ WICHTIG: Bei Fehler Session clearen
+      await clearSession();
     } finally {
       setLoading(false);
     }
@@ -71,10 +70,8 @@ export const UserProvider = ({ children }) => {
   // ==========================================================
   // Session aus SecureStore laden (App-Start)
   // ==========================================================
-
   const loadUserData = async () => {
     setLoading(true);
-    setAuthReady(false);
 
     try {
       const [storedAccess, storedRefresh] = await Promise.all([
@@ -83,12 +80,8 @@ export const UserProvider = ({ children }) => {
       ]);
 
       if (!storedAccess) {
-        // ⛔️ WICHTIG: explizit finalisieren
-        setAccessToken(null);
-        setRefreshToken(null);
-        setUserId(null);
-        setUsername(null);
-        setAuthReady(false);
+        // ✅ Kein Token = nicht eingeloggt
+        setAuthReady(true); // ✅ WICHTIG: authReady = true bedeutet "Auth-Status ist geklärt"
         return;
       }
 
@@ -113,11 +106,33 @@ export const UserProvider = ({ children }) => {
       setAuthReady(true);
     } catch (err) {
       console.error("❌ Failed to load user session", err);
-      setAuthReady(false);
+      // ✅ Bei Fehler Session clearen
+      await clearSession();
     } finally {
-      // ✅ GARANTIERTES Ende
       setLoading(false);
     }
+  };
+
+  // ==========================================================
+  // 🧹 Session clearen (Helper)
+  // ==========================================================
+  const clearSession = async () => {
+    try {
+      await Promise.all([
+        SecureStore.deleteItemAsync("accessToken"),
+        SecureStore.deleteItemAsync("refreshToken"),
+        SecureStore.deleteItemAsync("userId"),
+      ]);
+    } catch (err) {
+      console.error("Error clearing session:", err);
+    }
+
+    setUserId(null);
+    setUsername(null);
+    setAccessToken(null);
+    setRefreshToken(null);
+    setBringits(0);
+    setAuthReady(true); // ✅ Auth-Status ist geklärt (= nicht eingeloggt)
   };
 
   // ==========================================================
@@ -131,39 +146,22 @@ export const UserProvider = ({ children }) => {
   // 🧨 LOGOUT
   // ==========================================================
   const logoutUser = async () => {
-    //console.log("🚪 Logging out user...");
-
-    try {
-      await Promise.all([
-        SecureStore.deleteItemAsync("accessToken"),
-        SecureStore.deleteItemAsync("refreshToken"),
-        SecureStore.deleteItemAsync("userId"),
-      ]);
-
-      setUserId(null);
-      setUsername(null);
-      setAccessToken(null);
-      setRefreshToken(null);
-      setBringits(0);
-      setHasLoggedInOnce(false);
-
-    } catch (error) {
-      console.error("Error during logout:", error);
-    }
+    console.log("🚪 Logging out user...");
+    setLoading(true);
+    await clearSession();
+    setHasLoggedInOnce(false);
+    setLoading(false);
   };
-
 
   // ==========================================================
   // 🔥 App-Start
   // ==========================================================
   useEffect(() => {
     loadUserData();
-    //setupNotifications();
   }, []);
 
-
   // ==========================================================
-  // 🔥 Logged-In
+  // 🔥 Logged-In → Notifications
   // ==========================================================
   useEffect(() => {
     if (!authReady || !accessToken) return;
@@ -172,18 +170,14 @@ export const UserProvider = ({ children }) => {
     registerPushToken(accessToken).catch(() => { });
   }, [authReady, accessToken]);
 
-
-
   // ==========================================================
   // 🔵 Group Reload System
   // ==========================================================
   const [groupsVersion, setGroupsVersion] = useState(0);
 
-  // Trigger: whenever groups change
   const triggerGroupReload = () => {
     setGroupsVersion(v => v + 1);
   };
-
 
   return (
     <UserContext.Provider
@@ -206,6 +200,7 @@ export const UserProvider = ({ children }) => {
         logoutUser,
 
         loading,
+        authReady, // ✅ Export authReady
         hasLoggedInOnce,
         setHasLoggedInOnce,
 
