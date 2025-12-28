@@ -176,10 +176,13 @@ export default function GroupDetails({ route, navigation }) {
           ]}
         >
           <Text style={styles.avatarText}>
-            {group.groupName.charAt(0).toUpperCase()}
+            {(group?.groupName?.charAt(0) ?? "?").toUpperCase()}
           </Text>
+
         </View>
-        <Text style={styles.groupName}>{group.groupName}</Text>
+        <Text style={styles.groupName}>
+          {group?.groupName ?? "Unbenannte Gruppe"}
+        </Text>
       </View>
 
 
@@ -224,14 +227,13 @@ export default function GroupDetails({ route, navigation }) {
                     style={[
                       styles.avatarSmall,
                       {
-                        backgroundColor: getAvatarColor(
-                          item.username.charAt(0)
-                        ),
+                        backgroundColor: getAvatarColor(item?.username?.charAt(0) ?? "?")
+
                       },
                     ]}
                   >
                     <Text style={styles.avatarInitialMember}>
-                      {item.username.charAt(0).toUpperCase()}
+                      {(item?.username?.charAt(0) ?? "?").toUpperCase()}
                     </Text>
                   </View>
                   <Text

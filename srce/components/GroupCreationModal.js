@@ -78,9 +78,14 @@ export default function GroupCreationModal({
     <Modal
       isVisible={!!isVisible}
       onBackdropPress={safeToggle}
-      onBackButtonPress={safeToggle}
-      avoidKeyboard
+      onBackButtonPress={safeToggle}   // ← Android Back Button
+      backdropOpacity={0.5}
+      propagateSwipe={true}            // ← WICHTIG
+      avoidKeyboard={true}
+      useNativeDriver={true}
+      useNativeDriverForBackdrop={true}
     >
+
       <View style={styles.modalContent}>
         <TextInput
           style={styles.input}

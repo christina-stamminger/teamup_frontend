@@ -118,7 +118,7 @@ export default function TodoChat({
       const saved = await response.json();
       setMessages((prev) => [...prev, saved]);
       setNewMessage("");
-      
+
       Keyboard.dismiss();
 
       setTimeout(() => {
@@ -190,9 +190,14 @@ export default function TodoChat({
             returnKeyType="send"
             onSubmitEditing={sendMessage}
           />
-          <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
+          <TouchableOpacity
+            onPress={sendMessage}
+            style={styles.sendButton}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
             <Icon name="send" size={18} color="#5FC9C9" />
           </TouchableOpacity>
+
         </View>
       )}
 
@@ -264,8 +269,13 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   sendButton: {
-    padding: 10,
+    padding: 12,
+    minWidth: 48,
+    minHeight: 48,
+    justifyContent: "center",
+    alignItems: "center",
   },
+
   readOnlyBanner: {
     backgroundColor: "#FEF3C7",
     padding: 12,
