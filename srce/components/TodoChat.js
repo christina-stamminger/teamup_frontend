@@ -160,6 +160,7 @@ export default function TodoChat({
       <FlatList
         ref={flatListRef}
         data={messages}
+        nestedScrollEnabled={true}
         style={{ flex: 1 }}           //neu
         keyExtractor={(item) =>
           item.messageId?.toString() ?? Math.random().toString()
@@ -177,7 +178,7 @@ export default function TodoChat({
           </View>
         )}
         contentContainerStyle={{ paddingBottom: 12 }}
-        keyboardShouldPersistTaps="always"
+        keyboardShouldPersistTaps="handled"
       />
 
       {isActive && (

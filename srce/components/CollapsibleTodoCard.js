@@ -162,44 +162,49 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
   );
 
   return (
+
     <Swipeable ref={swipeableRef} renderRightActions={renderRightActions}>
-      <TouchableOpacity
+      <View
         style={[
           styles.card,
           todo.isTimeCritical && styles.timeCriticalCard,
         ]}
-        onPress={toggleExpand}
-        activeOpacity={0.9}
       >
-        {/* Status Badge */}
-        <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-          <Text style={styles.statusBadgeText}>{todo.status}</Text>
-        </View>
-
-        {/* Titel */}
-        <Text style={styles.title}>{todo.title}</Text>
-
-        {/* User Infos */}
-        <View style={styles.userBlock}>
-          <View style={styles.userRow}>
-            <Icon name="user" size={16} color="#666" style={styles.icon} />
-            <Text style={styles.userValue}>
-              {todo.username} {userId === todo.userOfferedId ? "(Du)" : ""}
-            </Text>
+        {/* 🔹 HEADER – klickbar */}
+        <TouchableOpacity
+          onPress={toggleExpand}
+          activeOpacity={0.85}
+        >
+          {/* Status Badge */}
+          <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+            <Text style={styles.statusBadgeText}>{todo.status}</Text>
           </View>
 
-          {todo.userTakenUsername && (
+          {/* Titel */}
+          <Text style={styles.title}>{todo.title}</Text>
+
+          {/* User Infos */}
+          <View style={styles.userBlock}>
             <View style={styles.userRow}>
-              <Icon name="check" size={16} color="#28a745" style={styles.icon} />
+              <Icon name="user" size={16} color="#666" style={styles.icon} />
               <Text style={styles.userValue}>
-                {todo.userTakenUsername}{" "}
-                {userId === todo.userTakenId ? "(Du)" : ""}
+                {todo.username} {userId === todo.userOfferedId ? "(Du)" : ""}
               </Text>
             </View>
-          )}
-        </View>
 
-        {/* EXPANDED CONTENT */}
+            {todo.userTakenUsername && (
+              <View style={styles.userRow}>
+                <Icon name="check" size={16} color="#28a745" style={styles.icon} />
+                <Text style={styles.userValue}>
+                  {todo.userTakenUsername}{" "}
+                  {userId === todo.userTakenId ? "(Du)" : ""}
+                </Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {/* 🔹 BODY – NICHT klickbar */}
         {isExpanded && (
           <View style={styles.additionalContent}>
             {/* Description */}
@@ -377,7 +382,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
             />
           </View>
         )}
-      </TouchableOpacity>
+      </View>
     </Swipeable>
   );
 };
