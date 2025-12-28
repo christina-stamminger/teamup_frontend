@@ -4,7 +4,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import * as SecureStore from 'expo-secure-store';
 import CollapsibleTodoCard from '../components/CollapsibleTodoCard';
 import { useUser } from "../components/context/UserContext";
-import Modal from 'react-native-modal';
+import { Modal } from 'react-native';
 import GroupCreationModal from "../components/GroupCreationModal";
 import AddMemberCard from '../components/AddMemberCard';
 import AddMemberModal from '../components/AddMemberModal';
@@ -742,57 +742,70 @@ export default function MyTodosScreen() {
         {/* Trash Modal */}
         {accessToken && (
           <Modal
-            isVisible={isTrashModalVisible}
-            onBackdropPress={toggleTrashModal}
-            backdropOpacity={0.4}
-            animationIn="slideInUp"
-            animationOut="slideOutDown"
-            style={{ margin: 0, justifyContent: 'flex-end' }}
+            visible={isTrashModalVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={toggleTrashModal} // Android Back Button
           >
-            <View style={[styles.trashModalContainer, { minHeight: 250 }]}>
-              <Text style={styles.trashModalTitle}>🗑️ Gelöschte To-Dos</Text>
+            {/* Backdrop */}
+            <TouchableWithoutFeedback onPress={toggleTrashModal}>
+              <View style={styles.trashOverlay} />
+            </TouchableWithoutFeedback>
 
-              {loadingTrash ? (
-                <ActivityIndicator color="#5FC9C9" />
-              ) : trashedTodos.length === 0 ? (
-                <Text style={styles.trashEmpty}>Keine gelöschten To-Dos</Text>
-              ) : (
-                <ScrollView style={{ maxHeight: 400 }}>
-                  {trashedTodos.map((todo) => (
-                    <View key={todo.todoId} style={styles.trashItem}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.trashText}>{todo.title}</Text>
-                        <Text style={styles.trashDate}>
-                          gelöscht am {new Date(todo.deletedAt).toLocaleDateString('de-DE')}
-                        </Text>
+            {/* Bottom Sheet */}
+            <View style={styles.trashBottomContainer}>
+              <View style={[styles.trashModalContainer, { minHeight: 250 }]}>
+                <Text style={styles.trashModalTitle}>🗑️ Gelöschte To-Dos</Text>
+
+                {loadingTrash ? (
+                  <ActivityIndicator color="#5FC9C9" />
+                ) : trashedTodos.length === 0 ? (
+                  <Text style={styles.trashEmpty}>Keine gelöschten To-Dos</Text>
+                ) : (
+                  <ScrollView style={{ maxHeight: 400 }}>
+                    {trashedTodos.map((todo) => (
+                      <View key={todo.todoId} style={styles.trashItem}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.trashText}>{todo.title}</Text>
+                          <Text style={styles.trashDate}>
+                            gelöscht am{" "}
+                            {new Date(todo.deletedAt).toLocaleDateString("de-DE")}
+                          </Text>
+                        </View>
+
+                        {/* Buttons */}
+                        <View style={{ flexDirection: "row", gap: 8 }}>
+                          <TouchableOpacity
+                            style={styles.restoreButton}
+                            onPress={() => handleRestore(todo.todoId)}
+                          >
+                            <Text style={styles.restoreButtonText}>
+                              Wiederherstellen
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={styles.deleteForeverButton}
+                            onPress={() => handlePermanentDelete(todo.todoId)}
+                          >
+                            <Icon name="trash" size={16} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
                       </View>
+                    ))}
+                  </ScrollView>
+                )}
 
-                      {/* Buttons */}
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <TouchableOpacity
-                          style={styles.restoreButton}
-                          onPress={() => handleRestore(todo.todoId)}
-                        >
-                          <Text style={styles.restoreButtonText}>Wiederherstellen</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={styles.deleteForeverButton}
-                          onPress={() => handlePermanentDelete(todo.todoId)}
-                        >
-                          <Icon name="trash" size={16} color="#fff" />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ))}
-                </ScrollView>
-              )}
-
-              <TouchableOpacity style={styles.closeModalButton} onPress={toggleTrashModal}>
-                <Text style={styles.closeModalButtonText}>Schließen</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.closeModalButton}
+                  onPress={toggleTrashModal}
+                >
+                  <Text style={styles.closeModalButtonText}>Schließen</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </Modal>
+
         )}
 
         {/* Members Modal */}
@@ -1187,6 +1200,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  trashOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+
+  trashBottomContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 
 });

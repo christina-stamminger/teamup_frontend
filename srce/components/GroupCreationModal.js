@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import Modal from 'react-native-modal';
+import { Modal } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from "expo-constants";
 import { useUser } from "../components/context/UserContext";
@@ -76,37 +76,34 @@ export default function GroupCreationModal({
 
   return (
     <Modal
-      isVisible={!!isVisible}
-      onBackdropPress={safeToggle}
-      onBackButtonPress={safeToggle}
-      backdropOpacity={0.5}
-      animationIn="fadeIn"
-      animationOut="fadeOut"
-      useNativeDriver={false}
-      useNativeDriverForBackdrop={false}
+      visible={!!isVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={safeToggle}   // Android Back Button
     >
+      <View style={styles.overlay}>
+        <View style={styles.modalContent}>
+          <TextInput
+            style={styles.input}
+            placeholder="Gruppenname eingeben"
+            placeholderTextColor="#aaa"
+            value={groupName}
+            onChangeText={setGroupName}
+          />
 
-
-      <View style={styles.modalContent}>
-        <TextInput
-          style={styles.input}
-          placeholder="Gruppenname eingeben"
-          placeholderTextColor="#aaa"
-          value={groupName}
-          onChangeText={setGroupName}
-        />
-
-        <TouchableOpacity
-          style={[styles.createButton, loading && { opacity: 0.6 }]}
-          onPress={handleCreateGroup}
-          disabled={loading}
-        >
-          <Text style={styles.createButtonText}>
-            {loading ? 'Creating...' : 'Gruppe erstellen'}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.createButton, loading && { opacity: 0.6 }]}
+            onPress={handleCreateGroup}
+            disabled={loading}
+          >
+            <Text style={styles.createButtonText}>
+              {loading ? 'Creating...' : 'Gruppe erstellen'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </Modal>
+
   );
 }
 

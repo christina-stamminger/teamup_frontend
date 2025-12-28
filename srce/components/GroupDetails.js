@@ -15,7 +15,7 @@ import AddMemberCard from './AddMemberCard';
 import { useUser } from '../components/context/UserContext';
 
 import { getAvatarColor } from '../utils/getAvatarColor';
-import Modal from "react-native-modal";
+import { Modal } from "react-native";
 import { Picker } from "@react-native-picker/picker"; // falls nicht installiert: npm install @react-native-picker/picker
 import Toast from "react-native-toast-message";
 import Constants from "expo-constants";
@@ -324,52 +324,53 @@ export default function GroupDetails({ route, navigation }) {
 
       {/* Transfer Admin Modal */}
       <Modal
-        isVisible={isTransferModalVisible}
-        onBackdropPress={() => setIsTransferModalVisible(false)}
-        onBackButtonPress={() => setIsTransferModalVisible(false)}
-        backdropOpacity={0.5}
-        animationIn="fadeIn"
-        animationOut="fadeOut"
+        visible={isTransferModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsTransferModalVisible(false)}
       >
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Du bist Admin dieser Gruppe</Text>
-          <Text style={styles.modalText}>
-            Übertrage zuerst die Admin-Rolle an ein anderes Gruppenmitglied, um die Gruppe zu verlassen.
-          </Text>
+        <View style={styles.overlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Du bist Admin dieser Gruppe</Text>
+            <Text style={styles.modalText}>
+              Übertrage zuerst die Admin-Rolle an ein anderes Gruppenmitglied, um die Gruppe zu verlassen.
+            </Text>
 
-          <Picker
-            selectedValue={selectedNewAdmin}
-            onValueChange={(value) => setSelectedNewAdmin(value)}
-          >
-            <Picker.Item label="Wähle ein Mitglied..." value={null} />
-            {members
-              .filter((m) => String(m.userId) !== String(userId))
-              .map((m) => (
-                <Picker.Item
-                  key={m.userId}
-                  label={m.username}
-                  value={m.userId}
-                />
-              ))}
-          </Picker>
-
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              onPress={() => setIsTransferModalVisible(false)}
-              style={styles.cancelButton}
+            <Picker
+              selectedValue={selectedNewAdmin}
+              onValueChange={(value) => setSelectedNewAdmin(value)}
             >
-              <Text>Abbrechen</Text>
-            </TouchableOpacity>
+              <Picker.Item label="Wähle ein Mitglied..." value={null} />
+              {members
+                .filter((m) => String(m.userId) !== String(userId))
+                .map((m) => (
+                  <Picker.Item
+                    key={m.userId}
+                    label={m.username}
+                    value={m.userId}
+                  />
+                ))}
+            </Picker>
 
-            <TouchableOpacity
-              onPress={handleTransferAndLeave}
-              style={styles.confirmButton}
-            >
-              <Text style={{ color: 'white' }}>OK</Text>
-            </TouchableOpacity>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                onPress={() => setIsTransferModalVisible(false)}
+                style={styles.cancelButton}
+              >
+                <Text>Abbrechen</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleTransferAndLeave}
+                style={styles.confirmButton}
+              >
+                <Text style={{ color: "white" }}>OK</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
+
 
 
       {/* Bottom Back Button */}
@@ -517,4 +518,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
 });

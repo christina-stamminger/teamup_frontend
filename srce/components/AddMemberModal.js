@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity } from 'react-native';
-import Modal from 'react-native-modal';
+import { Modal } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from "expo-constants";
 
@@ -87,36 +87,33 @@ export default function AddMemberModal({
 
   return (
     <Modal
-      isVisible={!!isVisible}
-      onBackdropPress={safeClose}
-      onBackButtonPress={safeClose}
-      backdropOpacity={0.5}
-      useNativeDriver={false}
-      useNativeDriverForBackdrop={false}
-      animationIn="fadeIn"
-      animationOut="fadeOut"
+      visible={!!isVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={safeClose}   // Android Back Button
     >
+      <View style={styles.overlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.title}>Mitglied per Benutzername hinzufügen</Text>
 
-      <View style={styles.modalContent}>
-        <Text style={styles.title}>Mitglied per Benutzername hinzufügen</Text>
+          <TextInput
+            placeholder="Benutzername eingeben"
+            placeholderTextColor="#aaa"
+            value={username}
+            onChangeText={setUsername}
+            style={styles.input}
+          />
 
-        <TextInput
-          placeholder="Benutzername eingeben"
-          placeholderTextColor="#aaa"
-          value={username}
-          onChangeText={setUsername}
-          style={styles.input}
-        />
-
-        <TouchableOpacity
-          style={styles.addMemberButton}
-          onPress={handleAddMember}
-        >
-          <Text style={styles.addMemberText}>Mitglied hinzufügen</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addMemberButton}
+            onPress={handleAddMember}
+          >
+            <Text style={styles.addMemberText}>Mitglied hinzufügen</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </Modal>
-  );
+  )
 }
 
 
@@ -151,5 +148,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

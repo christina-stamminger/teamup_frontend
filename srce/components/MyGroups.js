@@ -5,7 +5,7 @@ import { useUser } from './context/UserContext';
 import GroupCreationModal from './GroupCreationModal';
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import Icon from 'react-native-vector-icons/FontAwesome';
-import Modal from "react-native-modal";
+import { Modal } from "react-native";
 import Toast from "react-native-toast-message";
 import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch importiert
 import Constants from "expo-constants";
@@ -221,36 +221,42 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
 
             <GroupCreationModal
                 isVisible={isCreationModalVisible}
-                toggleModal={toggleCreationModal}
+                onClose={toggleCreationModal}   // ✅ richtig
                 userId={userId}
                 onGroupCreated={handleGroupCreated}
             />
 
+
             <Modal
-                isVisible={isDeleteModalVisible}
-                onBackdropPress={() => setIsDeleteModalVisible(false)}
-                useNativeDriver
+                visible={isDeleteModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setIsDeleteModalVisible(false)} // Android Back
             >
-                <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Gruppe verwalten</Text>
-                    <Text style={styles.modalText}>
-                        Möchtest du die Gruppe "{selectedGroupForDelete?.groupName}" wirklich löschen?
-                    </Text>
+                <View style={styles.overlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Gruppe verwalten</Text>
+                        <Text style={styles.modalText}>
+                            Möchtest du die Gruppe "{selectedGroupForDelete?.groupName}" wirklich löschen?
+                        </Text>
 
-                    <View style={styles.modalButtons}>
-                        <TouchableOpacity
-                            style={[styles.modalButton, styles.cancelButton]}
-                            onPress={() => setIsDeleteModalVisible(false)}
-                        >
-                            <Text style={styles.modalButtonText}>Abbrechen</Text>
-                        </TouchableOpacity>
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.cancelButton]}
+                                onPress={() => setIsDeleteModalVisible(false)}
+                            >
+                                <Text style={styles.modalButtonText}>Abbrechen</Text>
+                            </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={[styles.modalButton, styles.confirmButton]}
-                            onPress={handleDeleteGroup}
-                        >
-                            <Text style={[styles.modalButtonText, { color: "white" }]}>Löschen</Text>
-                        </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.confirmButton]}
+                                onPress={handleDeleteGroup}
+                            >
+                                <Text style={[styles.modalButtonText, { color: "white" }]}>
+                                    Löschen
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -389,5 +395,12 @@ const styles = StyleSheet.create({
         fontSize: 26,
         color: '#333',
         textAlign: 'center', // ⬅️ Also helps center text inside its block
-    }
+    },
+    overlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
 });

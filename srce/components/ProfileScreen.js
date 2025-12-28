@@ -11,7 +11,6 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import Modal from 'react-native-modal';
 import { useNavigation } from '@react-navigation/native';
 import { useUser } from './context/UserContext';
 import { useNetwork } from '../components/context/NetworkContext';
