@@ -40,35 +40,65 @@ export default function GroupDetails({ route, navigation }) {
 
   //const isUserAdmin = group?.role === 'ADMIN';
 
-  const fetchNewMembers = async (groupId) => {
+  const fetchNewMembers = async (groupId, options = {}) => {
+    const token = await SecureStore.getItemAsync("accessToken");
+
+    const response = await fetch(
+      `${API_URL}/api/groups/${groupId}/members`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        ...options,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch new members");
+    }
+
+    return response.json();
+  };
+
+
+
+  const reloadMembers = async () => {
+    if (!group?.groupId) return;
+
     try {
-      const token = await SecureStore.getItemAsync('accessToken');
-      const response = await fetch(
-        `${API_URL}/api/groups/${groupId}/members`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      if (!response.ok) throw new Error('Failed to fetch new members');
-      const data = await response.json();
+      setIsLoading(true);
+      const data = await fetchNewMembers(group.groupId);
       setMembers(data);
-      setIsLoading(false);
     } catch (error) {
-      console.error('Error fetching new members:', error);
-      Alert.alert('Error', 'Failed to fetch new members.');
+      console.error("Reload members failed:", error);
+      Alert.alert("Error", "Failed to fetch group members.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    console.log("🧩 Group received in GroupDetails:", group);
 
-    if (group?.groupId) {
-      fetchNewMembers(group.groupId);
-    }
-  }, [group]);
+  useEffect(() => {
+    if (!group?.groupId) return;
+
+    const controller = new AbortController();
+    setIsLoading(true);
+
+    fetchNewMembers(group.groupId, controller.signal)
+      .then(setMembers)
+      .catch((e) => {
+        if (e.name !== "AbortError") {
+          console.error(e);
+          Alert.alert("Error", "Failed to fetch new members.");
+        }
+      })
+      .finally(() => setIsLoading(false));
+
+    return () => controller.abort();
+  }, [group?.groupId]);
+
+
 
   const handleAddMember = () => {
     setIsAddMemberModalVisible(true);
@@ -90,7 +120,7 @@ export default function GroupDetails({ route, navigation }) {
 
       if (!response.ok) throw new Error('Failed to remove user');
 
-      fetchNewMembers(group.groupId);
+      reloadMembers();
       Alert.alert('Success', 'User removed from the group.');
     } catch (error) {
       console.error('Error removing user:', error);
@@ -288,26 +318,19 @@ export default function GroupDetails({ route, navigation }) {
           isVisible={isAddMemberModalVisible}
           groupId={group.groupId}
           onClose={() => setIsAddMemberModalVisible(false)}
-          onMemberAdded={() => fetchNewMembers(group.groupId)}
+          onMemberAdded={() => reloadMembers()}
         />
       )}
 
       {/* Transfer Admin Modal */}
-
       <Modal
         isVisible={isTransferModalVisible}
         onBackdropPress={() => setIsTransferModalVisible(false)}
-        onBackButtonPress={() => setIsTransferModalVisible(false)} // ← WICHTIG für Android!
+        onBackButtonPress={() => setIsTransferModalVisible(false)}
         backdropOpacity={0.5}
-        animationIn="slideInUp"  // ← fadeInUp kann auf Android Probleme machen
-        animationOut="slideOutDown"
-        useNativeDriver={true}
-        useNativeDriverForBackdrop={true}
-        style={{ justifyContent: "center", margin: 0 }}
-        avoidKeyboard={true}  // ← WICHTIG für Picker auf Android
-        statusBarTranslucent={true}  // ← Für Android Status Bar
+        animationIn="fadeIn"
+        animationOut="fadeOut"
       >
-
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Du bist Admin dieser Gruppe</Text>
           <Text style={styles.modalText}>
@@ -316,30 +339,33 @@ export default function GroupDetails({ route, navigation }) {
 
           <Picker
             selectedValue={selectedNewAdmin}
-            onValueChange={(itemValue) => setSelectedNewAdmin(itemValue)}
-            style={styles.picker}
+            onValueChange={(value) => setSelectedNewAdmin(value)}
           >
             <Picker.Item label="Wähle ein Mitglied..." value={null} />
             {members
-              .filter((m) => m.userId !== user?.id)
-              .map((member) => (
-                <Picker.Item key={member.userId} label={member.username} value={member.userId} />
+              .filter((m) => String(m.userId) !== String(userId))
+              .map((m) => (
+                <Picker.Item
+                  key={m.userId}
+                  label={m.username}
+                  value={m.userId}
+                />
               ))}
           </Picker>
 
           <View style={styles.modalButtons}>
             <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
               onPress={() => setIsTransferModalVisible(false)}
+              style={styles.cancelButton}
             >
-              <Text style={styles.modalButtonText}>Abbrechen</Text>
+              <Text>Abbrechen</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.modalButton, styles.confirmButton]}
               onPress={handleTransferAndLeave}
+              style={styles.confirmButton}
             >
-              <Text style={[styles.modalButtonText, { color: "white" }]}>OK</Text>
+              <Text style={{ color: 'white' }}>OK</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -347,13 +373,14 @@ export default function GroupDetails({ route, navigation }) {
 
 
       {/* Bottom Back Button */}
-      <TouchableOpacity
+      < TouchableOpacity
         style={styles.backButtonBottom}
-        onPress={() => navigation.goBack()}
+        onPress={() => navigation.goBack()
+        }
       >
         <Text style={styles.backButtonText}>Back to My Groups</Text>
-      </TouchableOpacity>
-    </View>
+      </TouchableOpacity >
+    </View >
   );
 }
 

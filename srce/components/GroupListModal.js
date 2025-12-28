@@ -33,9 +33,7 @@ export default function GroupListModal({
 
         <FlatList
           data={groups}
-          keyExtractor={(item, index) =>
-            item?.groupId ? item.groupId.toString() : index.toString()
-          }
+          keyExtractor={(item) => String(item.groupId)}
           contentContainerStyle={styles.listContainer}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           renderItem={({ item }) => (
@@ -44,8 +42,12 @@ export default function GroupListModal({
                 styles.groupItem,
                 selectedGroupId === item.groupId && styles.selectedGroupItem,
               ]}
-              onPress={() => safeSelect(item.groupId)}
+              onPress={() => {
+                safeSelect(item.groupId);
+                safeClose();
+              }}
               activeOpacity={0.8}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <View style={styles.avatar}>
                 <Text style={styles.avatarInitial}>

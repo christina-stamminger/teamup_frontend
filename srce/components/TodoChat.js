@@ -160,6 +160,7 @@ export default function TodoChat({
       <FlatList
         ref={flatListRef}
         data={messages}
+        style={{ flex: 1 }}           //neu
         keyExtractor={(item) =>
           item.messageId?.toString() ?? Math.random().toString()
         }
@@ -176,7 +177,7 @@ export default function TodoChat({
           </View>
         )}
         contentContainerStyle={{ paddingBottom: 12 }}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
       />
 
       {isActive && (
@@ -217,8 +218,10 @@ export default function TodoChat({
 const styles = StyleSheet.create({
   container: {
     marginTop: 15,
-    maxHeight: 300,
+    height: 300,        // 👈 fix
+    flexDirection: "column",
   },
+
   disabledContainer: {
     padding: 15,
     backgroundColor: "#F3F4F6",

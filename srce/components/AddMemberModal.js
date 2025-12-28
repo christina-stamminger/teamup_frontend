@@ -90,8 +90,13 @@ export default function AddMemberModal({
       isVisible={!!isVisible}
       onBackdropPress={safeClose}
       onBackButtonPress={safeClose}
-      avoidKeyboard
+      backdropOpacity={0.5}
+      useNativeDriver={false}
+      useNativeDriverForBackdrop={false}
+      animationIn="fadeIn"
+      animationOut="fadeOut"
     >
+
       <View style={styles.modalContent}>
         <Text style={styles.title}>Mitglied per Benutzername hinzufügen</Text>
 
