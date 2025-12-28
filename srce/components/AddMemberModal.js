@@ -1,18 +1,34 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import Modal from 'react-native-modal';
 import * as SecureStore from 'expo-secure-store';
-import { useNetwork } from '../components/context/NetworkContext';
 import Constants from "expo-constants";
+
+import { useNetwork } from '../components/context/NetworkContext';
 import { useUser } from "../components/context/UserContext";
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
-export default function AddMemberModal({ isVisible, onClose, groupId, onMemberAdded }) {
+export default function AddMemberModal({
+  isVisible = false,
+  onClose,
+  groupId,
+  onMemberAdded,
+}) {
   const [username, setUsername] = useState('');
   const { safeFetch } = useNetwork();
-  const { triggerGroupReload } = useUser(); // fetch groups nachdem user hinzugefügt wurde
+  const { triggerGroupReload, accessToken } = useUser();
 
+  // 🟢 NIEMALS undefined callbacks
+  const safeClose = onClose ?? (() => { });
+  const safeMemberAdded = onMemberAdded ?? (() => { });
+
+  // 🟢 Beim Logout sofort resetten
+  useEffect(() => {
+    if (!accessToken) {
+      setUsername('');
+    }
+  }, [accessToken]);
 
   const handleAddMember = async () => {
     if (!username.trim()) {
@@ -22,16 +38,17 @@ export default function AddMemberModal({ isVisible, onClose, groupId, onMemberAd
 
     try {
       const token = await SecureStore.getItemAsync('accessToken');
+      if (!token) return; // Logout-Schutz
 
       const response = await safeFetch(`${API_URL}/api/groups/addUser`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           username: username.trim(),
-          groupId: groupId,
+          groupId,
           role: 'MEMBER',
         }),
       });
@@ -43,25 +60,41 @@ export default function AddMemberModal({ isVisible, onClose, groupId, onMemberAd
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Mitglied konnte nicht hinzugefügt werden');
+        throw new Error(
+          errorData?.message || 'Mitglied konnte nicht hinzugefügt werden'
+        );
       }
 
       Alert.alert('Erfolg', `${username} wurde zur Gruppe hinzugefügt.`);
       setUsername('');
-      triggerGroupReload();   // Gruppenliste neu laden
-      onClose();
-      onMemberAdded();
-
+      triggerGroupReload();
+      safeClose();
+      safeMemberAdded();
     } catch (error) {
       console.error('Fehler beim Hinzufügen des Mitglieds:', error);
-      Alert.alert('Fehler', error.message || 'Mitglied konnte nicht hinzugefügt werden. Bitte überprüfe den Benutzernamen.');
+      Alert.alert(
+        'Fehler',
+        error.message ||
+        'Mitglied konnte nicht hinzugefügt werden. Bitte überprüfe den Benutzernamen.'
+      );
     }
   };
 
+  // 🟢 Modal NIE rendern, wenn ausgeloggt
+  if (!accessToken) {
+    return null;
+  }
+
   return (
-    <Modal isVisible={isVisible} onBackdropPress={onClose}>
+    <Modal
+      isVisible={!!isVisible}
+      onBackdropPress={safeClose}
+      onBackButtonPress={safeClose}
+      avoidKeyboard
+    >
       <View style={styles.modalContent}>
         <Text style={styles.title}>Mitglied per Benutzername hinzufügen</Text>
+
         <TextInput
           placeholder="Benutzername eingeben"
           placeholderTextColor="#aaa"
@@ -80,6 +113,7 @@ export default function AddMemberModal({ isVisible, onClose, groupId, onMemberAd
     </Modal>
   );
 }
+
 
 const styles = StyleSheet.create({
   modalContent: {

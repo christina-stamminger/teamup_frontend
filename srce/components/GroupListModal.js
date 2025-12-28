@@ -1,19 +1,41 @@
-// GroupListModal.js
 import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import Modal from 'react-native-modal';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { useUser } from '../components/context/UserContext';
 
+export default function GroupListModal({
+  isVisible = false,
+  groups = [],
+  selectedGroupId,
+  onClose,
+  onSelect,
+}) {
+  const { accessToken } = useUser();
 
-export default function GroupListModal({ isVisible, groups, selectedGroupId, onClose, onSelect }) {
+  // 🟢 Defensive callbacks – NIE undefined
+  const safeClose = onClose ?? (() => { });
+  const safeSelect = onSelect ?? (() => { });
+
+  // 🟢 Modal niemals rendern, wenn ausgeloggt
+  if (!accessToken) {
+    return null;
+  }
+
   return (
-    <Modal isVisible={isVisible} onBackdropPress={onClose}>
+    <Modal
+      isVisible={!!isVisible}
+      onBackdropPress={safeClose}
+      onBackButtonPress={safeClose}
+    >
       <View style={styles.modalContent}>
         <Text style={styles.modalTitle}>Wähle eine Gruppe</Text>
 
         <FlatList
           data={groups}
-          keyExtractor={(item, index) => item?.groupId ? item.groupId.toString() : index.toString()}
+          keyExtractor={(item, index) =>
+            item?.groupId ? item.groupId.toString() : index.toString()
+          }
           contentContainerStyle={styles.listContainer}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           renderItem={({ item }) => (
@@ -22,19 +44,18 @@ export default function GroupListModal({ isVisible, groups, selectedGroupId, onC
                 styles.groupItem,
                 selectedGroupId === item.groupId && styles.selectedGroupItem,
               ]}
-              onPress={() => onSelect(item.groupId)}
+              onPress={() => safeSelect(item.groupId)}
               activeOpacity={0.8}
             >
               <View style={styles.avatar}>
                 <Text style={styles.avatarInitial}>
-                  {item.groupName.charAt(0).toUpperCase()}
+                  {item.groupName?.charAt(0)?.toUpperCase() ?? '?'}
                 </Text>
               </View>
 
               <View style={styles.groupInfo}>
                 <Text style={styles.groupName}>{item.groupName}</Text>
-                
-                {/* ✅ Nur Admins sehen das Shield-Icon */}
+
                 <View style={styles.roleRow}>
                   {item.role === 'ADMIN' && (
                     <Icon

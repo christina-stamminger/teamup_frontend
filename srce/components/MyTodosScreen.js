@@ -23,12 +23,14 @@ const API_URL = Constants.expoConfig.extra.API_URL;
 
 export default function MyTodosScreen() {
   const navigation = useNavigation();
-  const { logout } = useUser();
   const {
+    logout,
     userId,
+    accessToken,
     accessToken: tokenFromCtx,
     refreshToken,
-    loading: userContextLoading
+    loading: userContextLoading,
+    triggerGroupReload
   } = useUser();
 
   const { isConnected, safeFetch, shouldShowError } = useNetwork();
@@ -114,6 +116,19 @@ export default function MyTodosScreen() {
   const extendedMembers = userRoleInGroup === 'ADMIN'
     ? [...newMembers, { type: 'addButton' }]
     : [...newMembers];
+
+  // Modal beim Logout schließen
+  useEffect(() => {
+    if (!accessToken) {
+      setIsGroupModalVisible(false);
+      setIsTrashModalVisible(false);
+      setIsMembersModalVisible(false);
+      setIsAddMemberModalVisible(false);
+      setIsCreationModalVisible(false);
+    }
+  }, [accessToken]);
+
+
 
   // FilterBar-Optionen
   const FILTER_OPTIONS = [
@@ -714,105 +729,111 @@ export default function MyTodosScreen() {
         )}
 
         {/* GroupListModal */}
-        <GroupListModal
-          isVisible={isGroupModalVisible}
-          onClose={toggleGroupModal}
-          groups={groups}
-          selectedGroupId={selectedGroupId}
-          onSelect={handleGroupSelect}
-        />
+        {accessToken && (
+          <GroupListModal
+            isVisible={isGroupModalVisible}
+            onClose={toggleGroupModal}
+            groups={groups}
+            selectedGroupId={selectedGroupId}
+            onSelect={handleGroupSelect}
+          />
+        )}
 
         {/* Trash Modal */}
-        <Modal
-          isVisible={isTrashModalVisible}
-          onBackdropPress={toggleTrashModal}
-          backdropOpacity={0.4}
-          animationIn="slideInUp"
-          animationOut="slideOutDown"
-          style={{ margin: 0, justifyContent: 'flex-end' }}
-        >
-          <View style={[styles.trashModalContainer, { minHeight: 250 }]}>
-            <Text style={styles.trashModalTitle}>🗑️ Gelöschte To-Dos</Text>
+        {accessToken && (
+          <Modal
+            isVisible={isTrashModalVisible}
+            onBackdropPress={toggleTrashModal}
+            backdropOpacity={0.4}
+            animationIn="slideInUp"
+            animationOut="slideOutDown"
+            style={{ margin: 0, justifyContent: 'flex-end' }}
+          >
+            <View style={[styles.trashModalContainer, { minHeight: 250 }]}>
+              <Text style={styles.trashModalTitle}>🗑️ Gelöschte To-Dos</Text>
 
-            {loadingTrash ? (
-              <ActivityIndicator color="#5FC9C9" />
-            ) : trashedTodos.length === 0 ? (
-              <Text style={styles.trashEmpty}>Keine gelöschten To-Dos</Text>
-            ) : (
-              <ScrollView style={{ maxHeight: 400 }}>
-                {trashedTodos.map((todo) => (
-                  <View key={todo.todoId} style={styles.trashItem}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.trashText}>{todo.title}</Text>
-                      <Text style={styles.trashDate}>
-                        gelöscht am {new Date(todo.deletedAt).toLocaleDateString('de-DE')}
-                      </Text>
+              {loadingTrash ? (
+                <ActivityIndicator color="#5FC9C9" />
+              ) : trashedTodos.length === 0 ? (
+                <Text style={styles.trashEmpty}>Keine gelöschten To-Dos</Text>
+              ) : (
+                <ScrollView style={{ maxHeight: 400 }}>
+                  {trashedTodos.map((todo) => (
+                    <View key={todo.todoId} style={styles.trashItem}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.trashText}>{todo.title}</Text>
+                        <Text style={styles.trashDate}>
+                          gelöscht am {new Date(todo.deletedAt).toLocaleDateString('de-DE')}
+                        </Text>
+                      </View>
+
+                      {/* Buttons */}
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity
+                          style={styles.restoreButton}
+                          onPress={() => handleRestore(todo.todoId)}
+                        >
+                          <Text style={styles.restoreButtonText}>Wiederherstellen</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.deleteForeverButton}
+                          onPress={() => handlePermanentDelete(todo.todoId)}
+                        >
+                          <Icon name="trash" size={16} color="#fff" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
+                  ))}
+                </ScrollView>
+              )}
 
-                    {/* Buttons */}
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <TouchableOpacity
-                        style={styles.restoreButton}
-                        onPress={() => handleRestore(todo.todoId)}
-                      >
-                        <Text style={styles.restoreButtonText}>Wiederherstellen</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.deleteForeverButton}
-                        onPress={() => handlePermanentDelete(todo.todoId)}
-                      >
-                        <Icon name="trash" size={16} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
-
-            <TouchableOpacity style={styles.closeModalButton} onPress={toggleTrashModal}>
-              <Text style={styles.closeModalButtonText}>Schließen</Text>
-            </TouchableOpacity>
-          </View>
-        </Modal>
+              <TouchableOpacity style={styles.closeModalButton} onPress={toggleTrashModal}>
+                <Text style={styles.closeModalButtonText}>Schließen</Text>
+              </TouchableOpacity>
+            </View>
+          </Modal>
+        )}
 
         {/* Members Modal */}
-        <Modal isVisible={isMembersModalVisible} onBackdropPress={toggleMembersModal} style={{ margin: 0, justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: 'white', padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '60%' }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Group Members</Text>
+        {accessToken && (
+          <Modal isVisible={isMembersModalVisible} onBackdropPress={toggleMembersModal} style={{ margin: 0, justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: 'white', padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '60%' }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Group Members</Text>
 
-            <FlatList
-              data={extendedMembers}
-              keyExtractor={(item, index) => (item.userId ? String(item.userId) : `addButton-${index}`)}
-              ItemSeparatorComponent={() => <View style={styles.separator} />}
-              renderItem={({ item }) => {
-                if (item.type === 'addButton') return <AddMemberCard onPress={handleAddMember} />;
+              <FlatList
+                data={extendedMembers}
+                keyExtractor={(item, index) => (item.userId ? String(item.userId) : `addButton-${index}`)}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+                renderItem={({ item }) => {
+                  if (item.type === 'addButton') return <AddMemberCard onPress={handleAddMember} />;
 
-                const isAdmin = item.role === 'ADMIN';
-                return (
-                  <View style={styles.memberRow}>
-                    <View style={styles.memberInfo}>
-                      <View style={[styles.avatarSmall, { backgroundColor: getAvatarColor(item.username?.charAt(0) || '?') }]}>
-                        <Text style={styles.avatarInitialMember}>{(item.username?.charAt(0) || '?').toUpperCase()}</Text>
+                  const isAdmin = item.role === 'ADMIN';
+                  return (
+                    <View style={styles.memberRow}>
+                      <View style={styles.memberInfo}>
+                        <View style={[styles.avatarSmall, { backgroundColor: getAvatarColor(item.username?.charAt(0) || '?') }]}>
+                          <Text style={styles.avatarInitialMember}>{(item.username?.charAt(0) || '?').toUpperCase()}</Text>
+                        </View>
+                        <Text style={[styles.memberName, isAdmin && styles.adminName]}>{item.username}</Text>
+                        {isAdmin && <Icon name="shield" size={12} color="#FFD700" style={{ marginLeft: 4 }} />}
                       </View>
-                      <Text style={[styles.memberName, isAdmin && styles.adminName]}>{item.username}</Text>
-                      {isAdmin && <Icon name="shield" size={12} color="#FFD700" style={{ marginLeft: 4 }} />}
-                    </View>
 
-                    {userRoleInGroup === 'ADMIN' && (
-                      <TouchableOpacity onPress={() => handleRemoveUser(item.userId)}>
-                        <Icon name="trash" size={18} color="#FF5C5C" />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              }}
-            />
-          </View>
-        </Modal>
+                      {userRoleInGroup === 'ADMIN' && (
+                        <TouchableOpacity onPress={() => handleRemoveUser(item.userId)}>
+                          <Icon name="trash" size={18} color="#FF5C5C" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                }}
+              />
+            </View>
+          </Modal>
+        )}
 
         {/* Optional: AddMemberModal mounten, wenn vorhanden */}
-        {typeof AddMemberModal === 'function' && (
+        {accessToken && typeof AddMemberModal === 'function' && (
           <AddMemberModal
             isVisible={isAddMemberModalVisible}
             onClose={() => setIsAddMemberModalVisible(false)}
@@ -825,7 +846,7 @@ export default function MyTodosScreen() {
         )}
 
         {/* Optional: GroupCreationModal – nur anzeigen, wenn per toggleCreationModal genutzt */}
-        {typeof GroupCreationModal === 'function' && (
+        {accessToken && typeof GroupCreationModal === 'function' && (
           <GroupCreationModal
             isVisible={isCreationModalVisible}
             onClose={toggleCreationModal}
@@ -835,6 +856,9 @@ export default function MyTodosScreen() {
       </KeyboardAvoidingView>
     </View>
   );
+
+
+
 }
 
 const styles = StyleSheet.create({

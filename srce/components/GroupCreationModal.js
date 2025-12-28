@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Modal from 'react-native-modal';
 import * as SecureStore from 'expo-secure-store';
@@ -8,20 +8,27 @@ import { useUser } from "../components/context/UserContext";
 const API_URL = Constants.expoConfig.extra.API_URL;
 
 export default function GroupCreationModal({
-  isVisible,
-  toggleModal,
+  isVisible = false,
+  onClose,
   userId,
   onGroupCreated,
 }) {
   const [groupName, setGroupName] = useState('');
-  // const [description, setDescription] = useState(''); // ⚠️ Auskommentiert für Release - später evtl. wieder aktivieren
   const [loading, setLoading] = useState(false);
 
-  const { triggerGroupReload } = useUser();
+  const { triggerGroupReload, accessToken } = useUser();
 
+  // 🟢 SAFE callback (niemals undefined)
+  const safeToggle = onClose ?? (() => { });
+
+  // 🟢 Modal beim Logout sofort schließen
+  useEffect(() => {
+    if (!accessToken) {
+      setGroupName('');
+    }
+  }, [accessToken]);
 
   const handleCreateGroup = async () => {
-    // ✅ Nur Gruppenname ist required, Beschreibung optional
     if (!groupName.trim()) {
       Alert.alert('Error', 'Please enter a group name.');
       return;
@@ -30,36 +37,30 @@ export default function GroupCreationModal({
     setLoading(true);
     try {
       const token = await SecureStore.getItemAsync('accessToken');
+      if (!token) return; // Logout-Schutz
+
       const response = await fetch(`${API_URL}/api/groups/create`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           groupName: groupName.trim(),
-          // description: description.trim() || null, // ⚠️ Auskommentiert für Release
-          userId: userId,
+          userId,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        const message = data?.error || 'Failed to create group';
-        throw new Error(message);
+        throw new Error(data?.error || 'Failed to create group');
       }
 
-      console.log('Group created:', data);
-
-      if (onGroupCreated) {
-        onGroupCreated(data);
-      }
-
+      onGroupCreated?.(data);
       triggerGroupReload();
       setGroupName('');
-      // setDescription(''); // ⚠️ Auskommentiert für Release
-      toggleModal();
+      safeToggle();
     } catch (error) {
       console.error('Error creating group:', error);
       Alert.alert('Error', error.message);
@@ -68,8 +69,18 @@ export default function GroupCreationModal({
     }
   };
 
+  // 🟢 WICHTIG: Modal gar nicht rendern, wenn ausgeloggt
+  if (!accessToken) {
+    return null;
+  }
+
   return (
-    <Modal isVisible={isVisible} onBackdropPress={toggleModal}>
+    <Modal
+      isVisible={!!isVisible}
+      onBackdropPress={safeToggle}
+      onBackButtonPress={safeToggle}
+      avoidKeyboard
+    >
       <View style={styles.modalContent}>
         <TextInput
           style={styles.input}
@@ -78,16 +89,7 @@ export default function GroupCreationModal({
           value={groupName}
           onChangeText={setGroupName}
         />
-        {/* ⚠️ Beschreibung auskommentiert für Release - später evtl. wieder aktivieren
-        <TextInput
-          style={styles.input}
-          placeholder="Beschreibung eingeben (optional)"
-          placeholderTextColor="#aaa"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-        />
-        */}
+
         <TouchableOpacity
           style={[styles.createButton, loading && { opacity: 0.6 }]}
           onPress={handleCreateGroup}

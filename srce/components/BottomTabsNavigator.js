@@ -1,120 +1,91 @@
 import React, { useState, useEffect } from "react";
-import { TouchableOpacity } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-//import { Home, ClipboardList, PlusCircle, Users, User2Icon } from "lucide-react-native";
-import BringitsChip from "../components/BringitsChip";
+import Toast from "react-native-toast-message";
+import Constants from "expo-constants";
+
 import { Icons } from "../ui/icons";
-import { View } from "react-native";
+import BringitsChip from "../components/BringitsChip";
+import LogoutButton from "../components/LogoutButton";
+
 import MyTodosScreen from "../components/MyTodosScreen";
 import OpenTodosScreen from "../components/OpenTodosScreen";
 import CreateTodoScreen from "../components/CreateTodoScreen";
-import LogoutButton from "../components/LogoutButton";
-import GroupCreationModal from "./GroupCreationModal";
-import ProfileScreen from "../components/ProfileScreen";
-import { jwtDecode } from "jwt-decode";
-import * as SecureStore from "expo-secure-store";
-import { useUser } from "../components/context/UserContext";
 import MyGroups from "../components/MyGroups";
-import Toast from "react-native-toast-message";
-import { Text } from "react-native";
-import Constants from "expo-constants";
+import GroupCreationModal from "./GroupCreationModal";
+
+import { useUser } from "../components/context/UserContext";
 
 const API_URL = Constants.expoConfig.extra.API_URL;
-
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabsNavigator({ navigation }) {
-  const { username, setUserId, bringits } = useUser();
+  const {
+    username,
+    userId,
+    bringits,
+    accessToken,
+    groupsVersion,
+  } = useUser();
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
   const [hasGroups, setHasGroups] = useState(false);
 
-  // 🔄 Toggle Modal
-  const toggleModal = () => {
-    setModalVisible(!isModalVisible);
-    fetchUserGroups(); // Neu laden, wenn Modal geöffnet wird
-  };
-
-  // 📡 User-ID anhand Username holen
-  const fetchUserId = async (username, token) => {
-    try {
-      console.log("📡 Fetching User ID for:", username);
-
-      const response = await fetch(
-        `${API_URL}/api/users/username/${username}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error(`Failed to fetch user ID. Status: ${response.status}`);
-
-      const userData = await response.json();
-      console.log("✅ Received User Data:", userData);
-
-      if (!userData.user?.userId) throw new Error("User ID not found in response!");
-
-      setUserId(userData.user.userId);
-      return userData.user.userId;
-    } catch (error) {
-      console.error("❌ Error fetching user ID:", error);
-      return null;
+  useEffect(() => {
+    if (!accessToken) {
+      setModalVisible(false);
+      setSelectedGroup("");
+      setGroups([]);
+      setHasGroups(false);
     }
+  }, [accessToken]);
+
+  // 🟢 Modal niemals rendern, wenn ausgeloggt
+  if (!accessToken) {
+    return null;
+  }
+
+  // 🟢 Modal nur UI – KEINE Datenlogik
+  const toggleModal = () => {
+    setModalVisible((prev) => !prev);
   };
 
-  // 📡 Gruppen anhand User-ID laden
+  // 🟢 Gruppen laden – NUR wenn User eingeloggt
   const fetchUserGroups = async () => {
+    if (!accessToken || !userId) return;
+
     try {
-      const token = await SecureStore.getItemAsync("accessToken");
-      if (!token) throw new Error("Token not found!");
-
-      const decodedToken = jwtDecode(token);
-      const username = decodedToken.sub;
-
-      const userId = await fetchUserId(username, token);
-      if (!userId) throw new Error("User ID lookup failed!");
-
-      console.log(`📡 Fetching Groups for User ID: ${userId}`);
-
       const response = await fetch(
         `${API_URL}/api/groups/myGroups?userId=${userId}`,
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
         }
       );
 
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
-      console.log("✅ Fetched Groups:", JSON.stringify(data, null, 2));
-
       setGroups(data);
-      setHasGroups(Array.isArray(data) && data.length > 0); // Sicher prüfen
+      setHasGroups(Array.isArray(data) && data.length > 0);
     } catch (error) {
       console.error("❌ Error fetching groups:", error);
-      setErrorMessage("Failed to fetch data. Please try again.");
       setHasGroups(false);
     }
   };
 
-  const { groupsVersion } = useUser();
-
+  // 🟢 Declarative Effect – logout-sicher
   useEffect(() => {
-    console.log("🔁 BottomTabs: Reloading groups because groupsVersion changed →", groupsVersion);
+    if (!accessToken || !userId) return;
     fetchUserGroups();
-  }, [username, groupsVersion]);
-
+  }, [accessToken, userId, groupsVersion]);
 
   const handleGroupSelect = (group) => {
     setSelectedGroup(group);
@@ -125,24 +96,11 @@ export default function BottomTabsNavigator({ navigation }) {
     <>
       <Tab.Navigator
         screenOptions={{
-          headerRight: () => (
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <BringitsChip
-                value={bringits}
-                onPress={() => navigation.navigate("ProfileScreen")}
-              />
-              <LogoutButton navigation={navigation} />
-            </View>
-          ),
+          headerTitle: username ? `Hallo, ${username}` : "",
+          headerTitleAlign: "center",
+          headerStyle: { backgroundColor: "#fff" },
+          headerTitleStyle: { fontSize: 22 },
 
-
-          headerStyle: {
-            backgroundColor: "#fff",
-          },
-          headerTitleStyle: {
-            fontSize: 20,
-            fontWeight: "600",
-          },
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate("ProfileScreen")}
@@ -151,16 +109,25 @@ export default function BottomTabsNavigator({ navigation }) {
               <Icons.User2 size={24} color="#5fc9c9" />
             </TouchableOpacity>
           ),
-          headerTitle: username ? `Hallo, ${username}` : "Loading...",
-          headerTitleAlign: "center",
-          headerTitleStyle: { fontSize: 22 },
+
+          headerRight: () => (
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <BringitsChip
+                value={bringits}
+                onPress={() => navigation.navigate("ProfileScreen")}
+              />
+              <LogoutButton />
+            </View>
+          ),
         }}
       >
         <Tab.Screen
           name="Meine Todos"
           component={MyTodosScreen}
           options={{
-            tabBarIcon: ({ color }) => <Icons.Home size={24} color={color} />,
+            tabBarIcon: ({ color }) => (
+              <Icons.Home size={24} color={color} />
+            ),
           }}
         />
 
@@ -168,11 +135,12 @@ export default function BottomTabsNavigator({ navigation }) {
           name="Offene Todos"
           component={OpenTodosScreen}
           options={{
-            tabBarIcon: ({ color }) => <Icons.ClipboardList size={24} color={color} />,
+            tabBarIcon: ({ color }) => (
+              <Icons.ClipboardList size={24} color={color} />
+            ),
           }}
         />
 
-        {/* ✅ CreateTodo mit Gruppen-Check */}
         <Tab.Screen
           name="Todo erstellen"
           component={CreateTodoScreen}
@@ -190,7 +158,6 @@ export default function BottomTabsNavigator({ navigation }) {
             },
           }}
           options={{
-
             tabBarIcon: ({ color }) => (
               <Icons.PlusCircle
                 size={24}
@@ -205,12 +172,13 @@ export default function BottomTabsNavigator({ navigation }) {
           name="Meine Gruppen"
           component={MyGroups}
           options={{
-            tabBarIcon: ({ color }) => <Icons.Users size={24} color={color} />,
+            tabBarIcon: ({ color }) => (
+              <Icons.Users size={24} color={color} />
+            ),
           }}
         />
       </Tab.Navigator>
 
-      {/* Group Modal */}
       <GroupCreationModal
         isVisible={isModalVisible}
         toggleModal={toggleModal}
@@ -220,5 +188,4 @@ export default function BottomTabsNavigator({ navigation }) {
       />
     </>
   );
-
 }

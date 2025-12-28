@@ -7,19 +7,13 @@ import AppStackNavigator from "./srce/components/AppStackNavigator";
 export default function AppRoot() {
   const { loading, authReady, accessToken } = useUser();
 
-  if (!authReady) {
+  if (loading || !authReady) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
       </View>
     );
   }
+  return accessToken ? <AppStackNavigator /> : <AuthNavigator />;
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
 }
