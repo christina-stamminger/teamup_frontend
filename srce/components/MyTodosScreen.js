@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Alert, FlatList, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Alert, FlatList, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Modal, BackHandler } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import * as SecureStore from 'expo-secure-store';
 import CollapsibleTodoCard from '../components/CollapsibleTodoCard';
 import { useUser } from "../components/context/UserContext";
-import { Modal } from 'react-native';
 import GroupCreationModal from "../components/GroupCreationModal";
 import AddMemberCard from '../components/AddMemberCard';
 import AddMemberModal from '../components/AddMemberModal';
@@ -15,7 +14,6 @@ import Toast from 'react-native-toast-message';
 import FilterBar from '../components/FilterBar';
 import { useNetwork } from "../components/context/NetworkContext";
 import { useNavigation } from '@react-navigation/native';
-import { BackHandler } from 'react-native';
 
 import Constants from "expo-constants";
 
@@ -154,6 +152,85 @@ export default function MyTodosScreen() {
     console.log('🔑 Using token from SecureStore:', stored ? 'found' : 'not found');
     return stored || null;
   }, [tokenFromCtx]);
+
+  // fetch
+  const fetchTodos = useCallback(async (groupId) => {
+    if (!groupId || !userId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const auth = await getAuthToken();
+      const response = await safeFetch(`${API_URL}/api/todo/group/${groupId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${auth}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response?.offline) {
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
+        return;
+      }
+
+      if (!response?.ok) throw new Error('Failed to fetch todos');
+
+      const data = await response.json();
+      const normalized = Array.isArray(data) ? data : [];
+      const filtered = normalized.filter((todo) => {
+        const status = (todo.status || '').toUpperCase();
+        const isMine = todo.userOfferedId === userId || todo.userTakenId === userId;
+        const notDeleted = !todo.deletedAt;
+        const isOffen = status === 'OFFEN';
+        const offenVisible = !isOffen || todo.userOfferedId === userId;
+        return isMine && notDeleted && offenVisible;
+      });
+
+      setTodos(filtered);
+    } catch (error) {
+      console.error('Error fetching todos:', error);
+      if (shouldShowError()) Alert.alert('Fehler', 'Todos konnten nicht geladen werden');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]); // ✅ Nur userId!
+
+
+  const fetchNewMembers = async (groupId) => {
+    try {
+      const auth = await getAuthToken();
+      const response = await safeFetch(`${API_URL}/api/groups/${groupId}/members`, {
+        headers: {
+          'Authorization': `Bearer ${auth}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response?.offline) {
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
+        return;
+      }
+
+      if (!response?.ok) throw new Error('Failed to fetch new members');
+      const data = await response.json();
+      setNewMembers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching new members:', error);
+      if (shouldShowError()) Alert.alert('Error', 'Failed to fetch new members.');
+    }
+  };
+
 
   // ✅ GUARD CLAUSE: Warte auf userId
   if (userContextLoading) {
@@ -477,81 +554,9 @@ export default function MyTodosScreen() {
     return selectedFilters.includes(status);
   });
 
-  const fetchTodos = useCallback(async (groupId) => {
-    if (!groupId || !userId) {
-      setLoading(false);
-      return;
-    }
 
-    try {
-      setLoading(true);
-      const auth = await getAuthToken();
-      const response = await safeFetch(`${API_URL}/api/todo/group/${groupId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${auth}`,
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (response?.offline) {
-        Toast.show({
-          type: 'info',
-          text1: 'Offline',
-          text2: 'Keine Internetverbindung',
-        });
-        return;
-      }
 
-      if (!response?.ok) throw new Error('Failed to fetch todos');
-
-      const data = await response.json();
-      const normalized = Array.isArray(data) ? data : [];
-      const filtered = normalized.filter((todo) => {
-        const status = (todo.status || '').toUpperCase();
-        const isMine = todo.userOfferedId === userId || todo.userTakenId === userId;
-        const notDeleted = !todo.deletedAt;
-        const isOffen = status === 'OFFEN';
-        const offenVisible = !isOffen || todo.userOfferedId === userId;
-        return isMine && notDeleted && offenVisible;
-      });
-
-      setTodos(filtered);
-    } catch (error) {
-      console.error('Error fetching todos:', error);
-      if (shouldShowError()) Alert.alert('Fehler', 'Todos konnten nicht geladen werden');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]); // ✅ Nur userId!
-
-  const fetchNewMembers = async (groupId) => {
-    try {
-      const auth = await getAuthToken();
-      const response = await safeFetch(`${API_URL}/api/groups/${groupId}/members`, {
-        headers: {
-          'Authorization': `Bearer ${auth}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response?.offline) {
-        Toast.show({
-          type: 'info',
-          text1: 'Offline',
-          text2: 'Keine Internetverbindung',
-        });
-        return;
-      }
-
-      if (!response?.ok) throw new Error('Failed to fetch new members');
-      const data = await response.json();
-      setNewMembers(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching new members:', error);
-      if (shouldShowError()) Alert.alert('Error', 'Failed to fetch new members.');
-    }
-  };
 
   const handleGroupCreated = async (newGroup) => {
     setIsCreationModalVisible(false);
@@ -805,45 +810,109 @@ export default function MyTodosScreen() {
               </View>
             </View>
           </Modal>
-
         )}
 
         {/* Members Modal */}
         {accessToken && (
-          <Modal isVisible={isMembersModalVisible} onBackdropPress={toggleMembersModal} style={{ margin: 0, justifyContent: 'flex-end' }}>
-            <View style={{ backgroundColor: 'white', padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '60%' }}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Group Members</Text>
+          <Modal
+            visible={isMembersModalVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={toggleMembersModal} // Android Back Button
+          >
+            {/* Backdrop */}
+            <TouchableWithoutFeedback onPress={toggleMembersModal}>
+              <View style={styles.trashOverlay} />
+            </TouchableWithoutFeedback>
 
-              <FlatList
-                data={extendedMembers}
-                keyExtractor={(item, index) => (item.userId ? String(item.userId) : `addButton-${index}`)}
-                ItemSeparatorComponent={() => <View style={styles.separator} />}
-                renderItem={({ item }) => {
-                  if (item.type === 'addButton') return <AddMemberCard onPress={handleAddMember} />;
-
-                  const isAdmin = item.role === 'ADMIN';
-                  return (
-                    <View style={styles.memberRow}>
-                      <View style={styles.memberInfo}>
-                        <View style={[styles.avatarSmall, { backgroundColor: getAvatarColor(item.username?.charAt(0) || '?') }]}>
-                          <Text style={styles.avatarInitialMember}>{(item.username?.charAt(0) || '?').toUpperCase()}</Text>
-                        </View>
-                        <Text style={[styles.memberName, isAdmin && styles.adminName]}>{item.username}</Text>
-                        {isAdmin && <Icon name="shield" size={12} color="#FFD700" style={{ marginLeft: 4 }} />}
-                      </View>
-
-                      {userRoleInGroup === 'ADMIN' && (
-                        <TouchableOpacity onPress={() => handleRemoveUser(item.userId)}>
-                          <Icon name="trash" size={18} color="#FF5C5C" />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  );
+            {/* Bottom Sheet */}
+            <View style={styles.trashBottomContainer}>
+              <View
+                style={{
+                  backgroundColor: 'white',
+                  padding: 20,
+                  borderTopLeftRadius: 16,
+                  borderTopRightRadius: 16,
+                  maxHeight: '60%',
                 }}
-              />
+              >
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    marginBottom: 12,
+                  }}
+                >
+                  Group Members
+                </Text>
+
+                <FlatList
+                  data={extendedMembers}
+                  keyExtractor={(item, index) =>
+                    item.userId ? String(item.userId) : `addButton-${index}`
+                  }
+                  ItemSeparatorComponent={() => <View style={styles.separator} />}
+                  keyboardShouldPersistTaps="handled"
+                  renderItem={({ item }) => {
+                    if (item.type === 'addButton') {
+                      return <AddMemberCard onPress={handleAddMember} />;
+                    }
+
+                    const isAdmin = item.role === 'ADMIN';
+                    return (
+                      <View style={styles.memberRow}>
+                        <View style={styles.memberInfo}>
+                          <View
+                            style={[
+                              styles.avatarSmall,
+                              {
+                                backgroundColor: getAvatarColor(
+                                  item.username?.charAt(0) || '?'
+                                ),
+                              },
+                            ]}
+                          >
+                            <Text style={styles.avatarInitialMember}>
+                              {(item.username?.charAt(0) || '?').toUpperCase()}
+                            </Text>
+                          </View>
+
+                          <Text
+                            style={[
+                              styles.memberName,
+                              isAdmin && styles.adminName,
+                            ]}
+                          >
+                            {item.username}
+                          </Text>
+
+                          {isAdmin && (
+                            <Icon
+                              name="shield"
+                              size={12}
+                              color="#FFD700"
+                              style={{ marginLeft: 4 }}
+                            />
+                          )}
+                        </View>
+
+                        {userRoleInGroup === 'ADMIN' && (
+                          <TouchableOpacity
+                            onPress={() => handleRemoveUser(item.userId)}
+                          >
+                            <Icon name="trash" size={18} color="#FF5C5C" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    );
+                  }}
+                />
+              </View>
             </View>
           </Modal>
         )}
+
+
 
         {/* Optional: AddMemberModal mounten, wenn vorhanden */}
         {accessToken && typeof AddMemberModal === 'function' && (

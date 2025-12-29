@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity } from 'react-native';
-import { Modal } from 'react-native';
+import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from "expo-constants";
 
