@@ -35,19 +35,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
   const toggleExpand = () => setIsExpanded(!isExpanded);
   const statusColor = getStatusColor(todo.status);
 
-  // 👇 Keyboard Handling – wenn Keyboard sichtbar wird, nach unten scrollen
-  useEffect(() => {
-    const showSub = Keyboard.addListener("keyboardDidShow", () => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    });
-    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
-    });
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
+
 
   // 🟢 PATCH Todo Status
   const updateTodoStatus = async (newStatus = "IN_ARBEIT") => {
@@ -416,7 +404,7 @@ const styles = StyleSheet.create({
   statusBadge: {
     position: 'absolute',
     top: 10,
-    right: 10,
+    right: 5,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
@@ -432,7 +420,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#333',
     marginBottom: 10,
-    paddingRight: 110, // Platz für Status-Badge
+    paddingRight: 90, // Platz für Status-Badge
   },
   userBlock: {
     marginBottom: 10,

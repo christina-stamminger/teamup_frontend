@@ -107,7 +107,6 @@ export default function TodoChat({
       setMessages((prev) => [...prev, saved]);
       setNewMessage("");
 
-      Keyboard.dismiss();
 
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -219,7 +218,7 @@ export default function TodoChat({
 const styles = StyleSheet.create({
   container: {
     marginTop: 15,
-    maxHeight: 320,        // 👈 fix
+    height: 320,
     flexDirection: "column",
   },
 
