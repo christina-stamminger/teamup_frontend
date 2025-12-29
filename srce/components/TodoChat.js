@@ -4,7 +4,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
+  ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -64,9 +64,7 @@ export default function TodoChat({
       if (response.ok) {
         const data = await response.json();
         setMessages(data);
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+
       }
     } catch (e) {
       console.error("Fetch messages error:", e);
@@ -107,10 +105,6 @@ export default function TodoChat({
       setMessages((prev) => [...prev, saved]);
       setNewMessage("");
 
-
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
     } catch (e) {
       console.error("Send message error:", e);
     }
@@ -144,21 +138,18 @@ export default function TodoChat({
   /* -------------------------------------------------- */
   return (
     <View style={styles.container}>
-      <FlatList
+      <ScrollView
         ref={flatListRef}
-        data={messages}
-        nestedScrollEnabled={true}
-        style={{ flex: 1 }}              // ✅
-        contentContainerStyle={{
-          paddingBottom: 10,
-        }}
-        onContentSizeChange={() =>       // ✅ WICHTIG
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 10 }}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() =>
           flatListRef.current?.scrollToEnd({ animated: true })
-        } keyExtractor={(item) =>
-          item.messageId?.toString() ?? Math.random().toString()
         }
-        renderItem={({ item }) => (
+      >
+        {messages.map((item) => (
           <View
+            key={item.messageId}
             style={[
               styles.messageBubble,
               item.senderId === userId
@@ -168,9 +159,9 @@ export default function TodoChat({
           >
             <Text style={styles.messageText}>{item.message}</Text>
           </View>
-        )}
-        keyboardShouldPersistTaps="handled"
-      />
+        ))}
+      </ScrollView>
+
 
       {isActive && (
         <KeyboardAvoidingView

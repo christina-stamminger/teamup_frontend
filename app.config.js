@@ -34,7 +34,7 @@ export default {
 
     android: {
       package: "com.christina.bringit",
-      versionCode: 5,
+      versionCode: 6,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff"
