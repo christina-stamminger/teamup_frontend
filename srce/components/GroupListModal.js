@@ -90,7 +90,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     maxHeight: '70%',
+    width: '90%',
   },
+
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
@@ -152,6 +154,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
+    width: "100%",
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
