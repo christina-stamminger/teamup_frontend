@@ -8,7 +8,6 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Keyboard,
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -37,18 +36,7 @@ export default function TodoChat({
   /* -------------------------------------------------- */
   /* Keyboard Handling                                  */
   /* -------------------------------------------------- */
-  useEffect(() => {
-    const keyboardShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => {
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-      }
-    );
 
-    return () => keyboardShowListener.remove();
-  }, []);
 
   /* -------------------------------------------------- */
   /* Messages                                           */
@@ -161,8 +149,13 @@ export default function TodoChat({
         ref={flatListRef}
         data={messages}
         nestedScrollEnabled={true}
-        style={{ flex: 1 }}           //neu
-        keyExtractor={(item) =>
+        style={{ flex: 1 }}              // ✅
+        contentContainerStyle={{
+          paddingBottom: 10,
+        }}
+        onContentSizeChange={() =>       // ✅ WICHTIG
+          flatListRef.current?.scrollToEnd({ animated: true })
+        } keyExtractor={(item) =>
           item.messageId?.toString() ?? Math.random().toString()
         }
         renderItem={({ item }) => (
@@ -177,49 +170,56 @@ export default function TodoChat({
             <Text style={styles.messageText}>{item.message}</Text>
           </View>
         )}
-        contentContainerStyle={{ paddingBottom: 12 }}
         keyboardShouldPersistTaps="handled"
       />
 
       {isActive && (
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            placeholder="Nachricht schreiben..."
-            value={newMessage}
-            onChangeText={setNewMessage}
-            multiline
-            returnKeyType="send"
-            onSubmitEditing={sendMessage}
-          />
-          <TouchableOpacity
-            onPress={sendMessage}
-            style={styles.sendButton}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          >
-            <Icon name="send" size={18} color="#5FC9C9" />
-          </TouchableOpacity>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={80}
+        >
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.input}
+              placeholder="Nachricht schreiben..."
+              value={newMessage}
+              onChangeText={setNewMessage}
+              multiline
+              returnKeyType="send"
+              onSubmitEditing={sendMessage}
+            />
 
-        </View>
+            <TouchableOpacity
+              onPress={sendMessage}
+              style={styles.sendButton}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
+              <Icon name="send" size={18} color="#5FC9C9" />
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       )}
 
-      {isReadOnly && (
-        <View style={styles.readOnlyBanner}>
-          <Text style={styles.readOnlyText}>
-            Dieses Todo ist{" "}
-            {status === "ERLEDIGT" ? "erledigt" : "abgelaufen"}.
-            Der Chat ist schreibgeschützt.
-          </Text>
-        </View>
-      )}
-    </View>
+      {
+        isReadOnly && (
+          <View style={styles.readOnlyBanner}>
+            <Text style={styles.readOnlyText}>
+              Dieses Todo ist{" "}
+              {status === "ERLEDIGT" ? "erledigt" : "abgelaufen"}.
+              Der Chat ist schreibgeschützt.
+            </Text>
+          </View>
+
+        )
+      }
+    </View >
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     marginTop: 15,
-    height: 300,        // 👈 fix
+    maxHeight: 320,        // 👈 fix
     flexDirection: "column",
   },
 

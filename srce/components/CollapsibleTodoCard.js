@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#333',
     marginBottom: 10,
-    paddingRight: 70,
+    paddingRight: 110, // Platz für Status-Badge
   },
   userBlock: {
     marginBottom: 10,

@@ -46,7 +46,7 @@ export default function GroupListModal({
                 ]}
                 onPress={() => {
                   safeSelect(item.groupId);
-                  safeClose(); // ✅ SOFORT schließen
+                  //safeClose(); // ✅ SOFORT schließen
                 }}
                 activeOpacity={0.8}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
