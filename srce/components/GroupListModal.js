@@ -87,7 +87,7 @@ export default function GroupListModal({
 const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     maxHeight: '70%',
     width: '90%',

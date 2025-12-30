@@ -93,7 +93,7 @@ export default function AddMemberModal({
     >
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
-          <Text style={styles.title}>Mitglied per Benutzername hinzufügen</Text>
+          <Text style={styles.title}>Mitglied hinzufügen</Text>
 
           <TextInput
             placeholder="Benutzername eingeben"
@@ -123,22 +123,23 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   title: {
-    fontWeight: 'bold',
     fontSize: 18,
     marginBottom: 12,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
+    width: '100%',
+    height: 52,          // 👈 macht das Feld sichtbar größer
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: '#F2F4F7',
+    marginBottom: 20,
     fontSize: 16,
   },
   addMemberButton: {
     backgroundColor: '#5FC9C9',
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,   // 👈 WICHTIG
+    borderRadius: 10,
     alignItems: 'center',
     marginBottom: 10,
     elevation: 2,

@@ -4,7 +4,11 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 
 const AddMemberCard = ({ onPress }) => {
   return (
-    <TouchableOpacity style={styles.addMemberRow} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.addMemberRow}
+      onPress={onPress}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
       <View style={styles.avatarSmall}>
         <Icon name="plus" size={14} color="#5fc9c9" />
       </View>

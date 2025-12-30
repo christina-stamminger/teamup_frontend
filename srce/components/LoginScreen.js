@@ -8,7 +8,6 @@ import {
   ScrollView,
   Pressable,
   Keyboard,
-  TouchableOpacity,
 } from "react-native";
 import { Handshake } from "lucide-react-native";
 import UsernameInput from "./UsernameInput";
@@ -98,8 +97,8 @@ const LoginScreen = ({ navigation }) => {
         style={{ flex: 1 }}
         onPress={Keyboard.dismiss}
       >
-        <ScrollView 
-          contentContainerStyle={styles.inner} 
+        <ScrollView
+          contentContainerStyle={styles.inner}
           keyboardShouldPersistTaps="handled"
         >
           {/* Logo */}
@@ -154,15 +153,19 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.errorText}>{errorMessage}</Text>
               ) : null}
 
-              <TouchableOpacity 
-                style={[styles.button, isLoading && styles.buttonDisabled]} 
+              <Pressable
                 onPress={handleLogin}
                 disabled={isLoading}
+                style={({ pressed }) => [
+                  styles.button,
+                  pressed && { opacity: 0.85 },
+                  isLoading && styles.buttonDisabled,
+                ]}
               >
                 <Text style={styles.buttonText}>
-                  {isLoading ? "Wird angemeldet..." : "Login"}
+                  {isLoading ? "Wird angemeldet…" : "Anmelden"}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
 
               <Text style={styles.registerText}>
                 Noch kein Konto?{" "}
@@ -196,32 +199,42 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     backgroundColor: "#5FC9C9",
-    padding: 20,
-    borderRadius: 50,
+    padding: 22,
+    borderRadius: 999,
+    shadowColor: "#5FC9C9",
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
   },
   appName: {
-    marginTop: 10,
-    fontSize: 24,
-  },
-  card: {
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-    padding: 20,
-    elevation: 3,
+    marginTop: 12,
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#1f2933", // dunkler, hochwertiger
   },
   title: {
-    fontSize: 20,
-    marginBottom: 20,
+    fontSize: 18,
+    marginBottom: 24,
     textAlign: "center",
-    color: "#404040"
+    color: "#6b7280", // ruhiger
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   form: {},
   inputGroup: {
-    marginBottom: 15,
+    marginBottom: 18,
   },
   label: {
-    marginBottom: 5,
-    color: "#404040",
+    marginBottom: 6,
+    fontSize: 13,
+    color: "#6b7280",
   },
   forgotPassword: {
     marginTop: 1,
@@ -229,25 +242,32 @@ const styles = StyleSheet.create({
     color: "#5FC9C9",
   },
   errorText: {
-    color: "red",
-    marginVertical: 10,
+    color: "#dc2626",
+    backgroundColor: "#fee2e2",
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 12,
     textAlign: "center",
+    fontSize: 14,
   },
   button: {
     backgroundColor: "#5FC9C9",
-    padding: 10,
-    borderRadius: 8,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 16,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "600",
   },
   buttonDisabled: {
     backgroundColor: "#a0d9d9",
     opacity: 0.7,
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-  },
+
   registerText: {
     marginTop: 15,
     textAlign: "center",
@@ -258,9 +278,10 @@ const styles = StyleSheet.create({
   },
   footer: {
     textAlign: "center",
-    marginTop: 20,
-    color: "#888",
-  },
+    marginTop: 30,
+    fontSize: 12,
+    color: "#9ca3af",
+  }
 });
 
 export default LoginScreen;

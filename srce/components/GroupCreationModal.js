@@ -82,6 +82,8 @@ export default function GroupCreationModal({
     >
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
+          <Text style={styles.title}>Neue Gruppe erstellen</Text>
+
           <TextInput
             style={styles.input}
             placeholder="Gruppenname eingeben"
@@ -107,38 +109,42 @@ export default function GroupCreationModal({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   modalContent: {
     backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
+    padding: 24,
+    borderRadius: 16,
     alignItems: 'center',
-    width: '80%', // optional, empfohlen
+    width: '85%',
+  },
+  title: {
+    fontSize: 18,
+    marginBottom: 16,
   },
   input: {
     width: '100%',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    marginBottom: 10,
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: '#F2F4F7',
+    marginBottom: 16,
     fontSize: 16,
   },
   createButton: {
     backgroundColor: '#5FC9C9',
-    padding: 12,
-    borderRadius: 5,
+    paddingVertical: 14,
+    paddingHorizontal: 24,   // 👈 DAS fehlt aktuell
+    borderRadius: 10,
     alignItems: 'center',
-    width: '100%',
+    width: '100%',           // optional, aber empfehlenswert
   },
   createButtonText: {
     color: '#FFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
