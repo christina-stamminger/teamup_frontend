@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   addMemberButton: {
     backgroundColor: '#5FC9C9',
     paddingVertical: 14,
-    paddingHorizontal: 24,   // 👈 WICHTIG
+    paddingHorizontal: 24,   //
     borderRadius: 10,
     alignItems: 'center',
     marginBottom: 10,

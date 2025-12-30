@@ -1,27 +1,40 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, Pressable, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 const AddMemberCard = ({ onPress }) => {
   return (
-    <TouchableOpacity
-      style={styles.addMemberRow}
+    <Pressable
       onPress={onPress}
-      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      hitSlop={12}
+      style={({ pressed }) => [
+        styles.pressArea,
+        pressed && styles.pressed,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel="Mitglied hinzufügen"
     >
       <View style={styles.avatarSmall}>
         <Icon name="plus" size={14} color="#5fc9c9" />
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
-  addMemberRow: {
-    flexDirection: 'row',
+  addText: {
+    fontSize: 16,
+    color: '#5A67D8',
+    fontWeight: '500',
+  },
+  pressArea: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+  },
+  pressed: {
+    opacity: 0.6,
   },
   avatarSmall: {
     width: 24,
@@ -30,12 +43,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0E0E0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  addText: {
-    fontSize: 16,
-    color: '#5A67D8',
-    fontWeight: '500',
   },
 });
 

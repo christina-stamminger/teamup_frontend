@@ -418,12 +418,11 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     screenTitle: {
-        fontSize: 28,
+        fontSize: 26,
         marginBottom: 24,
         marginTop: 24,
         color: '#111',
         textAlign: 'center',
-        fontWeight: '700',
     },
     label: {
         fontSize: 14,
