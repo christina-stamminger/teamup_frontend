@@ -8,6 +8,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Keyboard
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -25,31 +26,52 @@ export default function TodoChat({
 }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
-  const flatListRef = useRef(null);
+  const scrollRef = useRef(null);
 
-  const canChat = [issuerId, fulfillerId].includes(userId);
+  /* -------------------------------------------------- */
+  /* Permissions & Status                               */
+  /* -------------------------------------------------- */
+
   const status = (todoStatus || "").toUpperCase();
 
+  const isParticipant =
+    fulfillerId &&
+    [issuerId, fulfillerId].includes(userId);
+
+  const canWrite = status === "IN_ARBEIT";
+
+  const canRead =
+    isParticipant &&
+    ["IN_ARBEIT", "ERLEDIGT", "ABGELAUFEN"].includes(status);
+
+
+
+  // ✍️ Schreibbar nur während IN_ARBEIT
   const isActive = status === "IN_ARBEIT";
   const isReadOnly = ["ERLEDIGT", "ABGELAUFEN"].includes(status);
 
-  /* -------------------------------------------------- */
-  /* Keyboard Handling                                  */
-  /* -------------------------------------------------- */
 
+  // KEYBOARD
 
   /* -------------------------------------------------- */
-  /* Messages                                           */
+  /* Load Messages                                      */
   /* -------------------------------------------------- */
+
   useEffect(() => {
-    if (!todoId || !canChat) return;
+    if (!todoId || !canRead) return;
 
     fetchMessages();
-    if (isActive) {
+
+
+
+    if (canWrite) {
       const interval = setInterval(fetchMessages, 8000);
       return () => clearInterval(interval);
     }
-  }, [todoId, isActive]);
+  }, [todoId, canRead, canWrite]);
+
+
+
 
   const fetchMessages = async () => {
     try {
@@ -65,15 +87,32 @@ export default function TodoChat({
         const data = await response.json();
         setMessages(data);
 
+        // ✅ lastSeen auf SERVER-Zeit setzen
+        if (Array.isArray(data) && data.length > 0) {
+          const latest = data[data.length - 1];
+          if (latest?.createdAt) {
+            await SecureStore.setItemAsync(
+              `chat_last_seen_${todoId}`,
+              new Date(latest.createdAt).getTime().toString()
+            );
+          }
+        }
       }
     } catch (e) {
       console.error("Fetch messages error:", e);
     }
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim()) return;
 
+
+  /* -------------------------------------------------- */
+  /* Send Message                                       */
+  /* -------------------------------------------------- */
+
+  const sendMessage = async () => {
+
+    if (!newMessage.trim()) return;
+    Keyboard.dismiss();
     try {
       const token = await SecureStore.getItemAsync("accessToken");
       if (!token) return;
@@ -104,7 +143,6 @@ export default function TodoChat({
       const saved = await response.json();
       setMessages((prev) => [...prev, saved]);
       setNewMessage("");
-
     } catch (e) {
       console.error("Send message error:", e);
     }
@@ -113,111 +151,104 @@ export default function TodoChat({
   /* -------------------------------------------------- */
   /* Guards                                             */
   /* -------------------------------------------------- */
-  if (!canChat) {
-    return (
-      <View style={styles.disabledContainer}>
-        <Text style={styles.disabledText}>
-          Chat ist nur zwischen Ersteller und Übernehmer verfügbar.
-        </Text>
-      </View>
-    );
-  }
 
-  if (status === "OFFEN") {
-    return (
-      <View style={styles.disabledContainer}>
-        <Text style={styles.disabledText}>
-          Chat verfügbar, sobald das Todo übernommen wurde.
-        </Text>
-      </View>
-    );
-  }
+
+
 
   /* -------------------------------------------------- */
   /* Render                                             */
   /* -------------------------------------------------- */
+
   return (
+
     <View style={styles.container}>
+      {/* Messages */}
       <ScrollView
-        ref={flatListRef}
+        ref={scrollRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 10 }}
+        contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 18 }}
         keyboardShouldPersistTaps="handled"
         onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: true })
+          scrollRef.current?.scrollToEnd({ animated: true })
         }
       >
-        {messages.map((item) => (
-          <View
-            key={item.messageId}
-            style={[
-              styles.messageBubble,
-              item.senderId === userId
-                ? styles.myMessage
-                : styles.theirMessage,
-            ]}
-          >
-            <Text style={styles.messageText}>{item.message}</Text>
-          </View>
-        ))}
+        {messages.length === 0 ? (
+          <Text style={styles.emptyText}>Noch keine Nachrichten</Text>
+        ) : (
+          messages.map((item) => (
+            <View
+              key={item.messageId}
+              style={[
+                styles.messageBubble,
+                item.senderId === userId
+                  ? styles.myMessage
+                  : styles.theirMessage,
+              ]}
+            >
+              <Text style={styles.messageText}>{item.message}</Text>
+            </View>
+          ))
+        )}
       </ScrollView>
 
-
-      {isActive && (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={80}
-        >
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              placeholder="Nachricht schreiben..."
-              value={newMessage}
-              onChangeText={setNewMessage}
-              multiline
-              returnKeyType="send"
-              onSubmitEditing={sendMessage}
-            />
-
-            <TouchableOpacity
-              onPress={sendMessage}
-              style={styles.sendButton}
-              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-            >
-              <Icon name="send" size={18} color="#5FC9C9" />
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
+      {/* Read-only Hinweis */}
+      {isReadOnly && (
+        <View style={styles.readOnlyBanner}>
+          <Text style={styles.readOnlyText}>
+            Dieses Todo ist{" "}
+            {status === "ERLEDIGT" ? "erledigt" : "abgelaufen"}.
+            Der Chat ist schreibgeschützt.
+          </Text>
+        </View>
       )}
 
-      {
-        isReadOnly && (
-          <View style={styles.readOnlyBanner}>
-            <Text style={styles.readOnlyText}>
-              Dieses Todo ist{" "}
-              {status === "ERLEDIGT" ? "erledigt" : "abgelaufen"}.
-              Der Chat ist schreibgeschützt.
-            </Text>
-          </View>
+      {/* Input */}
+      {isActive && (
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            placeholder="Nachricht schreiben…"
+            value={newMessage}
+            onChangeText={setNewMessage}
+            multiline
+          />
+          <TouchableOpacity
+            onPress={() => {
+              Keyboard.dismiss();
+              sendMessage();
+            }} style={styles.sendButton}
+          >
+            <Icon name="send" size={18} color="#4FB6B8" />
+          </TouchableOpacity>
+        </View>
+      )}
 
-        )
-      }
-    </View >
+      {isReadOnly && (
+        <View style={styles.readOnlyBanner}>
+          <Text style={styles.readOnlyText}>
+            Dieses Todo ist erledigt. Der Chat ist schreibgeschützt.
+          </Text>
+        </View>
+      )}
+
+    </View>
   );
 }
 
+/* -------------------------------------------------- */
+/* Styles                                             */
+/* -------------------------------------------------- */
+
 const styles = StyleSheet.create({
   container: {
-    marginTop: 15,
-    height: 320,
-    flexDirection: "column",
+    flex: 1,
+    backgroundColor: "#FFFFFF",
   },
 
   disabledContainer: {
-    padding: 15,
+    padding: 16,
     backgroundColor: "#F3F4F6",
     borderRadius: 8,
-    marginTop: 15,
   },
   disabledText: {
     fontSize: 14,
@@ -225,15 +256,24 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontStyle: "italic",
   },
+
+  emptyText: {
+    textAlign: "center",
+    marginTop: 40,
+    color: "#9CA3AF",
+    fontSize: 14,
+  },
+
   messageBubble: {
     maxWidth: "75%",
     padding: 10,
     borderRadius: 12,
     marginVertical: 4,
+    marginHorizontal: 4,
   },
   myMessage: {
     alignSelf: "flex-end",
-    backgroundColor: "#5FC9C9",
+    backgroundColor: "#4FB6B8",
   },
   theirMessage: {
     alignSelf: "flex-start",
@@ -243,11 +283,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#1F2937",
   },
+
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 10,
-    paddingBottom: 5,
+    padding: 12,
+    paddingBottom: 40, // Notlösung,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
   },
@@ -256,31 +297,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#D1D5DB",
     borderRadius: 20,
-    paddingHorizontal: 15,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    marginRight: 10,
     backgroundColor: "#FFF",
-    maxHeight: 100,
+    maxHeight: 120,
   },
   sendButton: {
     padding: 12,
-    minWidth: 48,
-    minHeight: 48,
-    justifyContent: "center",
-    alignItems: "center",
+    marginLeft: 8,
   },
 
   readOnlyBanner: {
     backgroundColor: "#FEF3C7",
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: "#F59E0B",
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#F59E0B",
   },
   readOnlyText: {
     fontSize: 13,
     color: "#92400E",
-    fontWeight: "500",
+    textAlign: "center",
   },
 });

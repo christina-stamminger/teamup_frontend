@@ -219,7 +219,7 @@ const ProfileScreen = () => {
   if (loading || userContextLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#5FC9C9" />
+        <ActivityIndicator size="large" color="#4FB6B8" />
         <Text style={{ marginTop: 10 }}>Profil wird geladen...</Text>
       </View>
     );
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   input: {
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: '#ddd',
     borderRadius: 5,
     padding: 10,
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   saveButton: {
-    backgroundColor: '#5FC9C9',
+    backgroundColor: '#4FB6B8',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',

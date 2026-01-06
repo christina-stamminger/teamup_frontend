@@ -10,6 +10,7 @@ const PasswordInput = ({
   ...props
 }) => {
   const [secure, setSecure] = useState(true);
+  const [isFocused, setIsFocused] = useState(false);
 
   const handleChangeText = useCallback(
     (text) => {
@@ -26,22 +27,27 @@ const PasswordInput = ({
   return (
     <View style={styles.container}>
       <TextInput
-        {...props}
         style={[styles.input, style]}
         value={value}
-        placeholder={placeholder}
+        placeholder={isFocused ? "" : placeholder}
         secureTextEntry={secure}
         onChangeText={handleChangeText}
         autoCapitalize="none"
         autoCorrect={false}
         textContentType="password"
         importantForAutofill="no"
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        {...props}
       />
 
       <TouchableOpacity
         onPress={toggleSecure}
-        hitSlop={12}
         activeOpacity={0.7}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        style={styles.eyeButton}
+        accessibilityRole="button"
+        accessibilityLabel={secure ? "Passwort anzeigen" : "Passwort verbergen"}
       >
         {secure ? (
           <Eye size={22} color="#666" />
@@ -57,7 +63,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: "#ccc",
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -69,6 +75,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#000",
   },
-});
+  eyeButton: {
+    padding: 6,              
+    justifyContent: "center",
+    alignItems: "center",
+  },
+})
 
 export default PasswordInput;

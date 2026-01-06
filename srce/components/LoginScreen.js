@@ -29,6 +29,7 @@ const LoginScreen = ({ navigation }) => {
   const { safeFetch } = useNetwork();
 
   const handleLogin = async () => {
+    Keyboard.dismiss();
     // Validierung
     if (!inputUsername.trim() || !password.trim()) {
       setErrorMessage("Bitte Benutzername und Passwort eingeben.");
@@ -89,29 +90,27 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <Pressable
-        style={{ flex: 1 }}
-        onPress={Keyboard.dismiss}
+    <View style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           contentContainerStyle={styles.inner}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo */}
-          <View style={styles.logoContainer}>
-            <View style={styles.iconContainer}>
-              <Handshake size={40} color="#fff" />
-            </View>
-            <Text style={styles.appName}>BringIt</Text>
-          </View>
-
-          {/* Login Card */}
           <View style={styles.card}>
-            <Text style={styles.title}>Willkommen bei Bringit</Text>
+
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <View style={styles.iconContainer}>
+                <Handshake size={40} color="#fff" />
+              </View>
+              <Text style={styles.appName}>BringIt</Text>
+            </View>
+
+            {/* Login Card */}
+            <Text style={styles.title}>Hey, schön dass du da bist.</Text>
 
             <View style={styles.form}>
               <View style={styles.inputGroup}>
@@ -119,7 +118,7 @@ const LoginScreen = ({ navigation }) => {
                 <UsernameInput
                   value={inputUsername}
                   onChangeText={setInputUsername}
-                  placeholder="Benutzername eingeben"
+                  placeholder="zB bringitUser1"
                   editable={!isLoading}
                 />
               </View>
@@ -129,8 +128,7 @@ const LoginScreen = ({ navigation }) => {
                 <PasswordInput
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="Passwort eingeben"
-                  secureTextEntry
+                  placeholder="********"
                   autoCapitalize="none"
                   autoCorrect={false}
                   editable={!isLoading}
@@ -179,12 +177,11 @@ const LoginScreen = ({ navigation }) => {
             </View>
           </View>
 
-          <Text style={styles.footer}>© 2025 BringIt. Alle Rechte vorbehalten.</Text>
         </ScrollView>
-      </Pressable>
-    </KeyboardAvoidingView>
-  );
-};
+      </KeyboardAvoidingView>
+    </View>
+  )
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -195,33 +192,34 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 8,
   },
   iconContainer: {
-    backgroundColor: "#5FC9C9",
+    backgroundColor: "#4FB6B8",
     padding: 22,
     borderRadius: 999,
-    shadowColor: "#5FC9C9",
+    shadowColor: "#4FB6B8",
     shadowOpacity: 0.25,
     shadowRadius: 10,
   },
   appName: {
     marginTop: 12,
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#1f2933", // dunkler, hochwertiger
+    fontSize: 30,
+    fontWeight: "500",   // wichtig!
+    letterSpacing: 0.6,  // extrem wirkungsvoll
+    color: "#666",
   },
   title: {
     fontSize: 18,
     marginBottom: 24,
     textAlign: "center",
-    color: "#6b7280", // ruhiger
+    color: "#404040", // ruhiger
   },
   card: {
     backgroundColor: "#fff",
     borderRadius: 16,
     padding: 24,
-    shadowColor: "#000",
+    shadowColor: "#666",
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -229,7 +227,7 @@ const styles = StyleSheet.create({
   },
   form: {},
   inputGroup: {
-    marginBottom: 18,
+    marginBottom: 8,
   },
   label: {
     marginBottom: 6,
@@ -239,7 +237,7 @@ const styles = StyleSheet.create({
   forgotPassword: {
     marginTop: 1,
     textAlign: "right",
-    color: "#5FC9C9",
+    color: "#4FB6B8",
   },
   errorText: {
     color: "#dc2626",
@@ -251,8 +249,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   button: {
-    backgroundColor: "#5FC9C9",
-    height: 48,
+    backgroundColor: "#4FB6B8",
+    height: 52,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
@@ -271,17 +269,12 @@ const styles = StyleSheet.create({
   registerText: {
     marginTop: 15,
     textAlign: "center",
+    color: "#666",
   },
   registerLink: {
-    color: "#5FC9C9",
+    color: "#4FB6B8",
     fontWeight: "bold",
   },
-  footer: {
-    textAlign: "center",
-    marginTop: 30,
-    fontSize: 12,
-    color: "#9ca3af",
-  }
 });
 
 export default LoginScreen;

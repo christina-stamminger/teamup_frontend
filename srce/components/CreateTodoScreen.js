@@ -162,6 +162,8 @@ export default function CreateTodoScreen() {
     };
 
     const handleCreateTodo = async () => {
+        Keyboard.dismiss(); // 👈 HIER
+
         // Validierung
         if (!userId) {
             Alert.alert("Fehler", "Benutzer ist nicht eingeloggt. Bitte erneut anmelden.");
@@ -251,8 +253,10 @@ export default function CreateTodoScreen() {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0} // 👈 WICHTIG
             style={styles.container}
         >
+
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <ScrollView
                     contentContainerStyle={styles.scrollContainer}
@@ -413,6 +417,7 @@ const styles = StyleSheet.create({
     },
     scrollContainer: {
         flexGrow: 1,
+        paddingBottom: 120,
     },
     inner: {
         padding: 16,
@@ -487,7 +492,7 @@ const styles = StyleSheet.create({
     },
     quickButtonModern: {
         flex: 1,
-        backgroundColor: '#E0F7FA',
+        backgroundColor: '#E6F4F4',
         paddingVertical: 14,
         marginHorizontal: 6,
         borderRadius: 12,
@@ -501,7 +506,7 @@ const styles = StyleSheet.create({
     dateTimeButton: {
         backgroundColor: "#fff",
         borderWidth: 1,
-        borderColor: "#5FC9C9",
+        borderColor: "#4FB6B8",
         borderRadius: 8,
         paddingVertical: 14,
         paddingHorizontal: 16,
@@ -509,7 +514,7 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     dateTimeButtonText: {
-        color: "#5FC9C9",
+        color: "#4FB6B8",
         fontWeight: "600",
         fontSize: 15,
     },
@@ -526,14 +531,14 @@ const styles = StyleSheet.create({
         height: 26,
         borderRadius: 8,
         borderWidth: 2,
-        borderColor: '#5FC9C9',
+        borderColor: '#4FB6B8',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
     },
     checkboxChecked: {
-        backgroundColor: "#5FC9C9",
-        borderColor: "#5FC9C9",
+        backgroundColor: "#4FB6B8",
+        borderColor: "#4FB6B8",
     },
     checkmark: {
         color: "#FFFFFF",
@@ -552,7 +557,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     createButton: {
-        backgroundColor: '#5FC9C9',
+        backgroundColor: '#4FB6B8',
         padding: 18,
         borderRadius: 12,
         alignItems: 'center',

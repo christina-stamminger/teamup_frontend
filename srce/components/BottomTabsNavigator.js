@@ -16,6 +16,8 @@ import GroupCreationModal from "./GroupCreationModal";
 
 import { useUser } from "../components/context/UserContext";
 
+import { useUnread } from '../components/context/UnreadContext';
+
 const API_URL = Constants.expoConfig.extra.API_URL;
 const Tab = createBottomTabNavigator();
 
@@ -32,6 +34,8 @@ export default function BottomTabsNavigator({ navigation }) {
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [hasGroups, setHasGroups] = useState(false);
+
+  const { hasAnyUnread } = useUnread();
 
   useEffect(() => {
     if (!accessToken) {
@@ -106,7 +110,7 @@ export default function BottomTabsNavigator({ navigation }) {
               onPress={() => navigation.navigate("ProfileScreen")}
               style={{ marginLeft: 16 }}
             >
-              <Icons.User2 size={24} color="#5fc9c9" />
+              <Icons.User2 size={24} color="#4FB6B8" />
             </TouchableOpacity>
           ),
 
@@ -126,7 +130,23 @@ export default function BottomTabsNavigator({ navigation }) {
           component={MyTodosScreen}
           options={{
             tabBarIcon: ({ color }) => (
-              <Icons.Home size={24} color={color} />
+              <View style={{ width: 24, height: 24 }}>
+                <Icons.Home size={24} color={color} />
+
+                {hasAnyUnread && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: -2,
+                      right: -2,
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: "red",
+                    }}
+                  />
+                )}
+              </View>
             ),
           }}
         />

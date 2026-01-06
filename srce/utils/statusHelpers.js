@@ -9,7 +9,7 @@ export const getStatusColor = (status) => {
           case 'ERLEDIGT':
             return '#5c7cff'; // Soft Tealish Blue
           default:
-            return '#5FC9C9'; // Default Main Color
+            return '#4FB6B8'; // Default Main Color
     }
   };
   

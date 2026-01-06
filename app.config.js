@@ -1,5 +1,10 @@
 import 'dotenv/config';
 
+
+const isEasBuild =
+  process.env.EAS_BUILD_PROFILE === 'preview' ||
+  process.env.EAS_BUILD_PROFILE === 'production';
+
 export default {
   expo: {
     name: "bringit",
@@ -8,17 +13,16 @@ export default {
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
-    newArchEnabled: true,
+    newArchEnabled: isEasBuild,
 
     updates: {
-      enabled: true,
+      enabled: false,
       checkAutomatically: "ON_LOAD",
       fallbackToCacheTimeout: 0,
     },
 
-    runtimeVersion: {
-      policy: "sdkVersion",
-    },
+    //runtimeVersion: "undefined",
+    //policy: "sdkVersion",
 
     splash: {
       image: "./assets/splash-icon.png",
@@ -35,10 +39,12 @@ export default {
     android: {
       package: "com.christina.bringit",
       versionCode: 7,
+      softwareKeyboardLayoutMode: "resize",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff"
       }
+
     },
 
     web: {

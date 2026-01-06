@@ -1,11 +1,13 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
+import { Platform } from "react-native";
 
 import BottomTabsNavigator from "./BottomTabsNavigator";
 import ProfileScreen from "../components/ProfileScreen";
 import MyTodosScreen from "../components/MyTodosScreen";
 import MyGroups from "../components/MyGroups";
 import GroupDetails from "../components/GroupDetails";
+import TodoChatScreen from "../components/TodoChatScreen";
 
 const Stack = createStackNavigator();
 
@@ -17,6 +19,14 @@ export default function AppStackNavigator() {
       <Stack.Screen name="MyTodosScreen" component={MyTodosScreen} />
       <Stack.Screen name="MyGroups" component={MyGroups} />
       <Stack.Screen name="GroupDetails" component={GroupDetails} />
+      <Stack.Screen
+        name="TodoChat"
+        component={TodoChatScreen}
+        options={{
+          presentation: Platform.OS === "ios" ? "modal" : "card",
+          headerShown: false,
+        }}
+      />
     </Stack.Navigator>
   );
 }

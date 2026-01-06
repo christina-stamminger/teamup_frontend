@@ -8,6 +8,7 @@ import OfflineBanner from "./srce/components/OfflineBanner";
 
 import 'react-native-gesture-handler';
 import AppRoot from "./AppRoot";
+import { UnreadProvider } from "./srce/components/context/UnreadContext";
 
 export default function App() {
   const navigationRef = useNavigationContainerRef();
@@ -16,14 +17,15 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UserProvider>
         <NetworkProvider>
-          <NavigationContainer ref={navigationRef}>
-            <OfflineBanner />
-            <AppRoot />
-          </NavigationContainer>
-
+          <UnreadProvider>
+            <NavigationContainer ref={navigationRef}>
+              <OfflineBanner />
+              <AppRoot />
+            </NavigationContainer>
+          </UnreadProvider>
           <Toast config={toastConfig} />
         </NetworkProvider>
       </UserProvider>
-    </GestureHandlerRootView>
+    </GestureHandlerRootView >
   );
 }

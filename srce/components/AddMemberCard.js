@@ -15,7 +15,7 @@ const AddMemberCard = ({ onPress }) => {
       accessibilityLabel="Mitglied hinzufügen"
     >
       <View style={styles.avatarSmall}>
-        <Icon name="plus" size={14} color="#5fc9c9" />
+        <Icon name="plus" size={14} color="#4FB6B8" />
       </View>
     </Pressable>
   );

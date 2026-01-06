@@ -1,39 +1,63 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Alert,
-  Keyboard,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
-import Animated from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useUser } from "../components/context/UserContext";
 import { getStatusColor } from "../utils/statusHelpers";
 import * as SecureStore from "expo-secure-store";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import TodoChat from "./TodoChat";
 import Constants from "expo-constants";
+import TodoChatScreen from "./TodoChatScreen";
+import { useNavigation } from "@react-navigation/native";
+
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
-const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => {
+const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt, hasUnread }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { userId, loading, setBringits } = useUser();
   const isFocused = useIsFocused();
   const swipeableRef = useRef(null);
   const scrollRef = useRef(null);
-
-  const toggleExpand = () => setIsExpanded(!isExpanded);
+  const navigation = useNavigation();
   const statusColor = getStatusColor(todo.status);
+
+  /*
+    const toggleExpand = () => {
+      if (isChatOpen) return;
+      setIsExpanded(prev => !prev);
+    };
+  */
+  //const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // 👥 Wer darf den Chat sehen?
+  const isParticipant =
+    todo.userTakenId &&
+    [todo.userOfferedId, todo.userTakenId].includes(userId);
+
+  const canOpenChat =
+    isParticipant &&
+    ["IN_ARBEIT", "ERLEDIGT", "ABGELAUFEN"].includes(todo.status);
+
+
+  const canChat =
+    todo.status === "IN_ARBEIT" &&
+    todo.userTakenId &&
+    [todo.userOfferedId, todo.userTakenId].includes(userId);
+
+  const toggleExpand = () => {
+    setIsExpanded(prev => !prev);
+  };
 
 
 
@@ -151,7 +175,12 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
 
   return (
 
-    <Swipeable ref={swipeableRef} renderRightActions={renderRightActions}>
+    <Swipeable
+      key={todo.todoId + "-" + todo.status}
+      enabled={!isExpanded}
+      renderRightActions={renderRightActions}
+      ref={swipeableRef}
+    >
       <View
         style={[
           styles.card,
@@ -169,7 +198,21 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
           </View>
 
           {/* Titel */}
-          <Text style={styles.title}>{todo.title}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text style={styles.title}>{todo.title}</Text>
+
+            {hasUnread && (
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: "#EF4444",
+                  marginLeft: 8,
+                }}
+              />
+            )}
+          </View>
 
           {/* User Infos */}
           <View style={styles.userBlock}>
@@ -359,18 +402,27 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt }) => 
                 </View>
               )}
 
-            {/* 💬 Chat unten */}
-            <TodoChat
-              todoId={todo.todoId}
-              userId={userId}
-              issuerId={todo.userOfferedId}
-              fulfillerId={todo.userTakenId}
-              todoStatus={todo.status}
-              parentScrollRef={scrollRef}
-            />
+
+
+            {canOpenChat && (
+              <TouchableOpacity
+                style={styles.chatTrigger}
+                onPress={() => navigation.navigate("TodoChat", { todo })}
+                activeOpacity={0.85}
+              >
+                <Feather name="message-circle" size={18} color="#374151" />
+                <Text style={styles.chatTriggerText}>
+                  {todo.status === "IN_ARBEIT" ? "Kurze Rückfrage" : "Chat ansehen"}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+
           </View>
         )}
       </View>
+      {/* 💬 Chat in neuem Modal */}
+
     </Swipeable>
   );
 };
@@ -602,6 +654,24 @@ const styles = StyleSheet.create({
     color: '#C92A2A',
     fontWeight: '500',
   },
+
+  chatTrigger: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: "#F9FAFB",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  chatTriggerText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+  },
+
 });
 
 export default CollapsibleTodoCard;

@@ -15,7 +15,7 @@ export const toastConfig = {
         position: 'absolute',                  // Ensure absolute positioning
         top: height / 2 - 50,                   // Center vertically based on screen height
         left: width / 2 - 170,                  // Center horizontally based on screen width
-        borderLeftColor: '#5fc9c9',            // Customize left border color
+        borderLeftColor: '#4FB6B8',            // Customize left border color
         backgroundColor: '#fff',            // Customize background color
       }}
       contentContainerStyle={{
@@ -54,7 +54,7 @@ export const toastConfig = {
         position: 'absolute',                  // Ensure absolute positioning
         top: height / 2 - 50,                   // Center vertically based on screen height
         left: width / 2 - 170,   
-        borderLeftColor: '#5fc9c9',
+        borderLeftColor: '#4FB6B8',
         backgroundColor: '#fff',
       }}
       contentContainerStyle={{ paddingHorizontal: 15 }}

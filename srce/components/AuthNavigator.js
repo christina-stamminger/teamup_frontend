@@ -7,6 +7,7 @@ import ForgotPasswordScreen from "../components/ForgotPasswordScreen";
 import ResetPasswordScreen from "../components/ResetPasswordScreen";
 import SetNewPasswordScreen from "../components/SetNewPasswordScreen";
 
+
 const Stack = createStackNavigator();
 
 export default function AuthNavigator() {

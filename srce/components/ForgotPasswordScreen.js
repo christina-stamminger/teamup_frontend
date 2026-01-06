@@ -34,11 +34,26 @@ const ForgotPasswordScreen = ({ navigation }) => {
         body: JSON.stringify({ email }),
       });
 
-      if (response.ok || response.status === 404) {
+      const text = await response.text(); // 👈 WICHTIG
+
+      if (response.ok) {
         setSubmitted(true);
-      } else {
-        Alert.alert("Error", "Something went wrong. Please try again.");
+        return;
       }
+
+      if (response.status === 503) {
+        Alert.alert(
+          "Passwort-Reset deaktiviert",
+          text || "Der Passwort-Reset ist momentan nicht verfügbar."
+        );
+        return;
+      }
+
+      Alert.alert(
+        "Fehler",
+        text || "Something went wrong. Please try again."
+      );
+
     } catch (error) {
       console.error("Reset error:", error);
       Alert.alert("Network Error", "Could not connect to server.");
@@ -110,11 +125,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     elevation: 5,
   },
-  title: { fontSize: 20, fontWeight: "600", color: "#2A4D4D", textAlign: "center", marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: "600", color: "#404040", textAlign: "center", marginBottom: 16 },
   label: { fontSize: 14, fontWeight: "500", color: "#4A7070", marginBottom: 8 },
   input: {
     height: 48,
-    borderColor: "#5fc9c9",
+    borderColor: "#4FB6B8",
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -122,15 +137,29 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   button: {
-    backgroundColor: "#5fc9c9",
+    backgroundColor: "#4FB6B8",
+    height: 52,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: "center",
     marginBottom: 16,
   },
-  buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
-  confirmationText: { textAlign: "center", fontSize: 16, color: "#2A4D4D" },
-  backToLogin: { textAlign: "center", color: "#5fc9c9", fontWeight: "600", marginTop: 8 },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600"
+  },
+  confirmationText: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#2A4D4D"
+  },
+  backToLogin: {
+    textAlign: "center",
+    color: "#4FB6B8",
+    fontWeight: "600",
+    marginTop: 8
+  },
 });
 
 export default ForgotPasswordScreen;

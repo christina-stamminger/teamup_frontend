@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from "expo-constants";
-
+import Toast from 'react-native-toast-message';
 import { useNetwork } from '../components/context/NetworkContext';
 import { useUser } from "../components/context/UserContext";
 
@@ -31,13 +31,17 @@ export default function AddMemberModal({
 
   const handleAddMember = async () => {
     if (!username.trim()) {
-      Alert.alert('Fehler', 'Bitte gib einen Benutzernamen ein.');
+      Toast.show({
+        type: 'error',
+        text1: 'Ungültige Eingabe',
+        text2: 'Bitte gib einen Benutzernamen ein.',
+      });
       return;
     }
 
     try {
       const token = await SecureStore.getItemAsync('accessToken');
-      if (!token) return; // Logout-Schutz
+      if (!token) return;
 
       const response = await safeFetch(`${API_URL}/api/groups/addUser`, {
         method: 'POST',
@@ -52,32 +56,48 @@ export default function AddMemberModal({
         }),
       });
 
-      if (response.offline) {
-        Alert.alert('Offline', 'Keine Internetverbindung.');
+      if (response?.offline) {
+        Toast.show({
+          type: 'info',
+          text1: 'Offline',
+          text2: 'Keine Internetverbindung',
+        });
         return;
       }
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(
           errorData?.message || 'Mitglied konnte nicht hinzugefügt werden'
         );
       }
 
-      Alert.alert('Erfolg', `${username} wurde zur Gruppe hinzugefügt.`);
+      // ✅ SUCCESS
+      Toast.show({
+        type: 'success',
+        text1: 'Mitglied hinzugefügt',
+        text2: `${username} wurde zur Gruppe hinzugefügt.`,
+      });
+
       setUsername('');
       triggerGroupReload();
-      safeClose();
       safeMemberAdded();
+
+      // 🔥 Modal schließen → Toast sichtbar + User sieht Ergebnis
+      safeClose();
+
     } catch (error) {
       console.error('Fehler beim Hinzufügen des Mitglieds:', error);
-      Alert.alert(
-        'Fehler',
-        error.message ||
-        'Mitglied konnte nicht hinzugefügt werden. Bitte überprüfe den Benutzernamen.'
-      );
+
+      Toast.show({
+        type: 'error',
+        text1: 'Mitglied konnte nicht hinzugefügt werden',
+        text2: error.message || 'Unbekannter Fehler',
+      });
     }
   };
+
+
 
   // 🟢 Modal NIE rendern, wenn ausgeloggt
   if (!accessToken) {
@@ -91,8 +111,11 @@ export default function AddMemberModal({
       animationType="fade"
       onRequestClose={safeClose}   // Android Back Button
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContent}>
+      {/* ⬇️ Overlay schließt Modal */}
+      <Pressable style={styles.overlay} onPress={safeClose}>
+
+        {/* ⬇️ Modal-Inhalt blockiert Overlay-Taps */}
+        <Pressable style={styles.modalContent} onPress={() => { }}>
           <Text style={styles.title}>Mitglied hinzufügen</Text>
 
           <TextInput
@@ -109,15 +132,18 @@ export default function AddMemberModal({
           >
             <Text style={styles.addMemberText}>Mitglied hinzufügen</Text>
           </TouchableOpacity>
-        </View>
-      </View>
+        </Pressable>
+
+      </Pressable>
     </Modal>
+
   )
 }
 
 
 const styles = StyleSheet.create({
   modalContent: {
+    width: '85%',
     backgroundColor: 'white',
     padding: 20,
     borderRadius: 10,
@@ -136,7 +162,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   addMemberButton: {
-    backgroundColor: '#5FC9C9',
+    backgroundColor: '#4FB6B8',
     paddingVertical: 14,
     paddingHorizontal: 24,   //
     borderRadius: 10,

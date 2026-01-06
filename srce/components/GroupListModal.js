@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   selectedGroupItem: {
-    backgroundColor: '#E0F7FA',
+    backgroundColor: '#E6F4F4',
   },
   avatar: {
     width: 40,

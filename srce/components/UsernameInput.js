@@ -21,7 +21,7 @@ const UsernameInput = ({ value, onChangeText, placeholder, onSubmitEditing }) =>
 
 const styles = StyleSheet.create({
   input: {
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: "#ccc",
     borderRadius: 8,
     padding: 12,

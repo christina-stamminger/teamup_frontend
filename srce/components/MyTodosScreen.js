@@ -15,6 +15,7 @@ import FilterBar from '../components/FilterBar';
 import { useNetwork } from "../components/context/NetworkContext";
 import { useNavigation } from '@react-navigation/native';
 
+import { useUnread } from '../components/context/UnreadContext';
 import Constants from "expo-constants";
 
 const API_URL = Constants.expoConfig.extra.API_URL;
@@ -97,6 +98,17 @@ export default function MyTodosScreen() {
   const [isCreationModalVisible, setIsCreationModalVisible] = useState(false);
   const [isAddMemberModalVisible, setIsAddMemberModalVisible] = useState(false);
 
+
+  // Inapp Indicator in todoCard
+  const [unreadMap, setUnreadMap] = useState({});
+
+  // roter Punkt in bottom nav bei meine todos
+  const { setHasAnyUnread } = useUnread();
+
+  useEffect(() => {
+    setHasAnyUnread(Object.values(unreadMap).some(Boolean));
+  }, [unreadMap]);
+
   // Trash
   const [trashedTodos, setTrashedTodos] = useState([]);
   const [loadingTrash, setLoadingTrash] = useState(false);
@@ -126,6 +138,33 @@ export default function MyTodosScreen() {
     }
   }, [accessToken]);
 
+
+  // Inapp Indicator
+  const computeUnreadMap = async (todos) => {
+    const map = {};
+
+    for (const todo of todos) {
+      // Voraussetzung: Backend liefert lastMessageAt
+      if (!todo.lastMessageAt) {
+        map[todo.todoId] = false;
+        continue;
+      }
+
+      const lastSeen = await SecureStore.getItemAsync(
+        `chat_last_seen_${todo.todoId}`
+      );
+
+      if (!lastSeen) {
+        map[todo.todoId] = true;
+        continue;
+      }
+
+      map[todo.todoId] =
+        new Date(todo.lastMessageAt).getTime() > Number(lastSeen);
+    }
+
+    setUnreadMap(map);
+  };
 
 
   // FilterBar-Optionen
@@ -194,6 +233,8 @@ export default function MyTodosScreen() {
       });
 
       setTodos(filtered);
+      computeUnreadMap(filtered); // Inapp Indicator
+
     } catch (error) {
       console.error('Error fetching todos:', error);
       if (shouldShowError()) Alert.alert('Fehler', 'Todos konnten nicht geladen werden');
@@ -237,7 +278,7 @@ export default function MyTodosScreen() {
   if (userContextLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#5FC9C9" />
+        <ActivityIndicator size="large" color="#4FB6B8" />
         <Text style={{ marginTop: 10, color: '#666' }}>Lade Benutzerdaten...</Text>
       </View>
     );
@@ -328,8 +369,56 @@ export default function MyTodosScreen() {
         fetchTodos(selectedGroupId);
       }
 
+      // Inapp Indicator
+      // 🔴 Unread-Indicator neu berechnen beim Zurückkommen
+      if (todos.length > 0) {
+        computeUnreadMap(todos);
+      }
+
     }, [userId, selectedGroupId]) // ✅ Keine Funktionen!
   );
+
+
+  // Letzte Gruppe default mäßig laden und anzeigen
+  useEffect(() => {
+    // ❌ Wenn bereits eine Gruppe gewählt ist → nichts tun
+    if (selectedGroupId) return;
+
+    // ❌ Wenn noch keine Gruppen geladen sind → warten
+    if (!groups || groups.length === 0) return;
+
+    const restoreLastSelectedGroup = async () => {
+      try {
+        const stored = await SecureStore.getItemAsync("last_selected_group");
+        if (!stored) return;
+
+        const parsed = JSON.parse(stored);
+
+        if (!parsed?.groupId) return;
+
+        // 🔍 prüfen, ob User noch Mitglied dieser Gruppe ist
+        const match = groups.find(
+          (g) => g.groupId === parsed.groupId
+        );
+
+        if (!match) return;
+
+        // ✅ Gruppe automatisch setzen
+        setSelectedGroupId(match.groupId);
+        setSelectedGroupName(match.groupName);
+        setUserRoleInGroup(match.role);
+
+        // ✅ Daten sofort laden
+        fetchTodos(match.groupId);
+        fetchNewMembers(match.groupId);
+      } catch (err) {
+        console.warn("Failed to restore last selected group", err);
+      }
+    };
+
+    restoreLastSelectedGroup();
+  }, [groups, selectedGroupId]);
+
 
   useEffect(() => {
     if (
@@ -576,6 +665,18 @@ export default function MyTodosScreen() {
     setSelectedGroupName(selectedGroup.groupName);
     setUserRoleInGroup(selectedGroup.role);
     setIsGroupModalVisible(false);
+
+    //letzte Gruppe merken
+    SecureStore.setItemAsync(
+      "last_selected_group",
+      JSON.stringify({
+        groupId: selectedGroup.groupId,
+        groupName: selectedGroup.groupName,
+        role: selectedGroup.role,
+      })
+    );
+
+
     fetchTodos(groupId);
     fetchNewMembers(groupId);
   };
@@ -721,6 +822,7 @@ export default function MyTodosScreen() {
               <View>
                 <CollapsibleTodoCard
                   todo={item}
+                  hasUnread={unreadMap[item.todoId]} // Inapp Indicator
                   onStatusUpdated={() => fetchTodos(selectedGroupId)}
                   onDelete={(deletedId) => {
                     setTodos((prev) => prev.filter((t) => t.todoId !== deletedId));
@@ -764,7 +866,7 @@ export default function MyTodosScreen() {
                 <Text style={styles.trashModalTitle}>🗑️ Gelöschte To-Dos</Text>
 
                 {loadingTrash ? (
-                  <ActivityIndicator color="#5FC9C9" />
+                  <ActivityIndicator color="#4FB6B8" />
                 ) : trashedTodos.length === 0 ? (
                   <Text style={styles.trashEmpty}>Keine gelöschten To-Dos</Text>
                 ) : (
@@ -952,7 +1054,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F7F7',
   },
   groupButton: {
-    backgroundColor: '#5fc9c9',
+    backgroundColor: '#4FB6B8',
     padding: 12,
     borderRadius: 5,
     marginBottom: 10,
@@ -1134,7 +1236,7 @@ const styles = StyleSheet.create({
   plusIcon: {
     fontSize: 40,
     fontWeight: '700',
-    color: '#5FC9C9',
+    color: '#4FB6B8',
   },
   headerContainer: {
     marginBottom: 10,
@@ -1216,7 +1318,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   restoreButton: {
-    backgroundColor: '#5FC9C9',
+    backgroundColor: '#4FB6B8',
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 8,
@@ -1234,7 +1336,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   closeModalButtonText: {
-    color: '#5FC9C9',
+    color: '#4FB6B8',
     fontWeight: '600',
     fontSize: 16,
   },
@@ -1259,7 +1361,7 @@ const styles = StyleSheet.create({
   },
   underline: {
     height: 2,
-    backgroundColor: '#5FC9C9',
+    backgroundColor: '#4FB6B8',
     marginTop: 4,
     borderRadius: 1,
   },

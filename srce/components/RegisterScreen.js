@@ -274,27 +274,33 @@ const styles = StyleSheet.create({
   form: {
     width: "100%",
   },
+  appName: {
+    marginTop: 12,
+    fontSize: 30,
+    fontWeight: "500",   // wichtig!
+    letterSpacing: 0.6,  // extrem wirkungsvoll
+    color: "#666",
+  },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 22,
     marginBottom: 20,
+    textAlign: "center",
+    color: "#404040", // ruhiger
   },
   inputContainer: {
     marginBottom: 15,
   },
   input: {
     height: 48,
-    borderColor: "#ccc",
-    borderWidth: 1,
     borderRadius: 8,
     paddingLeft: 10,
+    backgroundColor: "#fff",
   },
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 8,
+    backgroundColor: "#fff",
   },
   passwordInput: {
     flex: 1,
@@ -307,24 +313,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  button: {
-    backgroundColor: "#5FC9C9",
-    padding: 10,
-    marginVertical: 10,
-    borderRadius: 8,
-    alignItems: "center",
-  },
+button: {
+  backgroundColor: "#4FB6B8",
+  height: 52,
+  borderRadius: 10,
+  alignItems: "center",
+  justifyContent: "center",
+  marginVertical: 12,
+},
   buttonText: {
     color: "#fff",
     fontSize: 16,
   },
-  backButton: {
-    backgroundColor: "#e0e0e0",
-    padding: 10,
-    marginVertical: 10,
-    borderRadius: 8,
-    alignItems: "center",
-  },
+backButton: {
+  backgroundColor: "#e0e0e0",
+  minHeight: 48,
+  borderRadius: 10,
+  alignItems: "center",
+  justifyContent: "center",
+  marginVertical: 8,
+},
   error: {
     color: "red",
     fontSize: 12,
@@ -336,7 +344,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     marginTop: 20,
-    backgroundColor: "#5FC9C9",
+    backgroundColor: "#4FB6B8",
     padding: 10,
     borderRadius: 5,
   },
@@ -354,7 +362,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   iconContainer: {
-    backgroundColor: "#5FC9C9",
+    backgroundColor: "#4FB6B8",
     padding: 20,
     borderRadius: 50,
   },

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Dimensions, Alert, Pressable } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useUser } from './context/UserContext';
 import GroupCreationModal from './GroupCreationModal';
@@ -19,7 +19,11 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
     const { safeFetch } = useNetwork(); // ✅ Zugriff auf safeFetch
 
     const [isCreationModalVisible, setIsCreationModalVisible] = useState(false);
-    const toggleCreationModal = () => setIsCreationModalVisible(prev => !prev);
+    //const toggleCreationModal = () => setIsCreationModalVisible(prev => !prev);
+
+    const openCreationModal = () => setIsCreationModalVisible(true);
+    const closeCreationModal = () => setIsCreationModalVisible(false);
+
 
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
     const [selectedGroupForDelete, setSelectedGroupForDelete] = useState(null);
@@ -33,9 +37,11 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
     const cardWidth = (availableWidth - totalMarginSpace) / numColumns;
 
     // ✅ Gruppen abrufen mit safeFetch
+    // ✅ Gruppen abrufen mit safeFetch
     const fetchGroups = useCallback(async () => {
         try {
             const token = await SecureStore.getItemAsync("accessToken");
+
             const response = await safeFetch(`${API_URL}/api/groups/myGroups`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -52,14 +58,22 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
                 return;
             }
 
-            if (!response.ok) throw new Error("Fehler beim Abrufen der Gruppen");
+            if (!response.ok) {
+                throw new Error("Fehler beim Abrufen der Gruppen");
+            }
 
             const data = await response.json();
             setGroups(data);
             console.log("📦 Gruppen geladen:", data);
+
         } catch (error) {
             console.error("Fehler beim Laden der Gruppen:", error);
-            Alert.alert("Fehler", "Deine Gruppen konnten nicht geladen werden.");
+
+            Toast.show({
+                type: 'error',
+                text1: 'Gruppen konnten nicht geladen werden',
+                text2: error.message || 'Unbekannter Fehler',
+            });
         }
     }, [safeFetch]);
 
@@ -169,20 +183,27 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
                 }}
                 columnWrapperStyle={{
                     justifyContent: 'flex-start',
+                    alignItems: 'stretch',
                 }}
                 renderItem={({ item }) => {
                     if (item.isCreateButton) {
                         return (
-                            <TouchableOpacity
-                                style={[styles.groupCard, styles.createGroupCard, {
-                                    width: cardWidth,
-                                    marginHorizontal: cardMargin / 2,
-                                    marginVertical: cardMargin / 2,
-                                }]}
-                                onPress={toggleCreationModal}
+                            <Pressable
+                                onPress={openCreationModal}
+                                style={({ pressed }) => [
+                                    styles.groupCard,
+                                    styles.createGroupCard,
+                                    {
+                                        width: cardWidth,
+                                        marginHorizontal: cardMargin / 2,
+                                        marginVertical: cardMargin / 2,
+                                        opacity: pressed ? 0.6 : 1,
+                                    },
+                                ]}
                             >
-                                <Icon name="plus" size={24} color="#5fc9c9" />
-                            </TouchableOpacity>
+                                <Icon name="plus" size={32} color="#4FB6B8" />
+                            </Pressable>
+
                         );
                     }
 
@@ -221,7 +242,7 @@ export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress
 
             <GroupCreationModal
                 isVisible={isCreationModalVisible}
-                onClose={toggleCreationModal}   // ✅ richtig
+                onClose={closeCreationModal}   // ✅ richtig
                 userId={userId}
                 onGroupCreated={handleGroupCreated}
             />
@@ -281,12 +302,12 @@ const styles = StyleSheet.create({
         height: 100,
     },
     createGroupCard: {
-        backgroundColor: "#E0F7FA",
-        borderColor: "#E0F7FA",
+        backgroundColor: "#E6F4F4",
+        borderColor: "#E6F4F4",
         borderWidth: 1, // sonst graue Ecken bei android!!
     },
     selectedGroupCard: {
-        borderColor: '#5fc9c9',
+        borderColor: '#4FB6B8',
         borderWidth: 2,
     },
     avatar: {
@@ -383,7 +404,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#E0E0E0',
     },
     confirmButton: {
-        backgroundColor: '#5FC9C9',
+        backgroundColor: '#4FB6B8',
     },
     modalButtonText: {
         fontSize: 16,

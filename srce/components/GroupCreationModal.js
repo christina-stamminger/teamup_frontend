@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, Pressable } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from "expo-constants";
 import { useUser } from "../components/context/UserContext";
@@ -18,7 +18,7 @@ export default function GroupCreationModal({
   const { triggerGroupReload, accessToken } = useUser();
 
   // 🟢 SAFE callback (niemals undefined)
-  const safeToggle = onClose ?? (() => { });
+  //const safeToggle = onClose ?? (() => { });
 
   // 🟢 Modal beim Logout sofort schließen
   useEffect(() => {
@@ -56,10 +56,15 @@ export default function GroupCreationModal({
         throw new Error(data?.error || 'Failed to create group');
       }
 
+      // ✅ 1. Parent informieren
       onGroupCreated?.(data);
-      triggerGroupReload();
+
+      // ✅ 2. Lokalen State resetten
       setGroupName('');
-      safeToggle();
+
+      // ✅ 3. Modal EXPLIZIT schließen
+      onClose();
+
     } catch (error) {
       console.error('Error creating group:', error);
       Alert.alert('Error', error.message);
@@ -78,10 +83,13 @@ export default function GroupCreationModal({
       visible={!!isVisible}
       transparent
       animationType="fade"
-      onRequestClose={safeToggle}   // Android Back Button
+      onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContent}>
+      {/* ⬇️ BACKDROP: schließt Modal */}
+      <Pressable style={styles.overlay} onPress={onClose}>
+
+        {/* ⬇️ MODAL: blockiert Tap */}
+        <Pressable style={styles.modalContent} onPress={() => { }}>
           <Text style={styles.title}>Neue Gruppe erstellen</Text>
 
           <TextInput
@@ -101,9 +109,11 @@ export default function GroupCreationModal({
               {loading ? 'Creating...' : 'Gruppe erstellen'}
             </Text>
           </TouchableOpacity>
-        </View>
-      </View>
+        </Pressable>
+
+      </Pressable>
     </Modal>
+
 
   );
 }
@@ -129,7 +139,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   createButton: {
-    backgroundColor: '#5FC9C9',
+    backgroundColor: '#4FB6B8',
     paddingVertical: 14,
     paddingHorizontal: 24,   // 👈 DAS fehlt aktuell
     borderRadius: 10,

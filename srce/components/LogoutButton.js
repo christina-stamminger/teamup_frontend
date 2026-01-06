@@ -11,7 +11,7 @@ export default function LogoutButton() {
       onPress={logoutUser}
       style={{ marginRight: 16 }}
     >
-      <LogOut size={24} color="#5fc9c9" />
+      <LogOut size={24} color="#4FB6B8" />
     </TouchableOpacity>
   );
 }

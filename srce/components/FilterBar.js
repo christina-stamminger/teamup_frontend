@@ -51,14 +51,14 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   filterTextActive: {
-    color: "#5FC9C9",
+    color: "#4FB6B8",
     fontWeight: "700",
   },
   activeUnderline: {
     marginTop: 4,
     height: 2,
     width: "60%",
-    backgroundColor: "#5FC9C9",
+    backgroundColor: "#4FB6B8",
     borderRadius: 2,
   },
 });

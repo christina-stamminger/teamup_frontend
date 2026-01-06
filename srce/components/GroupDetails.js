@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Button,
+  Pressable,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import AddMemberModal from './AddMemberModal';
@@ -16,7 +16,7 @@ import { useUser } from '../components/context/UserContext';
 
 import { getAvatarColor } from '../utils/getAvatarColor';
 import { Modal } from "react-native";
-import { Picker } from "@react-native-picker/picker"; // falls nicht installiert: npm install @react-native-picker/picker
+import { Picker } from "@react-native-picker/picker";
 import Toast from "react-native-toast-message";
 import Constants from "expo-constants";
 
@@ -118,15 +118,29 @@ export default function GroupDetails({ route, navigation }) {
         }
       );
 
-      if (!response.ok) throw new Error('Failed to remove user');
+      if (!response.ok) {
+        throw new Error('User konnte nicht entfernt werden');
+      }
 
-      reloadMembers();
-      Alert.alert('Success', 'User removed from the group.');
+      await reloadMembers();
+
+      Toast.show({
+        type: 'success',
+        text1: 'Mitglied entfernt',
+        text2: 'Der User wurde aus der Gruppe gelöscht.',
+      });
+
     } catch (error) {
       console.error('Error removing user:', error);
-      Alert.alert('Error', 'Could not remove user from the group.');
+
+      Toast.show({
+        type: 'error',
+        text1: 'Fehler',
+        text2: error.message || 'Mitglied konnte nicht entfernt werden',
+      });
     }
   };
+
 
   const extendedMembers = isUserAdmin
     ? [...members, { type: 'addButton' }]
@@ -137,12 +151,15 @@ export default function GroupDetails({ route, navigation }) {
     console.log("⚙️ handleAdminLeavePress triggered!");
 
     if (members.length <= 1) {
-      Alert.alert(
-        "Aktion nicht möglich",
-        "Du bist das einzige Mitglied dieser Gruppe. Bitte lösche die Gruppe stattdessen."
-      );
+      Toast.show({
+        type: 'error',
+        text1: 'Aktion nicht möglich',
+        text2: 'Du bist das einzige Mitglied. Bitte lösche die Gruppe.',
+        visibilityTime: 2500,
+      });
       return;
     }
+
     setIsTransferModalVisible(true);
   };
   console.log(userId);
@@ -228,13 +245,24 @@ export default function GroupDetails({ route, navigation }) {
           renderItem={({ item }) => {
             if (item.type === 'addButton') {
               return (
-                <TouchableOpacity style={styles.memberCard} onPress={handleAddMember}>
-                  <View style={[styles.avatarGridItem, styles.addAvatar]}>
-                    <Icon name="plus" size={18} color="#00ACC1" />
+                <Pressable
+                  onPress={handleAddMember}
+                  hitSlop={12}
+                  style={({ pressed }) => [
+                    styles.addButton,
+                    pressed && { opacity: 0.6 },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Mitglied hinzufügen"
+                >
+                  <View style={styles.addAvatarLarge}>
+                    <Icon name="plus" size={18} color="#4FB6B8" />
                   </View>
-                </TouchableOpacity>
+                </Pressable>
+
               );
             }
+
 
 
             const isAdmin = item.role === 'ADMIN';
@@ -418,6 +446,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#fff',
+    paddingLeft: 12,
   },
   memberInfo: {
     flexDirection: 'row',
@@ -441,7 +470,7 @@ const styles = StyleSheet.create({
   },
   adminName: {
     fontWeight: 'bold',
-    color: '#5FC9C9',
+    color: '#4FB6B8',
   },
   avatarGridItem: {
     width: 32,
@@ -452,14 +481,23 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   addAvatar: {
-    backgroundColor: '#E0F7FA',         // Light teal background for "add"
+    backgroundColor: '#E6F4F4',
     borderColor: '#00ACC1',
-    marginTop: 10,         // Teal border
+    padding: 6,
+  },
+
+  addMemberCard: {
+    flexDirection: 'column',
+    justifyContent: 'cneter',
+    alignItems: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 12,
+    minHeight: 72,         
   },
   backButtonBottom: {
     marginBottom: 20,
     padding: 12,
-    backgroundColor: '#5FC9C9',
+    backgroundColor: '#4FB6B8',
     alignItems: 'center',
     borderRadius: 8,
   },
@@ -505,7 +543,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#e0e0e0",
   },
   confirmButton: {
-    backgroundColor: "#5FC9C9",
+    backgroundColor: "#4FB6B8",
   },
   modalButtonText: {
     fontSize: 16,
@@ -524,5 +562,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+  },
 
+  addAvatarLarge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E6F4F4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
