@@ -121,23 +121,33 @@ export default function CreateTodoScreen() {
         hidePicker();
     };
 
-    const formatDateTime = (dateString) => {
-        if (!dateString) return "";
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleString("de-DE", {
-                weekday: "short",
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-            });
-        } catch (e) {
-            console.error("Fehler beim Formatieren von expiresAt:", e);
-            return dateString;
+    const formatDateTime = (iso) => {
+        const date = new Date(iso);
+        const now = new Date();
+
+        const isToday = date.toDateString() === now.toDateString();
+        const isTomorrow =
+            date.toDateString() ===
+            new Date(now.getTime() + 86400000).toDateString();
+
+        if (isToday) {
+            return `Heute, ${date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`;
         }
+
+        if (isTomorrow) {
+            return `Morgen, ${date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`;
+        }
+
+        return date.toLocaleString("de-DE", {
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
     };
+
 
     const applyQuickButton = (option) => {
         const now = new Date();
@@ -184,20 +194,32 @@ export default function CreateTodoScreen() {
             Alert.alert("Fehler", "Bitte eine Gruppe auswählen!");
             return;
         }
+        /*
+                const expiresWithBuffer = new Date(expiresAt.getTime() + 2 * 60 * 1000);
+                const formattedExpiresAt = new Date(
+                    expiresWithBuffer.getTime() - expiresWithBuffer.getTimezoneOffset() * 60000
+                ).toISOString().slice(0, 19);
+        */
 
-        const expiresWithBuffer = new Date(expiresAt.getTime() + 2 * 60 * 1000);
-        const formattedExpiresAt = new Date(
-            expiresWithBuffer.getTime() - expiresWithBuffer.getTimezoneOffset() * 60000
-        ).toISOString().slice(0, 19);
-
+        /*
+                const newTodo = {
+                    userOfferedId: userId,
+                    title: title.trim(),
+                    expiresAt: formattedExpiresAt,
+                    groupId: parseInt(groupId, 10),
+                    isTimeCritical,
+                    ...(description.trim() && { description: description.trim() }),
+                };
+        */
         const newTodo = {
             userOfferedId: userId,
             title: title.trim(),
-            expiresAt: formattedExpiresAt,
+            expiresAt: expiresAt.toISOString(), // 🔥 EINZIGE korrekte Lösung
             groupId: parseInt(groupId, 10),
             isTimeCritical,
             ...(description.trim() && { description: description.trim() }),
         };
+
 
         console.log("Creating todo:", newTodo);
 

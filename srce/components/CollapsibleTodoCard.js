@@ -77,7 +77,7 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt, hasUn
           todoId: todo.todoId,
           userTakenId: userId,
           status: newStatus,
-          completedAt: newStatus === "ERLEDIGT" ? currentTime : null,
+          //completedAt: newStatus === "ERLEDIGT" ? currentTime : null,
         }),
       });
 

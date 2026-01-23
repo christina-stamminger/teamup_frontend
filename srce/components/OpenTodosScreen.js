@@ -34,7 +34,7 @@ export default function OpenTodosScreen() {
     if (!isoString) return "";
     const date = new Date(isoString);
     return date.toLocaleString("de-DE", {
-      timeZone: "Europe/Berlin",
+      //timeZone: "Europe/Berlin",
       hour12: false,
       day: "2-digit",
       month: "2-digit",

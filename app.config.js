@@ -38,7 +38,7 @@ export default {
 
     android: {
       package: "com.christina.bringit",
-      versionCode: 7,
+      versionCode: 8,
       softwareKeyboardLayoutMode: "resize",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
