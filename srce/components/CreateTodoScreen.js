@@ -308,9 +308,9 @@ export default function CreateTodoScreen() {
                                 }
                             </Text>
                             {showDescription ? (
-                                <ChevronUp size={20} color="#404040" />
+                                <ChevronUp size={20} color="#888" />
                             ) : (
-                                <ChevronDown size={20} color="#404040" />
+                                <ChevronDown size={20} color="#888" />
                             )}
                         </TouchableOpacity>
 
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     },
     collapseButtonText: {
         fontSize: 14,
-        color: '#404040',
+        color: '#888',
     },
     collapsibleSection: {
         marginBottom: 10,
@@ -526,8 +526,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     dateTimeButton: {
-        backgroundColor: "#fff",
-        borderWidth: 1,
+        backgroundColor: "#E6F4F4",
         borderColor: "#4FB6B8",
         borderRadius: 8,
         paddingVertical: 14,
