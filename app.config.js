@@ -8,7 +8,7 @@ export default {
   expo: {
     name: "bringit",
     slug: "bringit",
-    version: "1.0.1",              // hier user version hochziehen
+    version: "1.0.2",              // hier user version hochziehen
 
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -30,12 +30,12 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.christina.bringit",
-      buildNumber: "2",            // für ios hier erhöhen
+      buildNumber: "3",            // für ios hier erhöhen
     },
 
     android: {
       package: "com.christina.bringit",
-      versionCode: 9,              // schon mehr builds als für ios
+      versionCode: 10,              // schon mehr builds als für ios
       softwareKeyboardLayoutMode: "resize",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
