@@ -295,6 +295,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingLeft: 10,
     backgroundColor: "#fff",
+    fontSize: 16,
   },
   passwordContainer: {
     flexDirection: "row",
@@ -306,6 +307,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     paddingLeft: 10,
+    fontSize: 16,
   },
   eyeButton: {
     paddingHorizontal: 12,

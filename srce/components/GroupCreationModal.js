@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, Pressable } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, KeyboardAvoidingView} from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from "expo-constants";
 import { useUser } from "../components/context/UserContext";
@@ -85,36 +85,45 @@ export default function GroupCreationModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      {/* ⬇️ BACKDROP: schließt Modal */}
-      <Pressable style={styles.overlay} onPress={onClose}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        {/* BACKDROP */}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.overlay}>
 
-        {/* ⬇️ MODAL: blockiert Tap */}
-        <Pressable style={styles.modalContent} onPress={() => { }}>
-          <Text style={styles.title}>Neue Gruppe erstellen</Text>
+            {/* MODAL CONTENT */}
+            <TouchableWithoutFeedback accessible={false}>
+              <View style={styles.modalContent}>
+                <Text style={styles.title}>Neue Gruppe erstellen</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Gruppenname eingeben"
-            placeholderTextColor="#aaa"
-            value={groupName}
-            onChangeText={setGroupName}
-          />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Gruppenname eingeben"
+                  placeholderTextColor="#aaa"
+                  value={groupName}
+                  onChangeText={setGroupName}
+                  autoFocus
+                  returnKeyType="done"
+                />
 
-          <TouchableOpacity
-            style={[styles.createButton, loading && { opacity: 0.6 }]}
-            onPress={handleCreateGroup}
-            disabled={loading}
-          >
-            <Text style={styles.createButtonText}>
-              {loading ? 'Creating...' : 'Gruppe erstellen'}
-            </Text>
-          </TouchableOpacity>
-        </Pressable>
+                <TouchableOpacity
+                  style={[styles.createButton, loading && { opacity: 0.6 }]}
+                  onPress={handleCreateGroup}
+                  disabled={loading}
+                >
+                  <Text style={styles.createButtonText}>
+                    {loading ? "Creating..." : "Gruppe erstellen"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
 
-      </Pressable>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
-
-
   );
 }
 

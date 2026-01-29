@@ -3,8 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Pressable,
   Keyboard,
@@ -91,14 +89,12 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1 }}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+
+      <ScrollView
+        contentContainerStyle={styles.inner}
+        keyboardShouldPersistTaps="always"
       >
-        <ScrollView
-          contentContainerStyle={styles.inner}
-          keyboardShouldPersistTaps="handled"
-        >
+        <View style={{ justifyContent: "center" }}>
           <View style={styles.card}>
 
             {/* Logo */}
@@ -176,9 +172,8 @@ const LoginScreen = ({ navigation }) => {
               </Text>
             </View>
           </View>
-
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+      </ScrollView>
     </View>
   )
 }
@@ -186,8 +181,7 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   inner: {
-    flexGrow: 1,
-    justifyContent: "center",
+    minHeight: "100%",
     padding: 30,
   },
   logoContainer: {

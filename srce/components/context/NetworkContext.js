@@ -82,7 +82,6 @@ export const NetworkProvider = ({ children }) => {
 
       if (!rt) {
         console.error("❌ Kein RefreshToken vorhanden – kann nicht refreshen.");
-        logoutUser();
         throw new Error("No refresh token");
       }
 
@@ -104,7 +103,12 @@ export const NetworkProvider = ({ children }) => {
 
       // ⬇️ WICHTIG: nur bei 200 JSON parsen
       if (response.status !== 200) {
-        throw new Error("Refresh failed: " + responseText);
+        // Logout NUR wenn RefreshToken wirklich ungültig ist
+        if (response.status === 401 || response.status === 403) {
+          console.error("❌ RefreshToken invalid → logout");
+          logoutUser();
+        }
+        throw new Error(`Refresh failed (${response.status}): ${responseText}`);
       }
 
       let data;
@@ -140,7 +144,7 @@ export const NetworkProvider = ({ children }) => {
       refreshQueue.current.forEach((p) => p.reject(err));
       refreshQueue.current = [];
 
-      logoutUser();
+      //logoutUser();
       throw err;
 
     } finally {

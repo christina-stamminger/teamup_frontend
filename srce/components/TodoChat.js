@@ -160,78 +160,73 @@ export default function TodoChat({
   /* -------------------------------------------------- */
 
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "android" ? 48 : 0}
+    >
 
-    <View style={styles.container}>
-      {/* Messages */}
-      <ScrollView
-        ref={scrollRef}
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 18 }}
-        keyboardShouldPersistTaps="handled"
-        onContentSizeChange={() =>
-          scrollRef.current?.scrollToEnd({ animated: true })
-        }
-      >
-        {messages.length === 0 ? (
-          <Text style={styles.emptyText}>Noch keine Nachrichten</Text>
-        ) : (
-          messages.map((item) => (
-            <View
-              key={item.messageId}
-              style={[
-                styles.messageBubble,
-                item.senderId === userId
-                  ? styles.myMessage
-                  : styles.theirMessage,
-              ]}
-            >
-              <Text style={styles.messageText}>{item.message}</Text>
-            </View>
-          ))
+      <View style={styles.container}>
+        {/* Messages */}
+        <ScrollView
+          ref={scrollRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 18 }}
+          keyboardShouldPersistTaps="always"
+          onContentSizeChange={() =>
+            scrollRef.current?.scrollToEnd({ animated: true })
+          }
+        >
+          {messages.length === 0 ? (
+            <Text style={styles.emptyText}>Noch keine Nachrichten</Text>
+          ) : (
+            messages.map((item) => (
+              <View
+                key={item.messageId}
+                style={[
+                  styles.messageBubble,
+                  item.senderId === userId
+                    ? styles.myMessage
+                    : styles.theirMessage,
+                ]}
+              >
+                <Text style={styles.messageText}>{item.message}</Text>
+              </View>
+            ))
+          )}
+        </ScrollView>
+
+        {/* Read-only Hinweis */}
+        {isReadOnly && (
+          <View style={styles.readOnlyBanner}>
+            <Text style={styles.readOnlyText}>
+              Dieses Todo ist{" "}
+              {status === "ERLEDIGT" ? "erledigt" : "abgelaufen"}.
+              Der Chat ist schreibgeschützt.
+            </Text>
+          </View>
         )}
-      </ScrollView>
 
-      {/* Read-only Hinweis */}
-      {isReadOnly && (
-        <View style={styles.readOnlyBanner}>
-          <Text style={styles.readOnlyText}>
-            Dieses Todo ist{" "}
-            {status === "ERLEDIGT" ? "erledigt" : "abgelaufen"}.
-            Der Chat ist schreibgeschützt.
-          </Text>
-        </View>
-      )}
-
-      {/* Input */}
-      {isActive && (
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            placeholder="Nachricht schreiben…"
-            value={newMessage}
-            onChangeText={setNewMessage}
-            multiline
-          />
-          <TouchableOpacity
-            onPress={() => {
-              Keyboard.dismiss();
-              sendMessage();
-            }} style={styles.sendButton}
-          >
-            <Icon name="send" size={18} color="#4FB6B8" />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {isReadOnly && (
-        <View style={styles.readOnlyBanner}>
-          <Text style={styles.readOnlyText}>
-            Dieses Todo ist erledigt. Der Chat ist schreibgeschützt.
-          </Text>
-        </View>
-      )}
-
-    </View>
+        {/* Input */}
+        {isActive && (
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.input}
+              placeholder="Nachricht schreiben…"
+              value={newMessage}
+              onChangeText={setNewMessage}
+              multiline
+            />
+            <TouchableOpacity
+              onPress={sendMessage}
+              style={styles.sendButton}
+            >
+              <Icon name="send" size={18} color="#4FB6B8" />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -288,7 +283,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
-    paddingBottom: 40, // Notlösung,
+    //paddingBottom: 40, // Notlösung,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
   },

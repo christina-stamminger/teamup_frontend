@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TouchableWithoutFeedback, StyleSheet } from 'react-native';
 import { Modal } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useUser } from '../components/context/UserContext';
@@ -27,60 +27,70 @@ export default function GroupListModal({
       visible={!!isVisible}
       transparent
       animationType="fade"
-      onRequestClose={safeClose}   // Android Back Button
+      onRequestClose={safeClose} // Android Back Button
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Wähle eine Gruppe</Text>
+      {/* BACKDROP */}
+      <TouchableWithoutFeedback onPress={safeClose} accessible={false}>
+        <View style={styles.overlay}>
 
-          <FlatList
-            data={groups}
-            keyExtractor={(item) => String(item.groupId)}
-            contentContainerStyle={styles.listContainer}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[
-                  styles.groupItem,
-                  selectedGroupId === item.groupId && styles.selectedGroupItem,
-                ]}
-                onPress={() => {
-                  safeSelect(item.groupId);
-                  //safeClose(); // ✅ SOFORT schließen
-                }}
-                activeOpacity={0.8}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarInitial}>
-                    {item.groupName?.charAt(0)?.toUpperCase() ?? '?'}
+          {/* MODAL CONTENT */}
+          <TouchableWithoutFeedback accessible={false}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Wähle eine Gruppe</Text>
+
+              {groups.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>
+                    Erstelle zuerst eine Gruppe in{" "}
+                    <Text style={styles.highlight}>Meine Gruppen</Text>.
                   </Text>
                 </View>
+              ) : (
+                <FlatList
+                  data={groups}
+                  keyExtractor={(item) => String(item.groupId)}
+                  contentContainerStyle={styles.listContainer}
+                  ItemSeparatorComponent={() => <View style={styles.separator} />}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.groupItem,
+                        selectedGroupId === item.groupId && styles.selectedGroupItem,
+                      ]}
+                      onPress={() => {
+                        safeSelect(item.groupId);
+                        safeClose(); // UX-üblich
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.avatar}>
+                        <Text style={styles.avatarInitial}>
+                          {item.groupName?.charAt(0)?.toUpperCase() ?? "?"}
+                        </Text>
+                      </View>
 
-                <View style={styles.groupInfo}>
-                  <Text style={styles.groupName}>{item.groupName}</Text>
+                      <View style={styles.groupInfo}>
+                        <Text style={styles.groupName}>{item.groupName}</Text>
 
-                  <View style={styles.roleRow}>
-                    {item.role === 'ADMIN' && (
-                      <Icon
-                        name="shield"
-                        size={12}
-                        color="#FFD700"
-                        style={styles.icon}
-                      />
-                    )}
-                    <Text style={styles.roleText}>
-                      {item.role === 'ADMIN' ? 'Admin' : 'Member'}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
+                        <View style={styles.roleRow}>
+                          {item.role === "ADMIN" && (
+                            <Icon name="shield" size={12} color="#FFD700" />
+                          )}
+                          <Text style={styles.roleText}>
+                            {item.role === "ADMIN" ? "Admin" : "Member"}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+            </View>
+          </TouchableWithoutFeedback>
+
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
-
   );
 }
 
@@ -159,4 +169,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  emptyState: {
+    paddingVertical: 30,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 15,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 22,
+  },
+
+  highlight: {
+    fontWeight: "700",
+    color: "#333",
+  },
+
 });

@@ -523,19 +523,19 @@ const styles = StyleSheet.create({
     quickButtonModernText: {
         color: '#00796B',
         fontWeight: '600',
-        fontSize: 14,
+        fontSize: 15,
     },
     dateTimeButton: {
         backgroundColor: "#E6F4F4",
         borderColor: "#4FB6B8",
-        borderRadius: 8,
+        borderRadius: 12,
         paddingVertical: 14,
         paddingHorizontal: 16,
         alignItems: "center",
         marginBottom: 15,
     },
     dateTimeButtonText: {
-        color: "#4FB6B8",
+        color: "#00796B",
         fontWeight: "600",
         fontSize: 15,
     },

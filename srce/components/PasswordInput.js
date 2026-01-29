@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { TextInput, View, TouchableOpacity, StyleSheet } from "react-native";
+import { TextInput, View, Pressable, StyleSheet } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
 
 const PasswordInput = ({
@@ -41,7 +41,7 @@ const PasswordInput = ({
         {...props}
       />
 
-      <TouchableOpacity
+      <Pressable
         onPress={toggleSecure}
         activeOpacity={0.7}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -54,7 +54,7 @@ const PasswordInput = ({
         ) : (
           <EyeOff size={22} color="#666" />
         )}
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 };
@@ -76,10 +76,11 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   eyeButton: {
-    padding: 6,              
+    width: 32,
+    height: 32,
     justifyContent: "center",
     alignItems: "center",
-  },
+  }
 })
 
 export default PasswordInput;
