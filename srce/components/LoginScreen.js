@@ -12,10 +12,9 @@ import UsernameInput from "./UsernameInput";
 import PasswordInput from "./PasswordInput";
 import { useUser } from "../components/context/UserContext";
 import { useNetwork } from "../components/context/NetworkContext";
-import Constants from "expo-constants";
 import Toast from "react-native-toast-message";
+import { API_URL } from "../config/env";
 
-const API_URL = Constants.expoConfig.extra.API_URL;
 
 const LoginScreen = ({ navigation }) => {
   const [inputUsername, setInputUsername] = useState("");
@@ -89,12 +88,11 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1 }}>
-
       <ScrollView
-        contentContainerStyle={styles.inner}
+        contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="always"
       >
-        <View style={{ justifyContent: "center" }}>
+        <View style={styles.centerWrapper}>
           <View style={styles.card}>
 
             {/* Logo */}
@@ -106,7 +104,7 @@ const LoginScreen = ({ navigation }) => {
             </View>
 
             {/* Login Card */}
-            <Text style={styles.title}>Hey, schön dass du da bist.</Text>
+            <Text style={styles.title}>Hi, schön dass du da bist.</Text>
 
             <View style={styles.form}>
               <View style={styles.inputGroup}>
@@ -181,7 +179,6 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   inner: {
-    minHeight: "100%",
     padding: 30,
   },
   logoContainer: {
@@ -269,6 +266,16 @@ const styles = StyleSheet.create({
     color: "#4FB6B8",
     fontWeight: "bold",
   },
+  scrollContainer: {
+    flexGrow: 1,     // ⬅️ DAS ist der Schlüssel
+    padding: 30,
+  },
+
+  centerWrapper: {
+    flex: 1,                 // ⬅️ gibt Höhe
+    justifyContent: "center" // ⬅️ kann jetzt wirken
+  },
+
 });
 
 export default LoginScreen;

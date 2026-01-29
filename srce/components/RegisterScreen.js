@@ -16,9 +16,8 @@ import { Eye, EyeOff } from "lucide-react-native";
 import { Handshake } from "lucide-react-native";
 import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch + shouldShowError
 import Toast from "react-native-toast-message";
-import Constants from "expo-constants";
+import { API_URL } from "../config/env"; 
 
-const API_URL = Constants.expoConfig.extra.API_URL;
 
 // Email und PW VALIDIERUNGSCHEMA mit Yup
 const usernameRegex = /^[A-Za-z0-9._-]{3,20}$/;
@@ -315,26 +314,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-button: {
-  backgroundColor: "#4FB6B8",
-  height: 52,
-  borderRadius: 10,
-  alignItems: "center",
-  justifyContent: "center",
-  marginVertical: 12,
-},
+  button: {
+    backgroundColor: "#4FB6B8",
+    height: 52,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 12,
+  },
   buttonText: {
     color: "#fff",
     fontSize: 16,
   },
-backButton: {
-  backgroundColor: "#e0e0e0",
-  minHeight: 48,
-  borderRadius: 10,
-  alignItems: "center",
-  justifyContent: "center",
-  marginVertical: 8,
-},
+  backButton: {
+    backgroundColor: "#e0e0e0",
+    minHeight: 48,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 8,
+  },
   error: {
     color: "red",
     fontSize: 12,

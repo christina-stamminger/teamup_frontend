@@ -8,9 +8,8 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { Modal } from "react-native";
 import Toast from "react-native-toast-message";
 import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch importiert
-import Constants from "expo-constants";
+import { API_URL } from "../config/env";
 
-const API_URL = Constants.expoConfig.extra.API_URL;
 
 export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress }) {
     const [groups, setGroups] = useState([]);

@@ -15,9 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useUser } from './context/UserContext';
 import { useNetwork } from '../components/context/NetworkContext';
 import * as SecureStore from 'expo-secure-store';
-import Constants from "expo-constants";
-
-const API_URL = Constants.expoConfig.extra.API_URL;
+import { API_URL } from "../config/env";
 
 const ProfileScreen = () => {
   const { userId, accessToken, loading: userContextLoading, logout } = useUser();

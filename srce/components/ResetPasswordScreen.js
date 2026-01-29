@@ -11,9 +11,8 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
-import Constants from "expo-constants";
+import { API_URL } from "../config/env";
 
-const API_URL = Constants.expoConfig.extra.API_URL;
 
 export default function ResetPasswordScreen({ route, navigation }) {
   const { token } = route.params || {};

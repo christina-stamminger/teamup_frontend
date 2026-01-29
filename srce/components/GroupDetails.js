@@ -18,9 +18,7 @@ import { getAvatarColor } from '../utils/getAvatarColor';
 import { Modal } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Toast from "react-native-toast-message";
-import Constants from "expo-constants";
-
-const API_URL = Constants.expoConfig.extra.API_URL;
+import { API_URL } from "../config/env"; // Pfad anpassen
 
 export default function GroupDetails({ route, navigation }) {
   const { group } = route.params;

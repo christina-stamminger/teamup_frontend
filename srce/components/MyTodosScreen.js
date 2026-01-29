@@ -16,9 +16,7 @@ import { useNetwork } from "../components/context/NetworkContext";
 import { useNavigation } from '@react-navigation/native';
 
 import { useUnread } from '../components/context/UnreadContext';
-import Constants from "expo-constants";
-
-const API_URL = Constants.expoConfig.extra.API_URL;
+import { API_URL } from "../config/env";
 
 export default function MyTodosScreen() {
   const navigation = useNavigation();
