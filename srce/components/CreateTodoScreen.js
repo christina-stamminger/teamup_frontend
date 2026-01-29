@@ -21,9 +21,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useNetwork } from "../components/context/NetworkContext";
-import Constants from "expo-constants";
-
-const API_URL = Constants.expoConfig.extra.API_URL;
+import { API_URL } from "../../config/env";
 
 export default function CreateTodoScreen() {
     const [title, setTitle] = useState("");

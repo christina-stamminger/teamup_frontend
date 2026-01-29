@@ -11,9 +11,7 @@ import {
   Keyboard,
   Alert,
 } from "react-native";
-import Constants from "expo-constants";
-
-const API_URL = Constants.expoConfig.extra.API_URL;
+import { API_URL } from "../../config/env";
 
 
 const ForgotPasswordScreen = ({ navigation }) => {

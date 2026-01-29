@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import Constants from "expo-constants";
 import Toast from 'react-native-toast-message';
 import { useNetwork } from '../components/context/NetworkContext';
 import { useUser } from "../components/context/UserContext";
 
-const API_URL = Constants.expoConfig.extra.API_URL;
+import { API_URL } from "../../config/env";
 
 export default function AddMemberModal({
   isVisible = false,

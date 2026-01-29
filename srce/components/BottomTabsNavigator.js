@@ -2,23 +2,19 @@ import React, { useState, useEffect } from "react";
 import { View, TouchableOpacity } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Toast from "react-native-toast-message";
-import Constants from "expo-constants";
-
 import { Icons } from "../ui/icons";
 import BringitsChip from "../components/BringitsChip";
 import LogoutButton from "../components/LogoutButton";
-
 import MyTodosScreen from "../components/MyTodosScreen";
 import OpenTodosScreen from "../components/OpenTodosScreen";
 import CreateTodoScreen from "../components/CreateTodoScreen";
 import MyGroups from "../components/MyGroups";
 import GroupCreationModal from "./GroupCreationModal";
-
 import { useUser } from "../components/context/UserContext";
-
 import { useUnread } from '../components/context/UnreadContext';
 
-const API_URL = Constants.expoConfig.extra.API_URL;
+import { API_URL } from "../../config/env";
+
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabsNavigator({ navigation }) {

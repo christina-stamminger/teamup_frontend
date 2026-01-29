@@ -13,7 +13,7 @@ import PasswordInput from "./PasswordInput";
 import { useUser } from "../components/context/UserContext";
 import { useNetwork } from "../components/context/NetworkContext";
 import Toast from "react-native-toast-message";
-import { API_URL } from "../config/env";
+import { API_URL } from "../../config/env";
 
 
 const LoginScreen = ({ navigation }) => {

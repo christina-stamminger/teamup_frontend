@@ -16,7 +16,7 @@ import { Eye, EyeOff } from "lucide-react-native";
 import { Handshake } from "lucide-react-native";
 import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch + shouldShowError
 import Toast from "react-native-toast-message";
-import { API_URL } from "../config/env"; 
+import { API_URL } from "../../config/env";
 
 
 // Email und PW VALIDIERUNGSCHEMA mit Yup

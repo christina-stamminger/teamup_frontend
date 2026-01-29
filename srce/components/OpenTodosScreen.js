@@ -12,7 +12,7 @@ import CollapsibleTodoCard from "../components/CollapsibleTodoCard";
 import { useIsFocused } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch importiert
-import { API_URL } from "../config/env";
+import { API_URL } from "../../config/env";
 
 
 export default function OpenTodosScreen() {

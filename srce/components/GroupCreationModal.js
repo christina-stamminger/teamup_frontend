@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, KeyboardAvoidingView} from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import Constants from "expo-constants";
 import { useUser } from "../components/context/UserContext";
 
-const API_URL = Constants.expoConfig.extra.API_URL;
+import { API_URL } from "../../config/env";
+
 
 export default function GroupCreationModal({
   isVisible = false,

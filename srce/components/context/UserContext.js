@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import * as SecureStore from "expo-secure-store";
 import { registerPushToken } from '../../notifications/registerPushToken';
 import { setupNotifications } from "../../notifications/notifications";
-import { API_URL } from "../config/env";
+import { API_URL } from "../../config/env";
 
 const UserContext = createContext();
 export const useUser = () => useContext(UserContext);

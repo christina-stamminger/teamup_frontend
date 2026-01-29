@@ -15,13 +15,10 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import { Feather } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
-import TodoChat from "./TodoChat";
-import Constants from "expo-constants";
-import TodoChatScreen from "./TodoChatScreen";
 import { useNavigation } from "@react-navigation/native";
 
 
-const API_URL = Constants.expoConfig.extra.API_URL;
+import { API_URL } from "../../config/env";
 
 const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt, hasUnread }) => {
   const [isExpanded, setIsExpanded] = useState(false);

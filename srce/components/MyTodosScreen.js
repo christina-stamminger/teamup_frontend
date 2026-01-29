@@ -16,7 +16,7 @@ import { useNetwork } from "../components/context/NetworkContext";
 import { useNavigation } from '@react-navigation/native';
 
 import { useUnread } from '../components/context/UnreadContext';
-import { API_URL } from "../config/env";
+import { API_URL } from "../../config/env";
 
 export default function MyTodosScreen() {
   const navigation = useNavigation();

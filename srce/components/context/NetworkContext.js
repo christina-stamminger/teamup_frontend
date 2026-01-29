@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from "r
 import NetInfo from "@react-native-community/netinfo";
 import * as SecureStore from "expo-secure-store";
 import { useUser } from "./UserContext";
-import { API_URL } from "../config/env";
+import { API_URL } from "../../config/env";
 
 
 const NetworkContext = createContext({ isConnected: true });
