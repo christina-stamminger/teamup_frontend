@@ -16,7 +16,7 @@ import { useNetwork } from "../components/context/NetworkContext";
 import { useNavigation } from '@react-navigation/native';
 import { useUnread } from '../components/context/UnreadContext';
 import { API_URL, APP_ENV } from "../config/env";
-import { setupNotifications } from '../../notifications/notifications';
+import { setupNotifications } from '../notifications/notifications';
 import { registerPushTokenSafely } from '../services/pushService';
 
 export default function MyTodosScreen() {
