@@ -1,8 +1,8 @@
 import 'dotenv/config';
 
-const isEasBuild =
-  process.env.EAS_BUILD_PROFILE === 'preview' ||
-  process.env.EAS_BUILD_PROFILE === 'production';
+const isEasBuild = ['development', 'preview', 'production'].includes(
+  process.env.EAS_BUILD_PROFILE
+);
 
 export default {
   expo: {
