@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import { API_URL, APP_ENV } from "../../config/env";
+import { API_URL, APP_ENV } from "../config/env";
 
 
 export async function registerPushToken(accessToken) {
