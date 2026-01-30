@@ -213,15 +213,16 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   // ==========================================================
-  // 🔥 Logged-In → Notifications
+  // 🔥 Logged-In → Notifications 
   // ==========================================================
+  /* CRASH VERURSACHER?? darf nicht hier rein
   useEffect(() => {
     if (!authReady || !accessToken) return;
 
     setupNotifications();
     registerPushToken(accessToken).catch(() => { });
   }, [authReady, accessToken]);
-
+*/
   // ==========================================================
   // 🔵 Group Reload System
   // ==========================================================

@@ -14,9 +14,10 @@ import Toast from 'react-native-toast-message';
 import FilterBar from '../components/FilterBar';
 import { useNetwork } from "../components/context/NetworkContext";
 import { useNavigation } from '@react-navigation/native';
-
 import { useUnread } from '../components/context/UnreadContext';
 import { API_URL, APP_ENV } from "../config/env";
+import { setupNotifications } from '../../notifications/notifications';
+import { registerPushTokenSafely } from '../services/pushService';
 
 export default function MyTodosScreen() {
   const navigation = useNavigation();
@@ -31,6 +32,20 @@ export default function MyTodosScreen() {
   } = useUser();
 
   const { isConnected, safeFetch, shouldShowError } = useNetwork();
+
+
+  // Push
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const timeout = setTimeout(() => {
+      setupNotifications(); // ✅ HIER ist es sicher
+      registerPushTokenSafely(accessToken);
+    }, 1500); // ⏳ wichtig für iOS
+
+    return () => clearTimeout(timeout);
+  }, [accessToken]);
+
 
   // ✅ DEBUG: Log userId beim Mount
   useEffect(() => {
