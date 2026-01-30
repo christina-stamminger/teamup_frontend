@@ -17,9 +17,8 @@ export default {
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
-    newArchEnabled:
-      process.env.EAS_BUILD_PROFILE !== 'production' ||
-      process.env.EAS_BUILD_PLATFORM === 'android',
+    newArchEnabled: true,
+
 
     updates: {
       url: "https://u.expo.dev/da762c57-1d88-4aba-b0cb-d5c4fb973bdb",
@@ -70,11 +69,15 @@ export default {
       [
         "expo-build-properties",
         {
+          ios: {
+            newArchEnabled: true
+          },
           android: {
             enableProguardInReleaseBuilds: true
           }
         }
       ]
+
     ],
 
     scheme: "bringit",
