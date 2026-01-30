@@ -1,19 +1,21 @@
 import 'dotenv/config';
-
+/*
 const isEasBuild = ['development', 'preview', 'production'].includes(
   process.env.EAS_BUILD_PROFILE
 );
-
+*/
 export default {
   expo: {
     name: "bringit",
     slug: "bringit",
-    version: "1.0.3",              // hier user version hochziehen
+    version: "1.0.5",              // hier user version hochziehen
 
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
-    newArchEnabled: isEasBuild,
+    newArchEnabled:
+      process.env.EAS_BUILD_PROFILE !== 'production' ||
+      process.env.EAS_BUILD_PLATFORM === 'android',
 
     updates: {
       enabled: false,
@@ -30,7 +32,11 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.christina.bringit",
-      buildNumber: "4",            // für ios hier erhöhen
+      buildNumber: "6",
+
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false
+      }
     },
 
     android: {
