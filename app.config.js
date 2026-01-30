@@ -8,7 +8,7 @@ export default {
   expo: {
     name: "bringit",
     slug: "bringit",
-    version: "1.0.6",    // hier user version hochziehen
+    version: "1.0.7",    // hier user version hochziehen
 
     runtimeVersion: {
       policy: "appVersion",
@@ -34,7 +34,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.christina.bringit",
-      buildNumber: "7",
+      buildNumber: "8",
 
       runtimeVersion: {
         policy: "appVersion",

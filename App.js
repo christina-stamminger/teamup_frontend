@@ -1,12 +1,11 @@
-import { UserProvider } from "./srce/components/context/UserContext";
+import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { UserProvider } from "./srce/components/context/UserContext";
 import Toast from 'react-native-toast-message';
 import { toastConfig } from './srce/config/toastConfig';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { NetworkProvider } from "./srce/components/context/NetworkContext";
 import OfflineBanner from "./srce/components/OfflineBanner";
-
-import 'react-native-gesture-handler';
 import AppRoot from "./AppRoot";
 import { UnreadProvider } from "./srce/components/context/UnreadContext";
 
