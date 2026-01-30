@@ -8,7 +8,11 @@ export default {
   expo: {
     name: "bringit",
     slug: "bringit",
-    version: "1.0.5",              // hier user version hochziehen
+    version: "1.0.5",    // hier user version hochziehen
+
+    runtimeVersion: {
+      policy: "appVersion",
+    },
 
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -18,11 +22,10 @@ export default {
       process.env.EAS_BUILD_PLATFORM === 'android',
 
     updates: {
-      enabled: false,
+      url: "https://u.expo.dev/da762c57-1d88-4aba-b0cb-d5c4fb973bdb",
       checkAutomatically: "ON_LOAD",
       fallbackToCacheTimeout: 0,
     },
-
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",
@@ -34,20 +37,29 @@ export default {
       bundleIdentifier: "com.christina.bringit",
       buildNumber: "6",
 
+      runtimeVersion: {
+        policy: "appVersion",
+      },
+
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false
       }
     },
 
+
     android: {
       package: "com.christina.bringit",
-      versionCode: 11,              // schon mehr builds als für ios
+      versionCode: 11,
       softwareKeyboardLayoutMode: "resize",
+
+      runtimeVersion: "1.0.5",
+
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff"
       }
     },
+
 
     web: {
       favicon: "./assets/favicon.png"
