@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, Keyb
 import * as SecureStore from 'expo-secure-store';
 import { useUser } from "../components/context/UserContext";
 
-import { API_URL } from "../../config/env";
+import { API_URL, APP_ENV } from "../config/env";
 
 
 export default function GroupCreationModal({

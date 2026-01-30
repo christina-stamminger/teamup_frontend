@@ -18,7 +18,7 @@ import Toast from "react-native-toast-message";
 import { useNavigation } from "@react-navigation/native";
 
 
-import { API_URL } from "../../config/env";
+import { API_URL, APP_ENV } from "../config/env";
 
 const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt, hasUnread }) => {
   const [isExpanded, setIsExpanded] = useState(false);

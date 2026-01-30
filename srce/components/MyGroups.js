@@ -8,7 +8,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { Modal } from "react-native";
 import Toast from "react-native-toast-message";
 import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch importiert
-import { API_URL } from "../../config/env";
+import { API_URL, APP_ENV } from "../config/env";
 
 
 export default function MyGroups({ selectedGroupId, onGroupSelect, onCreatePress }) {

@@ -11,7 +11,7 @@ import {
   Keyboard,
   Alert,
 } from "react-native";
-import { API_URL } from "../../config/env";
+import { API_URL, APP_ENV } from "../config/env";
 
 
 const ForgotPasswordScreen = ({ navigation }) => {

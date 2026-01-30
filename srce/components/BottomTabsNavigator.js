@@ -13,7 +13,7 @@ import GroupCreationModal from "./GroupCreationModal";
 import { useUser } from "../components/context/UserContext";
 import { useUnread } from '../components/context/UnreadContext';
 
-import { API_URL } from "../../config/env";
+import { API_URL, APP_ENV } from "../config/env";
 
 const Tab = createBottomTabNavigator();
 

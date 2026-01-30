@@ -5,7 +5,7 @@ import Toast from 'react-native-toast-message';
 import { useNetwork } from '../components/context/NetworkContext';
 import { useUser } from "../components/context/UserContext";
 
-import { API_URL } from "../../config/env";
+import { API_URL, APP_ENV } from "../config/env";
 
 export default function AddMemberModal({
   isVisible = false,
