@@ -15,7 +15,7 @@ import PasswordInput from "./PasswordInput";
 import { useUser } from "../components/context/UserContext";
 import { useNetwork } from "../components/context/NetworkContext";
 import Toast from "react-native-toast-message";
-import { API_URL, APP_ENV } from "../config/env";
+import { API_URL } from "../config/env";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 
@@ -103,9 +103,13 @@ const LoginScreen = ({ navigation }) => {
       }
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { paddingBottom: 30 + insets.bottom },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
+
         <View style={styles.card}>
 
           {/* Logo */}
@@ -281,7 +285,6 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     padding: 30,
-    paddingBottom: 30 + insets.bottom, // 👈 WICHTIG
     justifyContent: "center",
   }
 
