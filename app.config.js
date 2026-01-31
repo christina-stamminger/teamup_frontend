@@ -9,6 +9,9 @@ export default {
     name: "bringit",
     slug: "bringit",
     version: "1.0.10",    // hier user version hochziehen
+    cli: {
+      appVersionSource: "local"
+    },
 
     runtimeVersion: {
       policy: "appVersion",
@@ -36,10 +39,6 @@ export default {
       bundleIdentifier: "com.christina.bringit",
       buildNumber: "11",   // hier user build number erhöhen
 
-      runtimeVersion: {
-        policy: "appVersion",
-      },
-
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false
       }
@@ -50,8 +49,6 @@ export default {
       package: "com.christina.bringit",
       versionCode: 11,   // hier user version code erhöhen
       softwareKeyboardLayoutMode: "resize",
-
-      runtimeVersion: "1.0.5",
 
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
