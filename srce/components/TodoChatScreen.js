@@ -19,10 +19,7 @@ export default function TodoChatScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
+      <View style={{ flex: 1 }}>
         {/* Header */}
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
@@ -45,7 +42,7 @@ export default function TodoChatScreen({ route, navigation }) {
           fulfillerId={todo.userTakenId}
           todoStatus={todo.status}
         />
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

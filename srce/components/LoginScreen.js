@@ -6,6 +6,8 @@ import {
   ScrollView,
   Pressable,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Handshake } from "lucide-react-native";
 import UsernameInput from "./UsernameInput";
@@ -87,92 +89,94 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+    >
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="always"
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.centerWrapper}>
-          <View style={styles.card}>
+        <View style={styles.card}>
 
-            {/* Logo */}
-            <View style={styles.logoContainer}>
-              <View style={styles.iconContainer}>
-                <Handshake size={40} color="#fff" />
-              </View>
-              <Text style={styles.appName}>BringIt</Text>
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <View style={styles.iconContainer}>
+              <Handshake size={40} color="#fff" />
+            </View>
+            <Text style={styles.appName}>BringIt</Text>
+          </View>
+
+          {/* Login Card */}
+          <Text style={styles.title}>Hi, schön dass du da bist.</Text>
+
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Benutzername</Text>
+              <UsernameInput
+                value={inputUsername}
+                onChangeText={setInputUsername}
+                placeholder="zB bringitUser1"
+                editable={!isLoading}
+              />
             </View>
 
-            {/* Login Card */}
-            <Text style={styles.title}>Hi, schön dass du da bist.</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Passwort</Text>
+              <PasswordInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="********"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isLoading}
+                importantForAutofill="no"
+                keyboardType="default"
+                accessibilityLabel="Passwort"
+                accessibilityRole="text"
+              />
+            </View>
 
-            <View style={styles.form}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Benutzername</Text>
-                <UsernameInput
-                  value={inputUsername}
-                  onChangeText={setInputUsername}
-                  placeholder="zB bringitUser1"
-                  editable={!isLoading}
-                />
-              </View>
+            {/* Passwort vergessen Link */}
+            <Text
+              style={styles.forgotPassword}
+              onPress={() => !isLoading && navigation.navigate("ForgotPassword")}
+            >
+              Passwort vergessen?
+            </Text>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Passwort</Text>
-                <PasswordInput
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="********"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!isLoading}
-                  importantForAutofill="no"
-                  keyboardType="default"
-                  accessibilityLabel="Passwort"
-                  accessibilityRole="text"
-                />
-              </View>
+            {errorMessage ? (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
 
-              {/* Passwort vergessen Link */}
+            <Pressable
+              onPress={handleLogin}
+              disabled={isLoading}
+              style={({ pressed }) => [
+                styles.button,
+                pressed && { opacity: 0.85 },
+                isLoading && styles.buttonDisabled,
+              ]}
+            >
+              <Text style={styles.buttonText}>
+                {isLoading ? "Wird angemeldet…" : "Anmelden"}
+              </Text>
+            </Pressable>
+
+            <Text style={styles.registerText}>
+              Noch kein Konto?{" "}
               <Text
-                style={styles.forgotPassword}
-                onPress={() => !isLoading && navigation.navigate("ForgotPassword")}
+                style={styles.registerLink}
+                onPress={() => !isLoading && navigation.navigate("Register")}
               >
-                Passwort vergessen?
+                Hier registrieren
               </Text>
-
-              {errorMessage ? (
-                <Text style={styles.errorText}>{errorMessage}</Text>
-              ) : null}
-
-              <Pressable
-                onPress={handleLogin}
-                disabled={isLoading}
-                style={({ pressed }) => [
-                  styles.button,
-                  pressed && { opacity: 0.85 },
-                  isLoading && styles.buttonDisabled,
-                ]}
-              >
-                <Text style={styles.buttonText}>
-                  {isLoading ? "Wird angemeldet…" : "Anmelden"}
-                </Text>
-              </Pressable>
-
-              <Text style={styles.registerText}>
-                Noch kein Konto?{" "}
-                <Text
-                  style={styles.registerLink}
-                  onPress={() => !isLoading && navigation.navigate("Register")}
-                >
-                  Hier registrieren
-                </Text>
-              </Text>
-            </View>
+            </Text>
           </View>
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -267,15 +271,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   scrollContainer: {
-    flexGrow: 1,     // ⬅️ DAS ist der Schlüssel
+    flexGrow: 1,
     padding: 30,
+    justifyContent: "center",
   },
-
-  centerWrapper: {
-    flex: 1,                 // ⬅️ gibt Höhe
-    justifyContent: "center" // ⬅️ kann jetzt wirken
-  },
-
 });
 
 export default LoginScreen;

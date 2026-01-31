@@ -14,7 +14,7 @@ import * as SecureStore from "expo-secure-store";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Toast from "react-native-toast-message";
 import { API_URL, APP_ENV } from "../config/env";
-
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TodoChat({
   todoId,
@@ -51,6 +51,9 @@ export default function TodoChat({
 
 
   // KEYBOARD
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 56; // realer Header
+
 
   /* -------------------------------------------------- */
   /* Load Messages                                      */
@@ -161,8 +164,12 @@ export default function TodoChat({
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "android" ? 48 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={
+        Platform.OS === "ios"
+          ? insets.top + HEADER_HEIGHT
+          : 0
+      }
     >
 
       <View style={styles.container}>
@@ -170,12 +177,17 @@ export default function TodoChat({
         <ScrollView
           ref={scrollRef}
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 18 }}
-          keyboardShouldPersistTaps="always"
+          contentContainerStyle={{
+            paddingVertical: 12,
+            paddingHorizontal: 18,
+            paddingBottom: 8, // KEIN Keyboard-Hack mehr nötig
+          }}
+          keyboardShouldPersistTaps="handled"
           onContentSizeChange={() =>
             scrollRef.current?.scrollToEnd({ animated: true })
           }
         >
+
           {messages.length === 0 ? (
             <Text style={styles.emptyText}>Noch keine Nachrichten</Text>
           ) : (
@@ -282,10 +294,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
-    //paddingBottom: 40, // Notlösung,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
+    // 👇 nur SafeArea Bottom, KEIN Keyboard-Hack
+    paddingBottom: Platform.OS === "ios" ? 12 : 8,
   },
+
   input: {
     flex: 1,
     borderWidth: 1,

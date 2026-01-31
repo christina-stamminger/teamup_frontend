@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 15,
-    marginVertical: 10,
+    marginVertical: 5,
     borderWidth: 0,
     borderColor: '#ddd',
     shadowColor: '#000',
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
-    marginVertical: 10,
+    marginVertical: 5,
     borderRadius: 10,
   },
   deleteButtonContent: {

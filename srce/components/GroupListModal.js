@@ -34,59 +34,57 @@ export default function GroupListModal({
         <View style={styles.overlay}>
 
           {/* MODAL CONTENT */}
-          <TouchableWithoutFeedback accessible={false}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Wähle eine Gruppe</Text>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Wähle eine Gruppe</Text>
 
-              {groups.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyText}>
-                    Erstelle zuerst eine Gruppe in{" "}
-                    <Text style={styles.highlight}>Meine Gruppen</Text>.
-                  </Text>
-                </View>
-              ) : (
-                <FlatList
-                  data={groups}
-                  keyExtractor={(item) => String(item.groupId)}
-                  contentContainerStyle={styles.listContainer}
-                  ItemSeparatorComponent={() => <View style={styles.separator} />}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={[
-                        styles.groupItem,
-                        selectedGroupId === item.groupId && styles.selectedGroupItem,
-                      ]}
-                      onPress={() => {
-                        safeSelect(item.groupId);
-                        safeClose(); // UX-üblich
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.avatar}>
-                        <Text style={styles.avatarInitial}>
-                          {item.groupName?.charAt(0)?.toUpperCase() ?? "?"}
+            {groups.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>
+                  Erstelle zuerst eine Gruppe in{" "}
+                  <Text style={styles.highlight}>Meine Gruppen</Text>.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={groups}
+                keyExtractor={(item) => String(item.groupId)}
+                contentContainerStyle={styles.listContainer}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.groupItem,
+                      selectedGroupId === item.groupId && styles.selectedGroupItem,
+                    ]}
+                    onPress={() => {
+                      safeSelect(item.groupId);
+                      safeClose(); // UX-üblich
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarInitial}>
+                        {item.groupName?.charAt(0)?.toUpperCase() ?? "?"}
+                      </Text>
+                    </View>
+
+                    <View style={styles.groupInfo}>
+                      <Text style={styles.groupName}>{item.groupName}</Text>
+
+                      <View style={styles.roleRow}>
+                        {item.role === "ADMIN" && (
+                          <Icon name="shield" size={12} color="#FFD700" />
+                        )}
+                        <Text style={styles.roleText}>
+                          {item.role === "ADMIN" ? "Admin" : "Member"}
                         </Text>
                       </View>
-
-                      <View style={styles.groupInfo}>
-                        <Text style={styles.groupName}>{item.groupName}</Text>
-
-                        <View style={styles.roleRow}>
-                          {item.role === "ADMIN" && (
-                            <Icon name="shield" size={12} color="#FFD700" />
-                          )}
-                          <Text style={styles.roleText}>
-                            {item.role === "ADMIN" ? "Admin" : "Member"}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                />
-              )}
-            </View>
-          </TouchableWithoutFeedback>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
 
         </View>
       </TouchableWithoutFeedback>
