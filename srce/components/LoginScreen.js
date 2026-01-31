@@ -97,15 +97,15 @@ const LoginScreen = ({ navigation }) => {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={
-        Platform.OS === "ios" ? insets.top : 0
-      }
-    >
+      behavior="padding"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 30}    >
       <ScrollView
         contentContainerStyle={[
           styles.scrollContainer,
-          { paddingBottom: 30 + insets.bottom },
+          {
+            paddingTop: Math.max(insets.top + 60, 100),
+            paddingBottom: 30 + insets.bottom
+          },
         ]}
         keyboardShouldPersistTaps="handled"
       >
@@ -285,7 +285,6 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     padding: 30,
-    justifyContent: "center",
   }
 
 });

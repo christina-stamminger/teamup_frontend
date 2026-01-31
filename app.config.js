@@ -8,7 +8,7 @@ export default {
   expo: {
     name: "bringit",
     slug: "bringit",
-    version: "1.0.12",    // hier user version hochziehen
+    version: "1.0.13",    // hier user version hochziehen
     cli: {
       appVersionSource: "local"
     },
@@ -37,7 +37,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.christina.bringit",
-      buildNumber: "13",   // hier user build number erhöhen
+      buildNumber: "14",   // hier user build number erhöhen
 
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false
@@ -47,7 +47,7 @@ export default {
 
     android: {
       package: "com.christina.bringit",
-      versionCode: 13,   // hier user version code erhöhen
+      versionCode: 14,   // hier user version code erhöhen
       softwareKeyboardLayoutMode: "resize",
 
       adaptiveIcon: {

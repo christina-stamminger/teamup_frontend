@@ -43,17 +43,12 @@ export default function TodoChat({
     isParticipant &&
     ["IN_ARBEIT", "ERLEDIGT", "ABGELAUFEN"].includes(status);
 
-
-
   // ✍️ Schreibbar nur während IN_ARBEIT
   const isActive = status === "IN_ARBEIT";
   const isReadOnly = ["ERLEDIGT", "ABGELAUFEN"].includes(status);
 
-
   // KEYBOARD
   const insets = useSafeAreaInsets();
-  const HEADER_HEIGHT = 56; // realer Header
-
 
   /* -------------------------------------------------- */
   /* Load Messages                                      */
@@ -64,16 +59,11 @@ export default function TodoChat({
 
     fetchMessages();
 
-
-
     if (canWrite) {
       const interval = setInterval(fetchMessages, 8000);
       return () => clearInterval(interval);
     }
   }, [todoId, canRead, canWrite]);
-
-
-
 
   const fetchMessages = async () => {
     try {
@@ -105,14 +95,11 @@ export default function TodoChat({
     }
   };
 
-
-
   /* -------------------------------------------------- */
   /* Send Message                                       */
   /* -------------------------------------------------- */
 
   const sendMessage = async () => {
-
     if (!newMessage.trim()) return;
     Keyboard.dismiss();
     try {
@@ -151,28 +138,16 @@ export default function TodoChat({
   };
 
   /* -------------------------------------------------- */
-  /* Guards                                             */
-  /* -------------------------------------------------- */
-
-
-
-
-  /* -------------------------------------------------- */
   /* Render                                             */
   /* -------------------------------------------------- */
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={
-        Platform.OS === "ios"
-          ? insets.top + HEADER_HEIGHT
-          : 0
-      }
-    >
-
-      <View style={styles.container}>
+    <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 30}
+      >
         {/* Messages */}
         <ScrollView
           ref={scrollRef}
@@ -180,14 +155,13 @@ export default function TodoChat({
           contentContainerStyle={{
             paddingVertical: 12,
             paddingHorizontal: 18,
-            paddingBottom: 8, // KEIN Keyboard-Hack mehr nötig
+            paddingBottom: 8,
           }}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() =>
             scrollRef.current?.scrollToEnd({ animated: true })
           }
         >
-
           {messages.length === 0 ? (
             <Text style={styles.emptyText}>Noch keine Nachrichten</Text>
           ) : (
@@ -223,7 +197,7 @@ export default function TodoChat({
           <View
             style={[
               styles.inputRow,
-              { paddingBottom: insets.bottom + 8 }
+              { paddingBottom: insets.bottom > 0 ? insets.bottom : 8 }
             ]}
           >
             <TextInput
@@ -241,8 +215,8 @@ export default function TodoChat({
             </TouchableOpacity>
           </View>
         )}
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -301,7 +275,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
-    // 👇 nur SafeArea Bottom, KEIN Keyboard-Hack
+    backgroundColor: "#FFFFFF",
   },
 
   input: {
