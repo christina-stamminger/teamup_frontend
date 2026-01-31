@@ -16,6 +16,9 @@ import { useUser } from "../components/context/UserContext";
 import { useNetwork } from "../components/context/NetworkContext";
 import Toast from "react-native-toast-message";
 import { API_URL, APP_ENV } from "../config/env";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+
 
 
 const LoginScreen = ({ navigation }) => {
@@ -26,6 +29,9 @@ const LoginScreen = ({ navigation }) => {
 
   const { saveSession } = useUser();
   const { safeFetch } = useNetwork();
+
+  const insets = useSafeAreaInsets();
+
 
   const handleLogin = async () => {
     Keyboard.dismiss();
@@ -92,7 +98,9 @@ const LoginScreen = ({ navigation }) => {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+      keyboardVerticalOffset={
+        Platform.OS === "ios" ? insets.top : 0
+      }
     >
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
@@ -273,8 +281,10 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     padding: 30,
+    paddingBottom: 30 + insets.bottom, // 👈 WICHTIG
     justifyContent: "center",
-  },
+  }
+
 });
 
 export default LoginScreen;

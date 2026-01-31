@@ -220,7 +220,12 @@ export default function TodoChat({
 
         {/* Input */}
         {isActive && (
-          <View style={styles.inputRow}>
+          <View
+            style={[
+              styles.inputRow,
+              { paddingBottom: insets.bottom + 8 }
+            ]}
+          >
             <TextInput
               style={styles.input}
               placeholder="Nachricht schreiben…"
@@ -297,7 +302,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
     // 👇 nur SafeArea Bottom, KEIN Keyboard-Hack
-    paddingBottom: Platform.OS === "ios" ? 12 : 8,
   },
 
   input: {
