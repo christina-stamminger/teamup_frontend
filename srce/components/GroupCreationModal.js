@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useUser } from "../components/context/UserContext";
 
-import { API_URL} from "../config/env";
+import { API_URL } from "../config/env";
 
 
 export default function GroupCreationModal({
@@ -90,7 +90,13 @@ export default function GroupCreationModal({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         {/* BACKDROP */}
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <TouchableWithoutFeedback
+          onPress={() => {
+            Keyboard.dismiss();
+            onClose();
+          }}
+          accessible={false}
+        >
           <View style={styles.overlay}>
 
             {/* MODAL CONTENT */}

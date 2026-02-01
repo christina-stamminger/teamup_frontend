@@ -5,87 +5,90 @@ const isEasBuild = ['development', 'preview', 'production'].includes(
 );
 */
 export default {
-  expo: {
-    name: "bringit",
-    slug: "bringit",
-    version: "1.0.13",    // hier user version hochziehen
-    cli: {
-      appVersionSource: "local"
-    },
+    expo: {
+        name: "bringit",
+        slug: "bringit",
+        version: "1.0.13",    // hier user version hochziehen
+        cli: {
+            appVersionSource: "local"
+        },
 
-    runtimeVersion: {
-      policy: "appVersion",
-    },
+        runtimeVersion: {
+            policy: "appVersion",
+        },
 
-    orientation: "portrait",
-    icon: "./assets/icon.png",
-    userInterfaceStyle: "light",
-    newArchEnabled: true,
-
-
-    updates: {
-      url: "https://u.expo.dev/da762c57-1d88-4aba-b0cb-d5c4fb973bdb",
-      checkAutomatically: "ON_LOAD",
-      fallbackToCacheTimeout: 0,
-    },
-    splash: {
-      image: "./assets/splash-icon.png",
-      resizeMode: "contain",
-      backgroundColor: "#ffffff"
-    },
-
-    ios: {
-      supportsTablet: true,
-      bundleIdentifier: "com.christina.bringit",
-      buildNumber: "14",   // hier user build number erhöhen
-
-      infoPlist: {
-        ITSAppUsesNonExemptEncryption: false
-      }
-    },
+        orientation: "portrait",
+        icon: "./assets/icon.png",
+        userInterfaceStyle: "light",
+        newArchEnabled: true,
 
 
-    android: {
-      package: "com.christina.bringit",
-      versionCode: 14,   // hier user version code erhöhen
-      softwareKeyboardLayoutMode: "resize",
+        updates: {
+            url: "https://u.expo.dev/da762c57-1d88-4aba-b0cb-d5c4fb973bdb",
+            checkAutomatically: "ON_LOAD",
+            fallbackToCacheTimeout: 0,
+        },
+        splash: {
+            image: "./assets/splash-icon.png",
+            resizeMode: "contain",
+            backgroundColor: "#ffffff"
+        },
 
-      adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
-        backgroundColor: "#ffffff"
-      }
-    },
+        ios: {
+            supportsTablet: true,
+            bundleIdentifier: "com.christina.bringit",
+            buildNumber: "14",   // hier user build number erhöhen
+
+            infoPlist: {
+                ITSAppUsesNonExemptEncryption: false
+            }
+        },
 
 
-    web: {
-      favicon: "./assets/favicon.png"
-    },
+        android: {
+            package: "com.christina.bringit",
+            versionCode: 14,   // hier user version code erhöhen
+            softwareKeyboardLayoutMode: "resize",
 
-    plugins: [
-      "expo-secure-store",
-      [
-        "expo-build-properties",
-        {
-          ios: {
-            newArchEnabled: true
-          },
-          android: {
-            enableProguardInReleaseBuilds: true
-          }
+            adaptiveIcon: {
+                foregroundImage: "./assets/adaptive-icon.png",
+                backgroundColor: "#ffffff"
+            },
+            android: {
+                abiFilters: ["armeabi-v7a", "arm64-v8a"]
+            }
+        },
+
+
+        web: {
+            favicon: "./assets/favicon.png"
+        },
+
+        plugins: [
+            "expo-secure-store",
+            [
+                "expo-build-properties",
+                {
+                    ios: {
+                        newArchEnabled: true
+                    },
+                    android: {
+                        enableProguardInReleaseBuilds: true
+                    }
+                }
+            ]
+
+        ],
+
+        scheme: "bringit",
+        platforms: ["ios", "android", "web"],
+
+        extra: {
+            API_URL: process.env.API_URL,
+            APP_ENV: process.env.APP_ENV,
+            eas: {
+                projectId: "da762c57-1d88-4aba-b0cb-d5c4fb973bdb"
+            }
         }
-      ]
-
-    ],
-
-    scheme: "bringit",
-    platforms: ["ios", "android", "web"],
-
-    extra: {
-      API_URL: process.env.API_URL,
-      APP_ENV: process.env.APP_ENV,
-      eas: {
-        projectId: "da762c57-1d88-4aba-b0cb-d5c4fb973bdb"
-      }
     }
-  }
 };

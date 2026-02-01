@@ -128,7 +128,10 @@ export default function MyTodosScreen() {
   const [isTrashModalVisible, setIsTrashModalVisible] = useState(false);
 
   const toggleTrashModal = () => setIsTrashModalVisible(prev => !prev);
-  const toggleGroupModal = () => setIsGroupModalVisible(prev => !prev);
+  //const toggleGroupModal = () => setIsGroupModalVisible(prev => !prev);
+  const openGroupModal = () => setIsGroupModalVisible(true);
+  const closeGroupModal = () => setIsGroupModalVisible(false);
+
   const toggleCreationModal = () => setIsCreationModalVisible(prev => !prev);
 
   // Members-Modal
@@ -362,7 +365,18 @@ export default function MyTodosScreen() {
 
           const data = await response.json();
           console.log('✅ Loaded groups:', data.length);
-          setGroups(Array.isArray(data) ? data : []);
+          const normalizedGroups = Array.isArray(data) ? data : [];
+          setGroups(normalizedGroups);
+
+          // 🔴 Falls aktuell ausgewählte Gruppe nicht mehr existiert
+          if (
+            selectedGroupId &&
+            !normalizedGroups.some(g => g.groupId === selectedGroupId)
+          ) {
+            setSelectedGroupId(null);
+            setSelectedGroupName('Gruppe wählen');
+            setUserRoleInGroup(null);
+          }
         } catch (error) {
           console.error('❌ Error fetching groups:', error);
           if (shouldShowError()) {
@@ -392,65 +406,41 @@ export default function MyTodosScreen() {
   );
 
 
-  // Letzte Gruppe default mäßig laden und anzeigen
   useEffect(() => {
-    // ❌ Wenn bereits eine Gruppe gewählt ist → nichts tun
-    if (selectedGroupId) return;
+    if (!groups.length || selectedGroupId) return;
 
-    // ❌ Wenn noch keine Gruppen geladen sind → warten
-    if (!groups || groups.length === 0) return;
+    const initSelection = async () => {
+      // 1️⃣ Versuche letzte Gruppe
+      const stored = await SecureStore.getItemAsync("last_selected_group");
 
-    const restoreLastSelectedGroup = async () => {
-      try {
-        const stored = await SecureStore.getItemAsync("last_selected_group");
-        if (!stored) return;
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          const match = groups.find(g => g.groupId === parsed.groupId);
+          if (match) {
+            applyGroup(match);
+            return;
+          }
+        } catch { }
+      }
 
-        const parsed = JSON.parse(stored);
-
-        if (!parsed?.groupId) return;
-
-        // 🔍 prüfen, ob User noch Mitglied dieser Gruppe ist
-        const match = groups.find(
-          (g) => g.groupId === parsed.groupId
-        );
-
-        if (!match) return;
-
-        // ✅ Gruppe automatisch setzen
-        setSelectedGroupId(match.groupId);
-        setSelectedGroupName(match.groupName);
-        setUserRoleInGroup(match.role);
-
-        // ✅ Daten sofort laden
-        fetchTodos(match.groupId);
-        fetchNewMembers(match.groupId);
-      } catch (err) {
-        console.warn("Failed to restore last selected group", err);
+      // 2️⃣ Fallback: einzige Gruppe
+      if (groups.length === 1) {
+        applyGroup(groups[0]);
       }
     };
 
-    restoreLastSelectedGroup();
+    const applyGroup = (group) => {
+      setSelectedGroupId(group.groupId);
+      setSelectedGroupName(group.groupName);
+      setUserRoleInGroup(group.role);
+      fetchTodos(group.groupId);
+      fetchNewMembers(group.groupId);
+    };
+
+    initSelection();
   }, [groups, selectedGroupId]);
 
-
-  useEffect(() => {
-    if (
-      groups.length === 1 &&
-      !selectedGroupId
-    ) {
-      const onlyGroup = groups[0];
-
-      console.log("✅ Auto-select single group:", onlyGroup.groupName);
-
-      setSelectedGroupId(onlyGroup.groupId);
-      setSelectedGroupName(onlyGroup.groupName);
-      setUserRoleInGroup(onlyGroup.role);
-
-      // gleich Daten laden
-      fetchTodos(onlyGroup.groupId);
-      fetchNewMembers(onlyGroup.groupId);
-    }
-  }, [groups]);
 
   // Wenn Verbindung wiederkommt
   useEffect(() => {
@@ -495,7 +485,17 @@ export default function MyTodosScreen() {
 
       const data = await response.json();
       console.log('✅ fetchGroups success:', data.length);
-      setGroups(Array.isArray(data) ? data : []);
+      const normalizedGroups = Array.isArray(data) ? data : [];
+      setGroups(normalizedGroups);
+
+      if (
+        selectedGroupId &&
+        !normalizedGroups.some(g => g.groupId === selectedGroupId)
+      ) {
+        setSelectedGroupId(null);
+        setSelectedGroupName('Gruppe wählen');
+        setUserRoleInGroup(null);
+      }
     } catch (error) {
       console.error('❌ Error fetching groups:', error);
       if (shouldShowError()) {
@@ -658,21 +658,22 @@ export default function MyTodosScreen() {
   });
 
 
-
-
-
   const handleGroupCreated = async (newGroup) => {
     setIsCreationModalVisible(false);
-    await fetchGroups();
     setSelectedGroupId(newGroup.groupId);
     setSelectedGroupName(newGroup.groupName);
     setUserRoleInGroup(newGroup.role);
+    await fetchGroups();
     triggerGroupReload();   // Jetzt weiß CreateTodoScreen Bescheid
 
   };
 
   const handleGroupSelect = (groupId) => {
+    console.log('🔵 handleGroupSelect called with:', groupId);
+
     const selectedGroup = groups.find((g) => g.groupId === groupId);
+    console.log('🔵 Found group:', selectedGroup);
+
     if (!selectedGroup) return;
     setSelectedGroupId(groupId);
     setSelectedGroupName(selectedGroup.groupName);
@@ -791,7 +792,7 @@ export default function MyTodosScreen() {
           <Text style={styles.headerTitle}>Meine Todos</Text>
         </View>
 
-        <TouchableOpacity onPress={toggleGroupModal} style={styles.groupSelectorUnderline}>
+        <TouchableOpacity onPress={openGroupModal} style={styles.groupSelectorUnderline}>
           <Text style={styles.groupSelectorUnderlineText}>
             {selectedGroupName || 'Gruppe wählen'}
           </Text>
@@ -853,7 +854,7 @@ export default function MyTodosScreen() {
         {accessToken && (
           <GroupListModal
             isVisible={isGroupModalVisible}
-            onClose={toggleGroupModal}
+            onClose={closeGroupModal}
             groups={groups}
             selectedGroupId={selectedGroupId}
             onSelect={handleGroupSelect}
