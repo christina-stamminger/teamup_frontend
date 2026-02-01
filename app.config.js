@@ -54,9 +54,7 @@ export default {
                 foregroundImage: "./assets/adaptive-icon.png",
                 backgroundColor: "#ffffff"
             },
-            android: {
-                abiFilters: ["armeabi-v7a", "arm64-v8a"]
-            }
+          
         },
 
 

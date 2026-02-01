@@ -18,7 +18,7 @@ import Toast from "react-native-toast-message";
 import { useNavigation } from "@react-navigation/native";
 
 
-import { API_URL, APP_ENV } from "../config/env";
+import { API_URL } from "../config/env";
 
 const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt, hasUnread }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -193,6 +193,12 @@ const CollapsibleTodoCard = ({ todo, onStatusUpdated, onDelete, expiresAt, hasUn
           <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
             <Text style={styles.statusBadgeText}>{todo.status}</Text>
           </View>
+
+
+          {/*GroupName */}
+          {todo.groupName && (
+            <Text style={styles.groupName}>{todo.groupName}</Text>
+          )}
 
           {/* Titel */}
           <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -464,6 +470,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     textTransform: 'uppercase',
+  },
+  groupName: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '400',
+    marginBottom: 2,
+    letterSpacing: 0.5,
   },
   title: {
     fontSize: 20,
