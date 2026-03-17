@@ -7,6 +7,10 @@ const PasswordInput = ({
   onChangeText,
   placeholder = "Passwort",
   style,
+  textContentType = "newPassword",
+  autoComplete = "new-password",
+  passwordRules = "minlength: 8; required: lower; required: upper; required: digit; required: special;",
+  onBlur,
   ...props
 }) => {
   const [secure, setSecure] = useState(true);
@@ -14,14 +18,22 @@ const PasswordInput = ({
 
   const handleChangeText = useCallback(
     (text) => {
-      // RN Bugfix: trailing whitespace entfernen
-      const cleaned = text.replace(/\s+$/, "");
-      onChangeText(cleaned);
+      // ✅ Passwort niemals automatisch verändern
+      onChangeText?.(text);
     },
     [onChangeText]
   );
+
+  const handleNativeChange = useCallback(
+    (e) => {
+      const text = e?.nativeEvent?.text ?? "";
+      onChangeText?.(text);
+    },
+    [onChangeText]
+  );
+
   const toggleSecure = useCallback(() => {
-    setSecure(prev => !prev);
+    setSecure((prev) => !prev);
   }, []);
 
   return (
@@ -32,18 +44,23 @@ const PasswordInput = ({
         placeholder={isFocused ? "" : placeholder}
         secureTextEntry={secure}
         onChangeText={handleChangeText}
+        onChange={handleNativeChange}
         autoCapitalize="none"
         autoCorrect={false}
-        textContentType="password"
-        importantForAutofill="no"
+        textContentType={textContentType}
+        autoComplete={autoComplete}
+        passwordRules={passwordRules}
         onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
+        onBlur={(e) => {
+          setIsFocused(false);
+          onBlur?.(e);
+        }}
+        enablesReturnKeyAutomatically
         {...props}
       />
 
       <Pressable
         onPress={toggleSecure}
-        activeOpacity={0.7}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         style={styles.eyeButton}
         accessibilityRole="button"
@@ -63,8 +80,6 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 0.5,
-    borderColor: "#ccc",
     borderRadius: 8,
     paddingHorizontal: 12,
     height: 48,
@@ -80,7 +95,7 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: "center",
     alignItems: "center",
-  }
-})
+  },
+});
 
 export default PasswordInput;
