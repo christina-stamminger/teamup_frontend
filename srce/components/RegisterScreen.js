@@ -194,8 +194,8 @@ const RegisterScreen = ({ navigation }) => {
                     secureTextEntry={false}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    autoComplete={name === "email" ? "email" : "username"}
-                    textContentType={name === "email" ? "emailAddress" : "username"}
+                    autoComplete={name === "email" ? "email" : undefined}
+                    textContentType={name === "email" ? "emailAddress" : "none"}
                   />
 
                   {fieldTouched && fieldError && (
