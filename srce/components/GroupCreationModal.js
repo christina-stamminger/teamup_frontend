@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Modal,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform
+} from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useUser } from "../components/context/UserContext";
-
+import { useGroups } from "../components/context/GroupContext";
 import { API_URL } from "../config/env";
-
 
 export default function GroupCreationModal({
   isVisible = false,
@@ -15,12 +26,9 @@ export default function GroupCreationModal({
   const [groupName, setGroupName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { triggerGroupReload, accessToken } = useUser();
+  const { accessToken } = useUser();
+  const { refreshGroups, setSelectedGroupId } = useGroups();
 
-  // 🟢 SAFE callback (niemals undefined)
-  //const safeToggle = onClose ?? (() => { });
-
-  // 🟢 Modal beim Logout sofort schließen
   useEffect(() => {
     if (!accessToken) {
       setGroupName('');
@@ -34,9 +42,10 @@ export default function GroupCreationModal({
     }
 
     setLoading(true);
+
     try {
       const token = await SecureStore.getItemAsync('accessToken');
-      if (!token) return; // Logout-Schutz
+      if (!token) return;
 
       const response = await fetch(`${API_URL}/api/groups/create`, {
         method: 'POST',
@@ -46,7 +55,7 @@ export default function GroupCreationModal({
         },
         body: JSON.stringify({
           groupName: groupName.trim(),
-          userId,
+          userId, // bei Gelegenheit prüfen, weil userId im backend aus jwt gelesen wird - evtl. hier weglassen
         }),
       });
 
@@ -56,14 +65,22 @@ export default function GroupCreationModal({
         throw new Error(data?.error || 'Failed to create group');
       }
 
-      // ✅ 1. Parent informieren
+      // Parent Callback optional weiter aufrufen
       onGroupCreated?.(data);
 
-      // ✅ 2. Lokalen State resetten
+      // Gruppen global neu laden
+      await refreshGroups();
+
+      // Neu erstellte Gruppe direkt selektieren
+      if (data?.groupId) {
+        setSelectedGroupId(data.groupId);
+      }
+
+      // Lokalen State resetten
       setGroupName('');
 
-      // ✅ 3. Modal EXPLIZIT schließen
-      onClose();
+      // Modal schließen
+      onClose?.();
 
     } catch (error) {
       console.error('Error creating group:', error);
@@ -73,7 +90,6 @@ export default function GroupCreationModal({
     }
   };
 
-  // 🟢 WICHTIG: Modal gar nicht rendern, wenn ausgeloggt
   if (!accessToken) {
     return null;
   }
@@ -89,17 +105,14 @@ export default function GroupCreationModal({
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* BACKDROP */}
         <TouchableWithoutFeedback
           onPress={() => {
             Keyboard.dismiss();
-            onClose();
+            onClose?.();
           }}
           accessible={false}
         >
           <View style={styles.overlay}>
-
-            {/* MODAL CONTENT */}
             <TouchableWithoutFeedback accessible={false}>
               <View style={styles.modalContent}>
                 <Text style={styles.title}>Neue Gruppe erstellen</Text>
@@ -125,7 +138,6 @@ export default function GroupCreationModal({
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
-
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -156,10 +168,10 @@ const styles = StyleSheet.create({
   createButton: {
     backgroundColor: '#4FB6B8',
     paddingVertical: 14,
-    paddingHorizontal: 24,   // 👈 DAS fehlt aktuell
+    paddingHorizontal: 24,
     borderRadius: 10,
     alignItems: 'center',
-    width: '100%',           // optional, aber empfehlenswert
+    width: '100%',
   },
   createButtonText: {
     color: '#FFF',

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useUser } from "../components/context/UserContext";
+import { useGroups } from "../components/context/GroupContext";
 import { Dropdown } from 'react-native-element-dropdown';
 import Toast from 'react-native-toast-message';
 import { useFocusEffect } from '@react-navigation/native';
@@ -21,94 +22,37 @@ import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useNetwork } from "../components/context/NetworkContext";
-import { API_URL, APP_ENV } from "../config/env";
+import { API_URL } from "../config/env";
 
 export default function CreateTodoScreen() {
     const [title, setTitle] = useState("");
     const [expiresAt, setExpiresAt] = useState(null);
     const [expiresAtDisplay, setExpiresAtDisplay] = useState("");
-    const [groupId, setGroupId] = useState(null);
-    const [groups, setGroups] = useState([]);
     const [description, setDescription] = useState("");
     const [showDescription, setShowDescription] = useState(false);
     const [isTimeCritical, setIsTimeCritical] = useState(false);
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
-    const [loadingGroups, setLoadingGroups] = useState(false);
 
-    //const { userId } = useUser();
     const { safeFetch } = useNetwork();
-
-    // Fetch groups
     const { userId, accessToken } = useUser();
+    const {
+        groups,
+        selectedGroupId,
+        setSelectedGroupId,
+        loadingGroups,
+        refreshGroups
+    } = useGroups();
 
     const getAuthToken = useCallback(async () => {
         if (accessToken) return accessToken;
         return await SecureStore.getItemAsync("accessToken");
     }, [accessToken]);
 
-    const fetchGroups = useCallback(async () => {
-        if (!userId) return;
-
-        console.log("📋 Fetching groups on screen focus...");
-
-        try {
-            setLoadingGroups(true);
-            const token = await getAuthToken();
-
-            const response = await safeFetch(`${API_URL}/api/groups/myGroups`, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (response?.offline) {
-                Toast.show({
-                    type: 'info',
-                    text1: 'Offline',
-                    text2: 'Keine Internetverbindung',
-                });
-                return;
-            }
-
-            if (!response?.ok) throw new Error("Fehler beim Laden der Gruppen.");
-
-            const data = await response.json();
-
-            const formatted = data.map(g => ({
-                label: g.groupName,
-                value: g.groupId, // 
-            }));
-
-            setGroups(formatted);
-
-            // neue Gruppe sofort sichtbar machen
-            //if (!groupId && formatted.length > 0) {
-            //  setGroupId(formatted[0].value);
-            //}
-
-            if (formatted.length > 0) {
-                setGroupId(prev => prev ?? formatted[0].value);
-            }
-
-
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoadingGroups(false);
-        }
-    }, [userId, accessToken, safeFetch]);
-
-
-    const { groupsVersion } = useUser();
-
     useFocusEffect(
         useCallback(() => {
-            fetchGroups();
-        }, [groupsVersion])   // Screen lädt neu bei jeder Gruppenänderung
+            refreshGroups();
+        }, [refreshGroups])
     );
-
 
     const showPicker = () => setDatePickerVisible(true);
     const hidePicker = () => setDatePickerVisible(false);
@@ -146,7 +90,6 @@ export default function CreateTodoScreen() {
         });
     };
 
-
     const applyQuickButton = (option) => {
         const now = new Date();
         let newDate = new Date();
@@ -170,9 +113,8 @@ export default function CreateTodoScreen() {
     };
 
     const handleCreateTodo = async () => {
-        Keyboard.dismiss(); // 👈 HIER
+        Keyboard.dismiss();
 
-        // Validierung
         if (!userId) {
             Alert.alert("Fehler", "Benutzer ist nicht eingeloggt. Bitte erneut anmelden.");
             return;
@@ -188,36 +130,19 @@ export default function CreateTodoScreen() {
             return;
         }
 
-        if (!groupId) {
+        if (!selectedGroupId) {
             Alert.alert("Fehler", "Bitte eine Gruppe auswählen!");
             return;
         }
-        /*
-                const expiresWithBuffer = new Date(expiresAt.getTime() + 2 * 60 * 1000);
-                const formattedExpiresAt = new Date(
-                    expiresWithBuffer.getTime() - expiresWithBuffer.getTimezoneOffset() * 60000
-                ).toISOString().slice(0, 19);
-        */
 
-        /*
-                const newTodo = {
-                    userOfferedId: userId,
-                    title: title.trim(),
-                    expiresAt: formattedExpiresAt,
-                    groupId: parseInt(groupId, 10),
-                    isTimeCritical,
-                    ...(description.trim() && { description: description.trim() }),
-                };
-        */
         const newTodo = {
             userOfferedId: userId,
             title: title.trim(),
-            expiresAt: expiresAt.toISOString(), // 🔥 EINZIGE korrekte Lösung
-            groupId: parseInt(groupId, 10),
+            expiresAt: expiresAt.toISOString(),
+            groupId: parseInt(selectedGroupId, 10),
             isTimeCritical,
             ...(description.trim() && { description: description.trim() }),
         };
-
 
         console.log("Creating todo:", newTodo);
 
@@ -252,15 +177,12 @@ export default function CreateTodoScreen() {
                 visibilityTime: 2000,
             });
 
-            // ✅ Reset der Felder
             setTitle("");
             setExpiresAt(null);
             setExpiresAtDisplay("");
-            // ✅ groupId NICHT zurücksetzen (User bleibt in Gruppe)
             setDescription("");
             setShowDescription(false);
             setIsTimeCritical(false);
-
         } catch (error) {
             console.error("❌ Fehler:", error);
             Alert.alert(
@@ -273,10 +195,9 @@ export default function CreateTodoScreen() {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0} // 👈 WICHTIG
+            keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
             style={styles.container}
         >
-
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <ScrollView
                     contentContainerStyle={styles.scrollContainer}
@@ -285,7 +206,6 @@ export default function CreateTodoScreen() {
                     <View style={styles.inner}>
                         <Text style={styles.screenTitle}>Neues Todo erstellen</Text>
 
-                        {/* Title */}
                         <Text style={styles.label}>Titel</Text>
                         <TextInput
                             style={styles.input}
@@ -294,7 +214,6 @@ export default function CreateTodoScreen() {
                             onChangeText={setTitle}
                         />
 
-                        {/* Optional: Beschreibung */}
                         <TouchableOpacity
                             style={styles.collapseButton}
                             onPress={() => setShowDescription(!showDescription)}
@@ -302,8 +221,7 @@ export default function CreateTodoScreen() {
                             <Text style={styles.collapseButtonText}>
                                 {showDescription
                                     ? "Beschreibung ausblenden"
-                                    : "Beschreibung hinzufügen (optional)"
-                                }
+                                    : "Beschreibung hinzufügen (optional)"}
                             </Text>
                             {showDescription ? (
                                 <ChevronUp size={20} color="#888" />
@@ -326,7 +244,6 @@ export default function CreateTodoScreen() {
                             </View>
                         )}
 
-                        {/* Group Selection */}
                         <Dropdown
                             style={styles.dropdown}
                             data={groups}
@@ -334,9 +251,9 @@ export default function CreateTodoScreen() {
                             labelField="label"
                             valueField="value"
                             placeholder={loadingGroups ? "Lade Gruppen..." : "Gruppe auswählen"}
-                            value={groupId}
+                            value={selectedGroupId}
                             onChange={(item) => {
-                                setGroupId(item.value);
+                                setSelectedGroupId(item.value);
                                 console.log("✅ Selected group:", item.label);
                             }}
                             disable={loadingGroups}
@@ -344,10 +261,10 @@ export default function CreateTodoScreen() {
 
                         {groups.length === 0 && !loadingGroups && (
                             <Text style={styles.noGroupsText}>
+                                Keine Gruppen vorhanden.
                             </Text>
                         )}
 
-                        {/* Quick Buttons */}
                         <View style={styles.quickButtonContainer}>
                             <TouchableOpacity
                                 style={styles.quickButtonModern}
@@ -369,7 +286,6 @@ export default function CreateTodoScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* DateTime Picker */}
                         <TouchableOpacity style={styles.dateTimeButton} onPress={showPicker}>
                             <Text style={styles.dateTimeButtonText}>
                                 {expiresAtDisplay ? expiresAtDisplay : "Datum & Uhrzeit wählen"}
@@ -385,7 +301,6 @@ export default function CreateTodoScreen() {
                             onCancel={hidePicker}
                         />
 
-                        {/* ⏰ Zeitkritisch Checkbox */}
                         <TouchableOpacity
                             style={styles.timeCriticalContainer}
                             onPress={() => setIsTimeCritical(!isTimeCritical)}
@@ -412,14 +327,13 @@ export default function CreateTodoScreen() {
                             </View>
                         </TouchableOpacity>
 
-                        {/* Create Button */}
                         <TouchableOpacity
                             style={[
                                 styles.createButton,
-                                (!title || !expiresAt || !groupId) && styles.createButtonDisabled
+                                (!title.trim() || !expiresAt || !selectedGroupId) && styles.createButtonDisabled
                             ]}
                             onPress={handleCreateTodo}
-                            disabled={!title || !expiresAt || !groupId}
+                            disabled={!title.trim() || !expiresAt || !selectedGroupId}
                         >
                             <Text style={styles.createButtonText}>Todo erstellen</Text>
                         </TouchableOpacity>
@@ -463,8 +377,6 @@ const styles = StyleSheet.create({
         marginBottom: 18,
         backgroundColor: '#FFFFFF',
         fontSize: 16,
-
-        // subtiler Schatten statt Border
         shadowColor: '#000',
         shadowOpacity: 0.04,
         shadowRadius: 4,

@@ -8,6 +8,7 @@ import { NetworkProvider } from "./srce/components/context/NetworkContext";
 import OfflineBanner from "./srce/components/OfflineBanner";
 import AppRoot from "./AppRoot";
 import { UnreadProvider } from "./srce/components/context/UnreadContext";
+import { GroupProvider } from "./srce/components/context/GroupContext";
 
 export default function App() {
   const navigationRef = useNavigationContainerRef();
@@ -16,12 +17,14 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UserProvider>
         <NetworkProvider>
-          <UnreadProvider>
-            <NavigationContainer ref={navigationRef}>
-              <OfflineBanner />
-              <AppRoot />
-            </NavigationContainer>
-          </UnreadProvider>
+          <GroupProvider>
+            <UnreadProvider>
+              <NavigationContainer ref={navigationRef}>
+                <OfflineBanner />
+                <AppRoot />
+              </NavigationContainer>
+            </UnreadProvider>
+          </GroupProvider>
           <Toast config={toastConfig} />
         </NetworkProvider>
       </UserProvider>
