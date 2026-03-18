@@ -218,6 +218,7 @@ const RegisterScreen = ({ navigation }) => {
                 textContentType="newPassword"
                 autoComplete="new-password"
                 passwordRules="minlength: 8; required: lower; required: upper; required: digit; required: special;"
+                allowToggle={Platform.OS !== "ios"}
               />
 
               {formik.touched.password && formik.errors.password && (

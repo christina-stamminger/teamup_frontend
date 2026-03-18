@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { TextInput, View, Pressable, StyleSheet } from "react-native";
+import { TextInput, View, Pressable, StyleSheet, Platform } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
 
 const PasswordInput = ({
@@ -7,24 +7,21 @@ const PasswordInput = ({
   onChangeText,
   placeholder = "Passwort",
   style,
-  textContentType = "newPassword",
-  autoComplete = "new-password",
-  passwordRules = "minlength: 8; required: lower; required: upper; required: digit; required: special;",
   onBlur,
+  textContentType,
+  autoComplete,
+  passwordRules,
+  allowToggle = true,
   ...props
 }) => {
   const [secure, setSecure] = useState(true);
-  const [isFocused, setIsFocused] = useState(false);
 
   const handleChangeText = useCallback(
     (text) => {
-      // ✅ Passwort niemals automatisch verändern
       onChangeText?.(text);
     },
     [onChangeText]
   );
-
-
 
   const toggleSecure = useCallback(() => {
     setSecure((prev) => !prev);
@@ -36,35 +33,34 @@ const PasswordInput = ({
         style={[styles.input, style]}
         value={value}
         placeholder={placeholder}
+        placeholderTextColor="#999"
         secureTextEntry={secure}
         onChangeText={handleChangeText}
         autoCapitalize="none"
         autoCorrect={false}
         textContentType={textContentType}
         autoComplete={autoComplete}
-        passwordRules={passwordRules}
-        onFocus={() => setIsFocused(true)}
-        onBlur={(e) => {
-          setIsFocused(false);
-          onBlur?.(e);
-        }}
+        passwordRules={Platform.OS === "ios" ? passwordRules : undefined}
+        onBlur={onBlur}
         enablesReturnKeyAutomatically
         {...props}
       />
 
-      <Pressable
-        onPress={toggleSecure}
-        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        style={styles.eyeButton}
-        accessibilityRole="button"
-        accessibilityLabel={secure ? "Passwort anzeigen" : "Passwort verbergen"}
-      >
-        {secure ? (
-          <Eye size={22} color="#666" />
-        ) : (
-          <EyeOff size={22} color="#666" />
-        )}
-      </Pressable>
+      {allowToggle && (
+        <Pressable
+          onPress={toggleSecure}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={styles.eyeButton}
+          accessibilityRole="button"
+          accessibilityLabel={secure ? "Passwort anzeigen" : "Passwort verbergen"}
+        >
+          {secure ? (
+            <Eye size={22} color="#666" />
+          ) : (
+            <EyeOff size={22} color="#666" />
+          )}
+        </Pressable>
+      )}
     </View>
   );
 };
