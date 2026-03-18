@@ -22,7 +22,7 @@ import PasswordInput from "../components/PasswordInput";
 const usernameRegex = /^[A-Za-z0-9._-]{3,20}$/;
 
 const passwordRegex =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{8,}$/;
 
 const emailRegex =
   /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -217,11 +217,7 @@ const RegisterScreen = ({ navigation }) => {
                 style={styles.passwordInput}
                 textContentType={Platform.OS === "ios" ? "none" : "newPassword"}
                 autoComplete={Platform.OS === "ios" ? "off" : "new-password"}
-                passwordRules={
-                  Platform.OS === "ios"
-                    ? undefined
-                    : "minlength: 8; required: lower; required: upper; required: digit; required: special;"
-                }
+                passwordRules={undefined}
               />
 
               {formik.touched.password && formik.errors.password && (
