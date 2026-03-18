@@ -36,7 +36,7 @@ const LoginScreen = ({ navigation }) => {
   const handleLogin = async () => {
     Keyboard.dismiss();
     // Validierung
-    if (!inputUsername.trim() || !password.trim()) {
+    if (!inputUsername.trim() || !password) {
       setErrorMessage("Bitte Benutzername und Passwort eingeben.");
       return;
     }
@@ -140,13 +140,11 @@ const LoginScreen = ({ navigation }) => {
                 value={password}
                 onChangeText={setPassword}
                 placeholder="********"
-                autoCapitalize="none"
-                autoCorrect={false}
                 editable={!isLoading}
-                importantForAutofill="no"
+                textContentType="password"
+                autoComplete="password"
                 keyboardType="default"
                 accessibilityLabel="Passwort"
-                accessibilityRole="text"
               />
             </View>
 

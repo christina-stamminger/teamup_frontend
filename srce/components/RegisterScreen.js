@@ -215,10 +215,13 @@ const RegisterScreen = ({ navigation }) => {
                 onBlur={formik.handleBlur("password")}
                 placeholder="Passwort"
                 style={styles.passwordInput}
-                textContentType="newPassword"
-                autoComplete="new-password"
-                passwordRules="minlength: 8; required: lower; required: upper; required: digit; required: special;"
-                allowToggle={Platform.OS !== "ios"}
+                textContentType={Platform.OS === "ios" ? "none" : "newPassword"}
+                autoComplete={Platform.OS === "ios" ? "off" : "new-password"}
+                passwordRules={
+                  Platform.OS === "ios"
+                    ? undefined
+                    : "minlength: 8; required: lower; required: upper; required: digit; required: special;"
+                }
               />
 
               {formik.touched.password && formik.errors.password && (
