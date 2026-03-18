@@ -24,13 +24,7 @@ const PasswordInput = ({
     [onChangeText]
   );
 
-  const handleNativeChange = useCallback(
-    (e) => {
-      const text = e?.nativeEvent?.text ?? "";
-      onChangeText?.(text);
-    },
-    [onChangeText]
-  );
+
 
   const toggleSecure = useCallback(() => {
     setSecure((prev) => !prev);
@@ -41,10 +35,9 @@ const PasswordInput = ({
       <TextInput
         style={[styles.input, style]}
         value={value}
-        placeholder={isFocused ? "" : placeholder}
+        placeholder={placeholder}
         secureTextEntry={secure}
         onChangeText={handleChangeText}
-        onChange={handleNativeChange}
         autoCapitalize="none"
         autoCorrect={false}
         textContentType={textContentType}
