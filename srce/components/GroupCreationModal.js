@@ -15,12 +15,12 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import { useUser } from "../components/context/UserContext";
 import { useGroups } from "../components/context/GroupContext";
+import { useNetwork } from "../components/context/NetworkContext";
 import { API_URL } from "../config/env";
 
 export default function GroupCreationModal({
   isVisible = false,
   onClose,
-  userId,
   onGroupCreated,
 }) {
   const [groupName, setGroupName] = useState('');
@@ -28,6 +28,7 @@ export default function GroupCreationModal({
 
   const { accessToken } = useUser();
   const { refreshGroups, setSelectedGroupId } = useGroups();
+  const { safeFetch } = useNetwork();
 
   useEffect(() => {
     if (!accessToken) {
@@ -47,17 +48,23 @@ export default function GroupCreationModal({
       const token = await SecureStore.getItemAsync('accessToken');
       if (!token) return;
 
-      const response = await fetch(`${API_URL}/api/groups/create`, {
+      const trimmedName = groupName.trim();
+
+      const response = await safeFetch(`${API_URL}/api/groups/create`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          groupName: groupName.trim(),
-          userId, // bei Gelegenheit prüfen, weil userId im backend aus jwt gelesen wird - evtl. hier weglassen
+          groupName: trimmedName,
         }),
       });
+
+      if (response?.offline) {
+        Alert.alert("Offline", "Keine Internetverbindung.");
+        return;
+      }
 
       const data = await response.json();
 
@@ -65,21 +72,22 @@ export default function GroupCreationModal({
         throw new Error(data?.error || 'Failed to create group');
       }
 
-      // Parent Callback optional weiter aufrufen
+      console.log("createGroup response:", data);
+
       onGroupCreated?.(data);
 
-      // Gruppen global neu laden
-      await refreshGroups();
+      const result = await refreshGroups();
 
-      // Neu erstellte Gruppe direkt selektieren
       if (data?.groupId) {
         setSelectedGroupId(data.groupId);
+      } else if (result?.groups?.length) {
+        const created = result.groups.find((g) => g.label === trimmedName);
+        if (created) {
+          setSelectedGroupId(created.value);
+        }
       }
 
-      // Lokalen State resetten
       setGroupName('');
-
-      // Modal schließen
       onClose?.();
 
     } catch (error) {
