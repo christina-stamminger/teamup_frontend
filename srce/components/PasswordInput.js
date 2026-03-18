@@ -78,12 +78,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: "#000",
-    borderWidth: 0.5,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: "#fff",
   },
   eyeButton: {
     width: 32,
