@@ -11,23 +11,20 @@ import {
 } from "react-native";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import get from "lodash.get";
 import { Handshake } from "lucide-react-native";
 import { useNetwork } from "../components/context/NetworkContext";
 import Toast from "react-native-toast-message";
 import { API_URL, APP_ENV } from "../config/env";
 import PasswordInput from "../components/PasswordInput";
+import UsernameInput from "../components/UsernameInput";
 
-// Email und PW VALIDIERUNGSSCHEMA mit Yup
+// Validierung
 const usernameRegex = /^[A-Za-z0-9._-]{3,20}$/;
-
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{8,}$/;
-
 const emailRegex =
   /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
-// ✅ Validation Schema – Deutsch
 const validationSchema = Yup.object({
   username: Yup.string()
     .matches(
@@ -48,16 +45,6 @@ const validationSchema = Yup.object({
     .required("Passwort ist erforderlich."),
 });
 
-/*
-// Falls du address später wieder brauchst:
-address: Yup.object({
-  streetNumber: Yup.string(),
-  postalCode: Yup.string().length(4, "PLZ muss genau 4 Zeichen haben."),
-  city: Yup.string(),
-}),
-*/
-
-// ✅ API Request – jetzt mit safeFetch
 const postNewUser = async (userData, safeFetch) => {
   try {
     console.log("Sending request to:", `${API_URL}/api/user/signup`);
@@ -73,26 +60,23 @@ const postNewUser = async (userData, safeFetch) => {
       body: JSON.stringify(userData),
     });
 
-    // 🧭 1. Offline-Check
     if (response.offline) {
       return { success: false, message: "Keine Internetverbindung." };
     }
 
-    // 🧭 2. Duplicate Username (409)
     if (response.status === 409) {
       return { success: false, message: "Benutzername existiert bereits." };
     }
 
-    // 🧭 3. Erfolgreich
     if (response.ok) {
       return { success: true };
     }
 
-    // 🧭 4. Fehlerhafte Antwort
     const data = await response.json().catch(() => ({}));
     return {
       success: false,
-      message: data.message || "Fehler bei der Registrierung. Bitte erneut versuchen.",
+      message:
+        data.message || "Fehler bei der Registrierung. Bitte erneut versuchen.",
     };
   } catch (error) {
     console.error("❌ Fehler bei der Registrierung:", error);
@@ -126,7 +110,7 @@ const RegisterScreen = ({ navigation }) => {
       const userData = {
         username: values.username.trim(),
         email: values.email.trim().toLowerCase(),
-        password: values.password, // ✅ Passwort niemals trimmen
+        password: values.password,
       };
 
       const { success, message } = await postNewUser(userData, safeFetch);
@@ -142,10 +126,10 @@ const RegisterScreen = ({ navigation }) => {
         formik.resetForm();
         setIsSubmitted(false);
         return;
-      } else {
-        setRegistrationMessage(message);
-        setIsSubmitted(false);
       }
+
+      setRegistrationMessage(message);
+      setIsSubmitted(false);
     },
   });
 
@@ -158,7 +142,6 @@ const RegisterScreen = ({ navigation }) => {
         contentContainerStyle={styles.scrollViewContainer}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Logo */}
         <View style={styles.logoContainer}>
           <View style={styles.iconContainer}>
             <Handshake size={40} color="#fff" />
@@ -170,40 +153,45 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.title}>Registrieren</Text>
 
           <View style={styles.form}>
-            {[
-              { name: "username", placeholder: "Benutzername", type: "text" },
-              { name: "email", placeholder: "E-Mail-Adresse", type: "email-address" },
-            ].map(({ name, placeholder, type }) => {
-              const fieldError = get(formik.errors, name);
-              const fieldTouched = get(formik.touched, name);
+            <View style={styles.inputContainer}>
+              <UsernameInput
+                value={formik.values.username}
+                onChangeText={(text) => {
+                  if (registrationMessage) setRegistrationMessage("");
+                  formik.setFieldValue("username", text);
+                }}
+                onBlur={formik.handleBlur("username")}
+                placeholder="Benutzername"
+              />
+              {formik.touched.username && formik.errors.username ? (
+                <Text style={styles.error}>{formik.errors.username}</Text>
+              ) : null}
+            </View>
 
-              return (
-                <View key={name} style={styles.inputContainer}>
-                  <TextInput
-                    style={styles.input}
-                    name={name}
-                    placeholder={placeholder}
-                    placeholderTextColor="#999"
-                    value={formik.values[name]}
-                    onChangeText={(text) => {
-                      if (registrationMessage) setRegistrationMessage("");
-                      formik.handleChange(name)(text);
-                    }}
-                    onBlur={formik.handleBlur(name)}
-                    keyboardType={type === "email-address" ? "email-address" : "default"}
-                    secureTextEntry={false}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete={name === "email" ? "email" : undefined}
-                    textContentType={name === "email" ? "emailAddress" : "none"}
-                  />
-
-                  {fieldTouched && fieldError && (
-                    <Text style={styles.error}>{fieldError}</Text>
-                  )}
-                </View>
-              );
-            })}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="E-Mail-Adresse"
+                placeholderTextColor="#999"
+                value={formik.values.email}
+                onChangeText={(text) => {
+                  if (registrationMessage) setRegistrationMessage("");
+                  formik.setFieldValue("email", text);
+                }}
+                onBlur={formik.handleBlur("email")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType={
+                  Platform.OS === "ios" ? "emailAddress" : undefined
+                }
+                autoComplete={Platform.OS === "android" ? "email" : undefined}
+                returnKeyType="next"
+              />
+              {formik.touched.email && formik.errors.email ? (
+                <Text style={styles.error}>{formik.errors.email}</Text>
+              ) : null}
+            </View>
 
             <View style={styles.inputContainer}>
               <PasswordInput
@@ -215,14 +203,21 @@ const RegisterScreen = ({ navigation }) => {
                 onBlur={formik.handleBlur("password")}
                 placeholder="Passwort"
                 style={styles.passwordInput}
-                textContentType={Platform.OS === "ios" ? "none" : "newPassword"}
-                autoComplete={Platform.OS === "ios" ? "off" : "new-password"}
-                passwordRules={undefined}
+                textContentType={
+                  Platform.OS === "ios" ? "newPassword" : undefined
+                }
+                autoComplete={
+                  Platform.OS === "android" ? "new-password" : undefined
+                }
+                passwordRules={
+                  Platform.OS === "ios"
+                    ? "minlength: 8; required: lower; required: upper; required: digit; required: special;"
+                    : undefined
+                }
               />
-
-              {formik.touched.password && formik.errors.password && (
+              {formik.touched.password && formik.errors.password ? (
                 <Text style={styles.error}>{formik.errors.password}</Text>
-              )}
+              ) : null}
             </View>
 
             {registrationMessage ? (
@@ -239,7 +234,10 @@ const RegisterScreen = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.backButton} onPress={handleBackButton}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleBackButton}
+            >
               <Text style={styles.backButtonText}>Zurück</Text>
             </TouchableOpacity>
           </View>

@@ -1,11 +1,12 @@
 import React from "react";
-import { TextInput, StyleSheet, View } from "react-native";
+import { TextInput, StyleSheet, View, Platform } from "react-native";
 
 const UsernameInput = ({
   value,
   onChangeText,
   placeholder,
   onSubmitEditing,
+  onBlur,
   editable = true,
   ...props
 }) => {
@@ -14,15 +15,17 @@ const UsernameInput = ({
       <TextInput
         style={styles.input}
         placeholder={placeholder}
+        placeholderTextColor="#999"
         value={value}
         onChangeText={onChangeText}
         onSubmitEditing={onSubmitEditing}
+        onBlur={onBlur}
         editable={editable}
         keyboardType="default"
         autoCapitalize="none"
         autoCorrect={false}
-        autoComplete="username"
-        textContentType="username"
+        textContentType={Platform.OS === "ios" ? "username" : undefined}
+        autoComplete={Platform.OS === "android" ? "username" : undefined}
         returnKeyType="next"
         {...props}
       />
@@ -35,10 +38,9 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   input: {
-    borderWidth: 0.5,
-    borderColor: "#ccc",
+    height: 48,
     borderRadius: 8,
-    padding: 12,
+    paddingHorizontal: 10,
     fontSize: 16,
     backgroundColor: "#fff",
   },
