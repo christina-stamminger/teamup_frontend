@@ -122,9 +122,12 @@ const RegisterScreen = ({ navigation }) => {
           text2: "Bitte melde dich jetzt an.",
         });
 
-        navigation.navigate("Login");
-        formik.resetForm();
-        setIsSubmitted(false);
+        setTimeout(() => {
+          navigation.navigate("Login");
+          formik.resetForm();
+          setIsSubmitted(false);
+        }, 1200);
+
         return;
       }
 
