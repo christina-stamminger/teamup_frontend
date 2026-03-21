@@ -17,11 +17,19 @@ const PasswordInput = ({
   const [secure, setSecure] = useState(true);
 
   const handleChangeText = useCallback(
-    (text) => {
-      onChangeText?.(text);
-    },
-    [onChangeText]
-  );
+  (text) => {
+    onChangeText?.(text);
+  },
+  [onChangeText]
+);
+
+const handleEndEditing = useCallback(
+  (e) => {
+    const text = e.nativeEvent.text;
+    onChangeText?.(text);
+  },
+  [onChangeText]
+);
 
   const toggleSecure = useCallback(() => {
     setSecure((prev) => !prev);
@@ -36,6 +44,7 @@ const PasswordInput = ({
         placeholderTextColor="#999"
         secureTextEntry={secure}
         onChangeText={handleChangeText}
+        onEndEditing={handleEndEditing}   // 👈 DAS ist neu!
         autoCapitalize="none"
         autoCorrect={false}
         textContentType={textContentType}
