@@ -104,6 +104,8 @@ const RegisterScreen = ({ navigation }) => {
     },
     validationSchema,
     onSubmit: async (values) => {
+      console.log("password value:", values.password);
+      console.log("password length:", values.password?.length);
       setRegistrationMessage("");
       setIsSubmitted(true);
 
@@ -113,6 +115,8 @@ const RegisterScreen = ({ navigation }) => {
         password: values.password,
       };
 
+      console.log("Submitting userData password:", userData.password);
+      console.log("Submitting userData password length:", userData.password?.length);
       const { success, message } = await postNewUser(userData, safeFetch);
 
       if (success) {
