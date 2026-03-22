@@ -141,10 +141,11 @@ const LoginScreen = ({ navigation }) => {
                 onChangeText={setPassword}
                 placeholder="********"
                 editable={!isLoading}
-                textContentType="password"
-                autoComplete="password"
+                textContentType={Platform.OS === "ios" ? "password" : undefined}
+                autoComplete={Platform.OS === "android" ? "password" : undefined}
                 keyboardType="default"
                 accessibilityLabel="Passwort"
+                returnKeyType="done"
               />
             </View>
 

@@ -1,55 +1,46 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { TextInput, View, Pressable, StyleSheet, Platform } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
 
 const PasswordInput = ({
   value,
   onChangeText,
+  onBlur,
   placeholder = "Passwort",
   style,
-  onBlur,
+  allowToggle = true,
   textContentType,
   autoComplete,
   passwordRules,
-  allowToggle = true,
+  returnKeyType = "done",
+  editable = true,
+  accessibilityLabel = "Passwort",
   ...props
 }) => {
   const [secure, setSecure] = useState(true);
 
-  const syncText = useCallback(
+  const resolvedTextContentType = useMemo(() => {
+    if (textContentType) return textContentType;
+    return Platform.OS === "ios" ? "password" : undefined;
+  }, [textContentType]);
+
+  const resolvedAutoComplete = useMemo(() => {
+    if (autoComplete) return autoComplete;
+    return Platform.OS === "android" ? "password" : undefined;
+  }, [autoComplete]);
+
+  const handleChangeText = useCallback(
     (text) => {
       onChangeText?.(text ?? "");
     },
     [onChangeText]
   );
 
-  const handleChangeText = useCallback(
-    (text) => {
-      syncText(text);
-    },
-    [syncText]
-  );
-
-  const handleChange = useCallback(
-    (e) => {
-      syncText(e?.nativeEvent?.text ?? "");
-    },
-    [syncText]
-  );
-
-  const handleEndEditing = useCallback(
-    (e) => {
-      syncText(e?.nativeEvent?.text ?? "");
-    },
-    [syncText]
-  );
-
   const handleBlur = useCallback(
     (e) => {
-      syncText(e?.nativeEvent?.text ?? value ?? "");
       onBlur?.(e);
     },
-    [syncText, onBlur, value]
+    [onBlur]
   );
 
   const toggleSecure = useCallback(() => {
@@ -60,20 +51,24 @@ const PasswordInput = ({
     <View style={styles.container}>
       <TextInput
         style={[styles.input, style]}
-        value={value}
+        value={value ?? ""}
         placeholder={placeholder}
         placeholderTextColor="#999"
         secureTextEntry={secure}
         onChangeText={handleChangeText}
-        onChange={handleChange}
-        onEndEditing={handleEndEditing}
         onBlur={handleBlur}
         autoCapitalize="none"
         autoCorrect={false}
-        textContentType={textContentType}
-        autoComplete={autoComplete}
+        spellCheck={false}
+        importantForAutofill="yes"
+        textContentType={resolvedTextContentType}
+        autoComplete={resolvedAutoComplete}
         passwordRules={Platform.OS === "ios" ? passwordRules : undefined}
         enablesReturnKeyAutomatically
+        keyboardType="default"
+        returnKeyType={returnKeyType}
+        editable={editable}
+        accessibilityLabel={accessibilityLabel}
         {...props}
       />
 
@@ -109,12 +104,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: "#000",
+    paddingVertical: 0,
   },
   eyeButton: {
     width: 32,
     height: 32,
     justifyContent: "center",
     alignItems: "center",
+    marginLeft: 8,
   },
 });
 

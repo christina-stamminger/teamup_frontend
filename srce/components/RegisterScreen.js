@@ -103,9 +103,9 @@ const RegisterScreen = ({ navigation }) => {
       password: "",
     },
     validationSchema,
+    validateOnBlur: true,
+    validateOnChange: true,
     onSubmit: async (values) => {
-      console.log("password value:", values.password);
-      console.log("password length:", values.password?.length);
       setRegistrationMessage("");
       setIsSubmitted(true);
 
@@ -115,8 +115,6 @@ const RegisterScreen = ({ navigation }) => {
         password: values.password,
       };
 
-      console.log("Submitting userData password:", userData.password);
-      console.log("Submitting userData password length:", userData.password?.length);
       const { success, message } = await postNewUser(userData, safeFetch);
 
       if (success) {
@@ -127,9 +125,9 @@ const RegisterScreen = ({ navigation }) => {
         });
 
         setTimeout(() => {
-          navigation.navigate("Login");
           formik.resetForm();
           setIsSubmitted(false);
+          navigation.navigate("Login");
         }, 2500);
 
         return;
@@ -210,17 +208,14 @@ const RegisterScreen = ({ navigation }) => {
                 onBlur={formik.handleBlur("password")}
                 placeholder="Passwort"
                 style={styles.passwordInput}
-                textContentType={
-                  Platform.OS === "ios" ? "newPassword" : undefined
-                }
-                autoComplete={
-                  Platform.OS === "android" ? "new-password" : undefined
-                }
+                textContentType={Platform.OS === "ios" ? "newPassword" : undefined}
+                autoComplete={Platform.OS === "android" ? "new-password" : undefined}
                 passwordRules={
                   Platform.OS === "ios"
                     ? "minlength: 8; required: lower; required: upper; required: digit; required: special;"
                     : undefined
                 }
+                returnKeyType="done"
               />
               {formik.touched.password && formik.errors.password ? (
                 <Text style={styles.error}>{formik.errors.password}</Text>
@@ -233,7 +228,12 @@ const RegisterScreen = ({ navigation }) => {
 
             <TouchableOpacity
               style={[styles.button, isSubmitted && styles.buttonDisabled]}
-              onPress={formik.handleSubmit}
+              onPress={() => {
+                formik.setFieldTouched("username", true);
+                formik.setFieldTouched("email", true);
+                formik.setFieldTouched("password", true);
+                formik.handleSubmit();
+              }}
               disabled={isSubmitted}
             >
               <Text style={styles.buttonText}>
