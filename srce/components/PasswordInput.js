@@ -16,20 +16,41 @@ const PasswordInput = ({
 }) => {
   const [secure, setSecure] = useState(true);
 
-  const handleChangeText = useCallback(
-  (text) => {
-    onChangeText?.(text);
-  },
-  [onChangeText]
-);
+  const syncText = useCallback(
+    (text) => {
+      onChangeText?.(text ?? "");
+    },
+    [onChangeText]
+  );
 
-const handleEndEditing = useCallback(
-  (e) => {
-    const text = e.nativeEvent.text;
-    onChangeText?.(text);
-  },
-  [onChangeText]
-);
+  const handleChangeText = useCallback(
+    (text) => {
+      syncText(text);
+    },
+    [syncText]
+  );
+
+  const handleChange = useCallback(
+    (e) => {
+      syncText(e?.nativeEvent?.text ?? "");
+    },
+    [syncText]
+  );
+
+  const handleEndEditing = useCallback(
+    (e) => {
+      syncText(e?.nativeEvent?.text ?? "");
+    },
+    [syncText]
+  );
+
+  const handleBlur = useCallback(
+    (e) => {
+      syncText(e?.nativeEvent?.text ?? value ?? "");
+      onBlur?.(e);
+    },
+    [syncText, onBlur, value]
+  );
 
   const toggleSecure = useCallback(() => {
     setSecure((prev) => !prev);
@@ -44,13 +65,14 @@ const handleEndEditing = useCallback(
         placeholderTextColor="#999"
         secureTextEntry={secure}
         onChangeText={handleChangeText}
-        onEndEditing={handleEndEditing}   // 👈 DAS ist neu!
+        onChange={handleChange}
+        onEndEditing={handleEndEditing}
+        onBlur={handleBlur}
         autoCapitalize="none"
         autoCorrect={false}
         textContentType={textContentType}
         autoComplete={autoComplete}
         passwordRules={Platform.OS === "ios" ? passwordRules : undefined}
-        onBlur={onBlur}
         enablesReturnKeyAutomatically
         {...props}
       />

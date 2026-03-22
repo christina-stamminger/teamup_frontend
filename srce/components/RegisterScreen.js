@@ -122,12 +122,13 @@ const RegisterScreen = ({ navigation }) => {
           text2: "Bitte melde dich jetzt an.",
         });
 
-        // ⬇️ WICHTIG: länger warten!
         setTimeout(() => {
           navigation.navigate("Login");
           formik.resetForm();
           setIsSubmitted(false);
-        }, 2500); // ← statt 1200
+        }, 2500);
+
+        return;
       }
 
       setRegistrationMessage(message);
