@@ -123,9 +123,14 @@ const RegisterScreen = ({ navigation }) => {
           text1: "Konto erfolgreich erstellt!",
           text2: "Bitte melde dich jetzt an.",
         });
-
+        console.log("✅ [SUCCESS] response ok");
+        console.log("✅ [SUCCESS] formik password before reset:", formik.values.password, "| length:", formik.values.password?.length);
+        console.log("✅ [SUCCESS] navigating to Login now");
         navigation.navigate("Login");
         formik.resetForm();
+        formik.resetForm();
+        console.log("♻️ [RESET] resetForm called");
+        console.log("♻️ [RESET] current formik password after reset:", formik.values.password, "| length:", formik.values.password?.length);
         setIsSubmitted(false);
         return;
       }
