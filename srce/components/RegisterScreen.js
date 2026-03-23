@@ -118,18 +118,17 @@ const RegisterScreen = ({ navigation }) => {
       const { success, message } = await postNewUser(userData, safeFetch);
 
       if (success) {
-        console.log("✅ [SUCCESS] account created");
-        console.log("✅ [SUCCESS] password length before any reset:", values.password?.length);
-
         Toast.show({
           type: "success",
           text1: "Konto erfolgreich erstellt!",
           text2: "Bitte melde dich jetzt an.",
         });
 
-        // TESTWEISE:
-        // formik.resetForm();
-        // navigation.navigate("Login");
+        // 👇 WICHTIG: Delay
+        setTimeout(() => {
+          formik.resetForm();
+          navigation.navigate("Login");
+        }, 800); // 600–1200ms funktioniert gut
 
         setIsSubmitted(false);
         return;
