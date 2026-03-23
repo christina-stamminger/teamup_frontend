@@ -54,7 +54,7 @@ const LoginScreen = ({ navigation }) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            username: inputUsername,
+            username: inputUsername.trim(),
             password,
           }),
         }
@@ -107,7 +107,7 @@ const LoginScreen = ({ navigation }) => {
             paddingBottom: 30 + insets.bottom
           },
         ]}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
       >
 
         <View style={styles.card}>
@@ -131,6 +131,8 @@ const LoginScreen = ({ navigation }) => {
                 onChangeText={setInputUsername}
                 placeholder="zB bringitUser1"
                 editable={!isLoading}
+                textContentType={Platform.OS === "ios" ? "username" : undefined}
+                autoComplete={Platform.OS === "android" ? "username" : undefined}
               />
             </View>
 
@@ -142,7 +144,7 @@ const LoginScreen = ({ navigation }) => {
                 placeholder="********"
                 editable={!isLoading}
                 textContentType={Platform.OS === "ios" ? "password" : undefined}
-                autoComplete={Platform.OS === "android" ? "password" : undefined}
+                autoComplete={Platform.OS === "android" ? "current-password" : undefined}
                 keyboardType="default"
                 accessibilityLabel="Passwort"
                 returnKeyType="done"

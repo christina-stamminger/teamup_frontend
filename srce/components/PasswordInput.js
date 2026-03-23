@@ -11,7 +11,6 @@ const PasswordInput = ({
   allowToggle = true,
   textContentType,
   autoComplete,
-  passwordRules,
   returnKeyType = "done",
   editable = true,
   accessibilityLabel = "Passwort",
@@ -63,12 +62,11 @@ const PasswordInput = ({
         importantForAutofill="yes"
         textContentType={resolvedTextContentType}
         autoComplete={resolvedAutoComplete}
-        passwordRules={Platform.OS === "ios" ? passwordRules : undefined}
-        enablesReturnKeyAutomatically
         keyboardType="default"
         returnKeyType={returnKeyType}
         editable={editable}
         accessibilityLabel={accessibilityLabel}
+        enablesReturnKeyAutomatically
         {...props}
       />
 

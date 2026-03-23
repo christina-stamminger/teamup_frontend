@@ -145,7 +145,7 @@ const RegisterScreen = ({ navigation }) => {
     >
       <ScrollView
         contentContainerStyle={styles.scrollViewContainer}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
       >
         <View style={styles.logoContainer}>
           <View style={styles.iconContainer}>
@@ -167,6 +167,8 @@ const RegisterScreen = ({ navigation }) => {
                 }}
                 onBlur={formik.handleBlur("username")}
                 placeholder="Benutzername"
+                textContentType={Platform.OS === "ios" ? "username" : undefined}
+                autoComplete={Platform.OS === "android" ? "username" : undefined}
               />
               {formik.touched.username && formik.errors.username ? (
                 <Text style={styles.error}>{formik.errors.username}</Text>
@@ -208,13 +210,9 @@ const RegisterScreen = ({ navigation }) => {
                 onBlur={formik.handleBlur("password")}
                 placeholder="Passwort"
                 style={styles.passwordInput}
+                allowToggle={true}
                 textContentType={Platform.OS === "ios" ? "newPassword" : undefined}
                 autoComplete={Platform.OS === "android" ? "new-password" : undefined}
-                passwordRules={
-                  Platform.OS === "ios"
-                    ? "minlength: 8; required: lower; required: upper; required: digit; required: special;"
-                    : undefined
-                }
                 returnKeyType="done"
               />
               {formik.touched.password && formik.errors.password ? (
