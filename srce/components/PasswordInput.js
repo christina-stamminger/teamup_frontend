@@ -30,8 +30,21 @@ const PasswordInput = React.forwardRef(
           placeholder={placeholder}
           placeholderTextColor="#999"
           secureTextEntry={secure}
-          onChangeText={onChangeText}
-          onBlur={onBlur}
+
+          onChangeText={(text) => {
+            console.log("🔐 [PasswordInput] onChangeText:", text, "| length:", text?.length);
+            onChangeText?.(text);
+          }}
+
+          onBlur={(e) => {
+            console.log("🔐 [PasswordInput] onBlur value:", e?.nativeEvent?.text);
+            onBlur?.(e);
+          }}
+
+          onFocus={() => {
+            console.log("🔐 [PasswordInput] onFocus");
+          }}
+
           autoCapitalize="none"
           autoCorrect={false}
           spellCheck={false}

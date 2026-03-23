@@ -19,6 +19,7 @@ import PasswordInput from "../components/PasswordInput";
 import UsernameInput from "../components/UsernameInput";
 import { autofill } from "../utils/autofill";
 
+
 // Validierung
 const usernameRegex = /^[A-Za-z0-9._-]{3,20}$/;
 const passwordRegex =
@@ -102,6 +103,8 @@ const RegisterScreen = ({ navigation }) => {
     },
     validationSchema,
     onSubmit: async (values) => {
+      console.log("🚀 [SUBMIT] password:", values.password);
+      console.log("🚀 [SUBMIT] password length:", values.password?.length);
       setRegistrationMessage("");
       setIsSubmitted(true);
 
@@ -130,6 +133,9 @@ const RegisterScreen = ({ navigation }) => {
       setIsSubmitted(false);
     },
   });
+  useEffect(() => {
+    console.log("🧠 [Formik state] password:", formik.values.password, "| length:", formik.values.password?.length);
+  }, [formik.values.password]);
 
   return (
     <KeyboardAvoidingView
@@ -199,6 +205,8 @@ const RegisterScreen = ({ navigation }) => {
                 ref={passwordRef}
                 value={formik.values.password}
                 onChangeText={(text) => {
+                  console.log("📦 [Formik] set password:", text, "| length:", text?.length);
+
                   if (registrationMessage) setRegistrationMessage("");
                   formik.setFieldValue("password", text);
                 }}
