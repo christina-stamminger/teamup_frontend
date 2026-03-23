@@ -118,19 +118,19 @@ const RegisterScreen = ({ navigation }) => {
       const { success, message } = await postNewUser(userData, safeFetch);
 
       if (success) {
+        console.log("✅ [SUCCESS] account created");
+        console.log("✅ [SUCCESS] password length before any reset:", values.password?.length);
+
         Toast.show({
           type: "success",
           text1: "Konto erfolgreich erstellt!",
           text2: "Bitte melde dich jetzt an.",
         });
-        console.log("✅ [SUCCESS] response ok");
-        console.log("✅ [SUCCESS] formik password before reset:", formik.values.password, "| length:", formik.values.password?.length);
-        console.log("✅ [SUCCESS] navigating to Login now");
-        navigation.navigate("Login");
-        formik.resetForm();
-        formik.resetForm();
-        console.log("♻️ [RESET] resetForm called");
-        console.log("♻️ [RESET] current formik password after reset:", formik.values.password, "| length:", formik.values.password?.length);
+
+        // TESTWEISE:
+        // formik.resetForm();
+        // navigation.navigate("Login");
+
         setIsSubmitted(false);
         return;
       }
