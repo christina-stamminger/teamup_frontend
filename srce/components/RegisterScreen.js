@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   TextInput,
@@ -17,6 +17,7 @@ import Toast from "react-native-toast-message";
 import { API_URL, APP_ENV } from "../config/env";
 import PasswordInput from "../components/PasswordInput";
 import UsernameInput from "../components/UsernameInput";
+import { autofill } from "../utils/autofill";
 
 // Validierung
 const usernameRegex = /^[A-Za-z0-9._-]{3,20}$/;
@@ -32,11 +33,9 @@ const validationSchema = Yup.object({
       "Benutzername muss 3–20 Zeichen haben. Erlaubt: Buchstaben, Zahlen, ., -, _."
     )
     .required("Benutzername ist erforderlich."),
-
   email: Yup.string()
     .matches(emailRegex, "Bitte gib eine gültige E-Mail ein.")
     .required("E-Mail ist erforderlich."),
-
   password: Yup.string()
     .matches(
       passwordRegex,
@@ -49,10 +48,6 @@ const postNewUser = async (userData, safeFetch) => {
   try {
     console.log("Sending request to:", `${API_URL}/api/user/signup`);
     console.log("APP_ENV:", APP_ENV);
-    console.log("With data:", {
-      ...userData,
-      password: "[REDACTED]",
-    });
 
     const response = await safeFetch(`${API_URL}/api/user/signup`, {
       method: "POST",
@@ -92,6 +87,9 @@ const RegisterScreen = ({ navigation }) => {
   const [registrationMessage, setRegistrationMessage] = useState("");
   const { safeFetch } = useNetwork();
 
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+
   const handleBackButton = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
@@ -103,8 +101,6 @@ const RegisterScreen = ({ navigation }) => {
       password: "",
     },
     validationSchema,
-    validateOnBlur: true,
-    validateOnChange: true,
     onSubmit: async (values) => {
       setRegistrationMessage("");
       setIsSubmitted(true);
@@ -124,12 +120,9 @@ const RegisterScreen = ({ navigation }) => {
           text2: "Bitte melde dich jetzt an.",
         });
 
-        setTimeout(() => {
-          formik.resetForm();
-          setIsSubmitted(false);
-          navigation.navigate("Login");
-        }, 2500);
-
+        navigation.navigate("Login");
+        formik.resetForm();
+        setIsSubmitted(false);
         return;
       }
 
@@ -145,7 +138,7 @@ const RegisterScreen = ({ navigation }) => {
     >
       <ScrollView
         contentContainerStyle={styles.scrollViewContainer}
-        keyboardShouldPersistTaps="always"
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoContainer}>
           <View style={styles.iconContainer}>
@@ -167,8 +160,9 @@ const RegisterScreen = ({ navigation }) => {
                 }}
                 onBlur={formik.handleBlur("username")}
                 placeholder="Benutzername"
-                textContentType={Platform.OS === "ios" ? "username" : undefined}
-                autoComplete={Platform.OS === "android" ? "username" : undefined}
+                returnKeyType="next"
+                onSubmitEditing={() => emailRef.current?.focus()}
+                {...autofill.username}
               />
               {formik.touched.username && formik.errors.username ? (
                 <Text style={styles.error}>{formik.errors.username}</Text>
@@ -177,6 +171,7 @@ const RegisterScreen = ({ navigation }) => {
 
             <View style={styles.inputContainer}>
               <TextInput
+                ref={emailRef}
                 style={styles.input}
                 placeholder="E-Mail-Adresse"
                 placeholderTextColor="#999"
@@ -189,11 +184,10 @@ const RegisterScreen = ({ navigation }) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                textContentType={
-                  Platform.OS === "ios" ? "emailAddress" : undefined
-                }
-                autoComplete={Platform.OS === "android" ? "email" : undefined}
+                spellCheck={false}
                 returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                {...autofill.email}
               />
               {formik.touched.email && formik.errors.email ? (
                 <Text style={styles.error}>{formik.errors.email}</Text>
@@ -202,6 +196,7 @@ const RegisterScreen = ({ navigation }) => {
 
             <View style={styles.inputContainer}>
               <PasswordInput
+                ref={passwordRef}
                 value={formik.values.password}
                 onChangeText={(text) => {
                   if (registrationMessage) setRegistrationMessage("");
@@ -210,10 +205,9 @@ const RegisterScreen = ({ navigation }) => {
                 onBlur={formik.handleBlur("password")}
                 placeholder="Passwort"
                 style={styles.passwordInput}
-                allowToggle={true}
-                textContentType={Platform.OS === "ios" ? "newPassword" : undefined}
-                autoComplete={Platform.OS === "android" ? "new-password" : undefined}
                 returnKeyType="done"
+                onSubmitEditing={formik.handleSubmit}
+                {...autofill.newPassword}
               />
               {formik.touched.password && formik.errors.password ? (
                 <Text style={styles.error}>{formik.errors.password}</Text>
@@ -226,12 +220,7 @@ const RegisterScreen = ({ navigation }) => {
 
             <TouchableOpacity
               style={[styles.button, isSubmitted && styles.buttonDisabled]}
-              onPress={() => {
-                formik.setFieldTouched("username", true);
-                formik.setFieldTouched("email", true);
-                formik.setFieldTouched("password", true);
-                formik.handleSubmit();
-              }}
+              onPress={formik.handleSubmit}
               disabled={isSubmitted}
             >
               <Text style={styles.buttonText}>
@@ -293,6 +282,7 @@ const styles = StyleSheet.create({
     paddingRight: 10,
     backgroundColor: "#fff",
     fontSize: 16,
+    color: "#000",
   },
   passwordInput: {
     flex: 1,
@@ -330,26 +320,6 @@ const styles = StyleSheet.create({
   error: {
     color: "red",
     fontSize: 12,
-    marginTop: 4,
-  },
-  registrationSaved: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  closeButton: {
-    marginTop: 20,
-    backgroundColor: "#4FB6B8",
-    padding: 10,
-    borderRadius: 5,
-  },
-  closeButtonText: {
-    color: "#fff",
-    fontSize: 18,
-  },
-  hint: {
-    fontSize: 12,
-    color: "#666",
     marginTop: 4,
   },
   logoContainer: {

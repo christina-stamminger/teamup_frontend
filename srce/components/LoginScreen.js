@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
 } from "react-native";
 import { Handshake } from "lucide-react-native";
 import UsernameInput from "./UsernameInput";
@@ -17,9 +18,7 @@ import { useNetwork } from "../components/context/NetworkContext";
 import Toast from "react-native-toast-message";
 import { API_URL } from "../config/env";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-
-
+import { autofill } from "../utils/autofill";
 
 const LoginScreen = ({ navigation }) => {
   const [inputUsername, setInputUsername] = useState("");
@@ -29,90 +28,77 @@ const LoginScreen = ({ navigation }) => {
 
   const { saveSession } = useUser();
   const { safeFetch } = useNetwork();
-
   const insets = useSafeAreaInsets();
 
+  const passwordRef = useRef(null);
 
-  const handleLogin = async () => {
+  const handleLogin = useCallback(async () => {
     Keyboard.dismiss();
-    // Validierung
+
     if (!inputUsername.trim() || !password) {
       setErrorMessage("Bitte Benutzername und Passwort eingeben.");
       return;
     }
 
-    // Verhindere doppelte Login-Versuche
     if (isLoading) return;
 
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      const response = await safeFetch(
-        `${API_URL}/api/user/auth/login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: inputUsername.trim(),
-            password,
-          }),
-        }
-      );
+      const response = await safeFetch(`${API_URL}/api/user/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: inputUsername.trim(),
+          password,
+        }),
+      });
 
-      // Offline
       if (response?.offline) {
         Toast.show({
-          type: 'info',
-          text1: 'Offline',
-          text2: 'Keine Internetverbindung',
+          type: "info",
+          text1: "Offline",
+          text2: "Keine Internetverbindung",
         });
         return;
       }
 
-      // Login fehlgeschlagen
       if (!response.ok) {
         setErrorMessage("Benutzername oder Passwort ungültig.");
         return;
       }
 
-      // ✅ Login erfolgreich
       const data = await response.json();
       const { accessToken, refreshToken } = data;
 
-      // ✅ Session speichern (lädt automatisch User-Daten)
       await saveSession({ accessToken, refreshToken });
-
-      // ✅ saveSession setzt hasLoggedInOnce bereits auf true
-      // ✅ Navigation erfolgt automatisch durch AppRoot
-
+      // Navigation erfolgt über AppRoot
     } catch (error) {
       console.error("Login error:", error);
       setErrorMessage("Ein Fehler ist aufgetreten. Bitte erneut versuchen.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [inputUsername, password, isLoading, safeFetch, saveSession]);
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior="padding"
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 30}    >
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 30}
+    >
       <ScrollView
         contentContainerStyle={[
           styles.scrollContainer,
           {
             paddingTop: Math.max(insets.top + 60, 100),
-            paddingBottom: 30 + insets.bottom
+            paddingBottom: 30 + insets.bottom,
           },
         ]}
-        keyboardShouldPersistTaps="always"
+        keyboardShouldPersistTaps="handled"
       >
-
         <View style={styles.card}>
-
-          {/* Logo */}
           <View style={styles.logoContainer}>
             <View style={styles.iconContainer}>
               <Handshake size={40} color="#fff" />
@@ -120,7 +106,6 @@ const LoginScreen = ({ navigation }) => {
             <Text style={styles.appName}>BringIt</Text>
           </View>
 
-          {/* Login Card */}
           <Text style={styles.title}>Hi, schön dass du da bist.</Text>
 
           <View style={styles.form}>
@@ -128,30 +113,36 @@ const LoginScreen = ({ navigation }) => {
               <Text style={styles.label}>Benutzername</Text>
               <UsernameInput
                 value={inputUsername}
-                onChangeText={setInputUsername}
-                placeholder="zB bringitUser1"
+                onChangeText={(text) => {
+                  if (errorMessage) setErrorMessage("");
+                  setInputUsername(text);
+                }}
+                placeholder="z. B. bringitUser1"
                 editable={!isLoading}
-                textContentType={Platform.OS === "ios" ? "username" : undefined}
-                autoComplete={Platform.OS === "android" ? "username" : undefined}
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                {...autofill.username}
               />
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Passwort</Text>
               <PasswordInput
+                ref={passwordRef}
                 value={password}
-                onChangeText={setPassword}
-                placeholder="********"
+                onChangeText={(text) => {
+                  if (errorMessage) setErrorMessage("");
+                  setPassword(text);
+                }}
+                placeholder="••••••••"
                 editable={!isLoading}
-                textContentType={Platform.OS === "ios" ? "password" : undefined}
-                autoComplete={Platform.OS === "android" ? "current-password" : undefined}
-                keyboardType="default"
                 accessibilityLabel="Passwort"
                 returnKeyType="done"
+                onSubmitEditing={handleLogin}
+                {...autofill.password}
               />
             </View>
 
-            {/* Passwort vergessen Link */}
             <Text
               style={styles.forgotPassword}
               onPress={() => !isLoading && navigation.navigate("ForgotPassword")}
@@ -190,14 +181,11 @@ const LoginScreen = ({ navigation }) => {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  inner: {
-    padding: 30,
-  },
   logoContainer: {
     alignItems: "center",
     marginBottom: 8,
@@ -213,15 +201,15 @@ const styles = StyleSheet.create({
   appName: {
     marginTop: 12,
     fontSize: 30,
-    fontWeight: "500",   // wichtig!
-    letterSpacing: 0.6,  // extrem wirkungsvoll
+    fontWeight: "500",
+    letterSpacing: 0.6,
     color: "#666",
   },
   title: {
     fontSize: 18,
     marginBottom: 24,
     textAlign: "center",
-    color: "#404040", // ruhiger
+    color: "#404040",
   },
   card: {
     backgroundColor: "#fff",
@@ -273,7 +261,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#a0d9d9",
     opacity: 0.7,
   },
-
   registerText: {
     marginTop: 15,
     textAlign: "center",
@@ -286,8 +273,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     padding: 30,
-  }
-
+  },
 });
 
 export default LoginScreen;
