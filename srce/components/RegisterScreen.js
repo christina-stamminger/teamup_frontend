@@ -20,13 +20,7 @@ import UsernameInput from "../components/UsernameInput";
 import { autofill } from "../utils/autofill";
 import { useEffect } from "react";
 
-useEffect(() => {
-  console.log("🟢 [RegisterScreen] mounted");
 
-  return () => {
-    console.log("🔴 [RegisterScreen] unmounted");
-  };
-}, []);
 
 // Validierung
 const usernameRegex = /^[A-Za-z0-9._-]{3,20}$/;
@@ -92,12 +86,21 @@ const postNewUser = async (userData, safeFetch) => {
 };
 
 const RegisterScreen = ({ navigation }) => {
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [registrationMessage, setRegistrationMessage] = useState("");
   const { safeFetch } = useNetwork();
 
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
+
+  useEffect(() => {
+    console.log("🟢 [RegisterScreen] mounted");
+
+    return () => {
+      console.log("🔴 [RegisterScreen] unmounted");
+    };
+  }, []);
 
   const handleBackButton = useCallback(() => {
     navigation.goBack();
