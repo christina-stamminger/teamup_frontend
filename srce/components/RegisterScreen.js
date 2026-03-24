@@ -20,6 +20,13 @@ import UsernameInput from "../components/UsernameInput";
 import { autofill } from "../utils/autofill";
 import { useEffect } from "react";
 
+useEffect(() => {
+  console.log("🟢 [RegisterScreen] mounted");
+
+  return () => {
+    console.log("🔴 [RegisterScreen] unmounted");
+  };
+}, []);
 
 // Validierung
 const usernameRegex = /^[A-Za-z0-9._-]{3,20}$/;
@@ -130,19 +137,17 @@ const RegisterScreen = ({ navigation }) => {
       });
 
       if (success) {
+        console.log("✅ [SUCCESS] start");
+
         Toast.show({
           type: "success",
           text1: "Konto erfolgreich erstellt!",
           text2: "Bitte melde dich jetzt an.",
         });
 
-        // 👇 WICHTIG: Delay
-        setTimeout(() => {
-          formik.resetForm();
-          navigation.navigate("Login");
-        }, 800); // 600–1200ms funktioniert gut
-
         setIsSubmitted(false);
+
+        console.log("✅ [SUCCESS] end");
         return;
       }
 
