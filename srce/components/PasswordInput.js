@@ -21,6 +21,15 @@ const PasswordInput = React.forwardRef(
       setSecure((prev) => !prev);
     }, []);
 
+    console.log(
+      "🧩 [PasswordInput render] value:",
+      value,
+      "| length:",
+      value?.length,
+      "| secure:",
+      secure
+    );
+
     return (
       <View style={styles.container}>
         <TextInput

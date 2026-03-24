@@ -115,7 +115,19 @@ const RegisterScreen = ({ navigation }) => {
         password: values.password,
       };
 
+      console.log("📤 [REQUEST PAYLOAD]", {
+        username: userData.username,
+        email: userData.email,
+        passwordLength: userData.password?.length,
+      });
+
       const { success, message } = await postNewUser(userData, safeFetch);
+
+      console.log("📤 [REQUEST PAYLOAD]", {
+        username: userData.username,
+        email: userData.email,
+        passwordLength: userData.password?.length,
+      });
 
       if (success) {
         Toast.show({
@@ -141,6 +153,15 @@ const RegisterScreen = ({ navigation }) => {
   useEffect(() => {
     console.log("🧠 [Formik state] password:", formik.values.password, "| length:", formik.values.password?.length);
   }, [formik.values.password]);
+
+  console.log("🖥️ [RegisterScreen render]", {
+    username: formik.values.username,
+    email: formik.values.email,
+    password: formik.values.password,
+    passwordLength: formik.values.password?.length,
+    isSubmitted,
+    registrationMessage,
+  });
 
   return (
     <KeyboardAvoidingView
