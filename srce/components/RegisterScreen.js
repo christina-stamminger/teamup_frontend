@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   TextInput,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator
 } from "react-native";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -18,9 +19,6 @@ import { API_URL, APP_ENV } from "../config/env";
 import PasswordInput from "../components/PasswordInput";
 import UsernameInput from "../components/UsernameInput";
 import { autofill } from "../utils/autofill";
-import { useEffect } from "react";
-
-
 
 // Validierung
 const usernameRegex = /^[A-Za-z0-9._-]{3,20}$/;
@@ -132,12 +130,8 @@ const RegisterScreen = ({ navigation }) => {
       });
 
       const { success, message } = await postNewUser(userData, safeFetch);
-
-      console.log("📤 [REQUEST PAYLOAD]", {
-        username: userData.username,
-        email: userData.email,
-        passwordLength: userData.password?.length,
-      });
+      
+      console.log("📥 [REGISTER RESULT]", { success, message });
 
       if (success) {
         console.log("✅ [SUCCESS] start");
@@ -201,6 +195,7 @@ const RegisterScreen = ({ navigation }) => {
                 onBlur={formik.handleBlur("username")}
                 placeholder="Benutzername"
                 returnKeyType="next"
+                editable={!isSubmitted}
                 onSubmitEditing={() => emailRef.current?.focus()}
                 {...autofill.username}
               />
@@ -222,6 +217,7 @@ const RegisterScreen = ({ navigation }) => {
                 }}
                 onBlur={formik.handleBlur("email")}
                 keyboardType="email-address"
+                editable={!isSubmitted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 spellCheck={false}
@@ -248,7 +244,8 @@ const RegisterScreen = ({ navigation }) => {
                 placeholder="Passwort"
                 style={styles.passwordInput}
                 returnKeyType="done"
-                onSubmitEditing={formik.handleSubmit}
+                editable={!isSubmitted}
+                onSubmitEditing={() => formik.handleSubmit()}
                 {...autofill.newPassword}
               />
               {formik.touched.password && formik.errors.password ? (
@@ -262,17 +259,36 @@ const RegisterScreen = ({ navigation }) => {
 
             <TouchableOpacity
               style={[styles.button, isSubmitted && styles.buttonDisabled]}
-              onPress={formik.handleSubmit}
+              onPress={() => formik.handleSubmit()}
               disabled={isSubmitted}
             >
-              <Text style={styles.buttonText}>
-                {isSubmitted ? "Registriere..." : "Registrieren"}
-              </Text>
+              {isSubmitted ? (
+                <View style={styles.buttonContent}>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text style={styles.buttonTextLoading}>Registriere...</Text>
+                </View>
+              ) : (
+                <Text style={styles.buttonText}>Registrieren</Text>
+              )}
             </TouchableOpacity>
 
+            {isSubmitted ? (
+              <View style={styles.processingBox}>
+                <Text style={styles.processingTitle}>Registrierung läuft</Text>
+                <Text style={styles.processingText}>
+                  Die Registrierung kann ein paar Sekunden dauern.
+                  Bitte hab etwas Geduld und unterbreche den Vorgang nicht.
+                </Text>
+              </View>
+            ) : null}
+
             <TouchableOpacity
-              style={styles.backButton}
+              style={[
+                styles.backButton,
+                isSubmitted && styles.backButtonDisabled
+              ]}
               onPress={handleBackButton}
+              disabled={isSubmitted}
             >
               <Text style={styles.backButtonText}>Zurück</Text>
             </TouchableOpacity>
@@ -373,6 +389,39 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 50,
   },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 10,
+  },
+  buttonTextLoading: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  processingBox: {
+    marginTop: 4,
+    marginBottom: 8,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#eef8f8",
+    borderWidth: 1,
+    borderColor: "#cfeaea",
+  },
+  processingTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2f6f70",
+    marginBottom: 4,
+  },
+  processingText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#4b6667",
+  },
+  backButtonDisabled: {
+    opacity: 0.6,
+  }
 });
 
 export default RegisterScreen;
