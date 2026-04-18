@@ -250,6 +250,9 @@ const ProfileScreen = () => {
                 setUserDetails((prev) => ({ ...prev, firstName: val }))
               }
               editable={!saving}
+              autoComplete="off"
+              textContentType="none"
+              importantForAutofill="no"
             />
 
             <Text style={styles.label}>Nachname:</Text>
@@ -260,6 +263,9 @@ const ProfileScreen = () => {
                 setUserDetails((prev) => ({ ...prev, lastName: val }))
               }
               editable={!saving}
+              autoComplete="off"
+              textContentType="none"
+              importantForAutofill="no"
             />
 
             <Text style={styles.label}>Geburtsdatum (YYYY-MM-DD):</Text>
@@ -271,6 +277,9 @@ const ProfileScreen = () => {
               }
               editable={!saving}
               placeholder="1990-01-31"
+              autoComplete="off"
+              textContentType="none"
+              importantForAutofill="no"
             />
 
             <Text style={styles.label}>Straße und Hausnummer:</Text>
@@ -284,6 +293,9 @@ const ProfileScreen = () => {
                 }))
               }
               editable={!saving}
+              autoComplete="off"
+              textContentType="none"
+              importantForAutofill="no"
             />
 
             <Text style={styles.label}>Postleitzahl:</Text>
@@ -297,6 +309,9 @@ const ProfileScreen = () => {
                 }))
               }
               editable={!saving}
+              autoComplete="off"
+              textContentType="none"
+              importantForAutofill="no"
               keyboardType="numeric"
             />
 
@@ -311,6 +326,9 @@ const ProfileScreen = () => {
                 }))
               }
               editable={!saving}
+              autoComplete="off"
+              textContentType="none"
+              importantForAutofill="no"
             />
           </View>
 
