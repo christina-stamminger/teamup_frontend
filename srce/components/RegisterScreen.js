@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   TextInput,
@@ -8,28 +8,25 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator
 } from "react-native";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import get from "lodash.get";
-import { Eye, EyeOff } from "lucide-react-native";
 import { Handshake } from "lucide-react-native";
-import { useNetwork } from "../components/context/NetworkContext"; // ✅ safeFetch + shouldShowError
+import { useNetwork } from "../components/context/NetworkContext";
 import Toast from "react-native-toast-message";
 import { API_URL, APP_ENV } from "../config/env";
+import PasswordInput from "../components/PasswordInput";
+import UsernameInput from "../components/UsernameInput";
+import { autofill } from "../utils/autofill";
 
-
-// Email und PW VALIDIERUNGSCHEMA mit Yup
+// Validierung
 const usernameRegex = /^[A-Za-z0-9._-]{3,20}$/;
-
 const passwordRegex =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{8,}$/;
 const emailRegex =
   /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
-
-// ✅ Validation Schema – Deutsch
 const validationSchema = Yup.object({
   username: Yup.string()
     .matches(
@@ -37,62 +34,45 @@ const validationSchema = Yup.object({
       "Benutzername muss 3–20 Zeichen haben. Erlaubt: Buchstaben, Zahlen, ., -, _."
     )
     .required("Benutzername ist erforderlich."),
-
   email: Yup.string()
     .matches(emailRegex, "Bitte gib eine gültige E-Mail ein.")
     .required("E-Mail ist erforderlich."),
-
   password: Yup.string()
     .matches(
       passwordRegex,
       "Passwort muss min. 8 Zeichen, Groß-/Kleinbuchstaben, Zahl & Sonderzeichen enthalten."
     )
     .required("Passwort ist erforderlich."),
-
-  /*
-  address: Yup.object({
-    streetNumber: Yup.string(),
-    postalCode: Yup.string().length(4, "PLZ muss genau 4 Zeichen haben."),
-    city: Yup.string(),
-  }),
-  */
 });
 
-
-
-
-// ✅ API Request – jetzt mit safeFetch
 const postNewUser = async (userData, safeFetch) => {
   try {
     console.log("Sending request to:", `${API_URL}/api/user/signup`);
-    console.log("With data:", userData);
-    // ⚙️ safeFetch statt fetch → funktioniert auch offline
+    console.log("APP_ENV:", APP_ENV);
+
     const response = await safeFetch(`${API_URL}/api/user/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData),
     });
 
-    // 🧭 1. Offline-Check
     if (response.offline) {
       return { success: false, message: "Keine Internetverbindung." };
     }
 
-    // 🧭 2. Duplicate Username (409)
     if (response.status === 409) {
       return { success: false, message: "Benutzername existiert bereits." };
     }
 
-    // 🧭 3. Erfolgreich
     if (response.ok) {
       return { success: true };
     }
 
-    // 🧭 4. Fehlerhafte Antwort
     const data = await response.json().catch(() => ({}));
     return {
       success: false,
-      message: data.message || "Fehler bei der Registrierung. Bitte erneut versuchen.",
+      message:
+        data.message || "Fehler bei der Registrierung. Bitte erneut versuchen.",
     };
   } catch (error) {
     console.error("❌ Fehler bei der Registrierung:", error);
@@ -104,15 +84,25 @@ const postNewUser = async (userData, safeFetch) => {
 };
 
 const RegisterScreen = ({ navigation }) => {
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [registrationMessage, setRegistrationMessage] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const { safeFetch } = useNetwork();
 
-  const { safeFetch } = useNetwork(); // ✅ Zugriff auf safeFetch aus Context
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
 
-  const togglePasswordVisibility = useCallback(() => {
-    setShowPassword((prev) => !prev);
+  useEffect(() => {
+    console.log("🟢 [RegisterScreen] mounted");
+
+    return () => {
+      console.log("🔴 [RegisterScreen] unmounted");
+    };
   }, []);
+
+  const handleBackButton = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
 
   const formik = useFormik({
     initialValues: {
@@ -122,36 +112,58 @@ const RegisterScreen = ({ navigation }) => {
     },
     validationSchema,
     onSubmit: async (values) => {
+      console.log("🚀 [SUBMIT] password:", values.password);
+      console.log("🚀 [SUBMIT] password length:", values.password?.length);
+      setRegistrationMessage("");
+      setIsSubmitted(true);
+
       const userData = {
         username: values.username.trim(),
-        email: values.email.trim(),
-        password: values.password.trim(),
+        email: values.email.trim().toLowerCase(),
+        password: values.password,
       };
 
-      // ✅ Registrierung über safeFetch
+      console.log("📤 [REQUEST PAYLOAD]", {
+        username: userData.username,
+        email: userData.email,
+        passwordLength: userData.password?.length,
+      });
+
       const { success, message } = await postNewUser(userData, safeFetch);
+      
+      console.log("📥 [REGISTER RESULT]", { success, message });
 
       if (success) {
+        console.log("✅ [SUCCESS] start");
+
         Toast.show({
           type: "success",
           text1: "Konto erfolgreich erstellt!",
           text2: "Bitte melde dich jetzt an.",
         });
 
-        navigation.navigate("Login");
-        formik.resetForm();
+        setIsSubmitted(false);
+
+        console.log("✅ [SUCCESS] end");
         return;
       }
-      else {
-        setRegistrationMessage(message);
-      }
+
+      setRegistrationMessage(message);
+      setIsSubmitted(false);
     },
   });
+  useEffect(() => {
+    console.log("🧠 [Formik state] password:", formik.values.password, "| length:", formik.values.password?.length);
+  }, [formik.values.password]);
 
-  const handleBackButton = () => {
-    navigation.goBack();
-  };
-
+  console.log("🖥️ [RegisterScreen render]", {
+    username: formik.values.username,
+    email: formik.values.email,
+    password: formik.values.password,
+    passwordLength: formik.values.password?.length,
+    isSubmitted,
+    registrationMessage,
+  });
 
   return (
     <KeyboardAvoidingView
@@ -162,7 +174,6 @@ const RegisterScreen = ({ navigation }) => {
         contentContainerStyle={styles.scrollViewContainer}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Logo */}
         <View style={styles.logoContainer}>
           <View style={styles.iconContainer}>
             <Handshake size={40} color="#fff" />
@@ -174,79 +185,112 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.title}>Registrieren</Text>
 
           <View style={styles.form}>
-            {[
-              { name: "username", placeholder: "Benutzername", type: "text" },
-              { name: "email", placeholder: "E-Mail-Adresse", type: "email-address" },
-              { name: "password", placeholder: "Passwort", type: "password" },
-            ].map(({ name, placeholder, type }) => {
-              const fieldError = get(formik.errors, name);
-              const fieldTouched = get(formik.touched, name);
+            <View style={styles.inputContainer}>
+              <UsernameInput
+                value={formik.values.username}
+                onChangeText={(text) => {
+                  if (registrationMessage) setRegistrationMessage("");
+                  formik.setFieldValue("username", text);
+                }}
+                onBlur={formik.handleBlur("username")}
+                placeholder="Benutzername"
+                returnKeyType="next"
+                editable={!isSubmitted}
+                onSubmitEditing={() => emailRef.current?.focus()}
+                {...autofill.username}
+              />
+              {formik.touched.username && formik.errors.username ? (
+                <Text style={styles.error}>{formik.errors.username}</Text>
+              ) : null}
+            </View>
 
-              if (name === "password") {
-                return (
-                  <View key={name} style={styles.inputContainer}>
-                    <View style={styles.passwordContainer}>
-                      <TextInput
-                        style={styles.passwordInput}
-                        name={name}
-                        placeholder={placeholder}
-                        value={get(formik.values, name)}
-                        onChangeText={formik.handleChange(name)}
-                        onBlur={formik.handleBlur(name)}
-                        secureTextEntry={!showPassword}
-                        autoCapitalize="none"
-                      />
-                      <TouchableOpacity
-                        onPress={togglePasswordVisibility}
-                        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-                        activeOpacity={0.7}
-                        style={styles.eyeButton}
-                      >
-                        {showPassword ? (
-                          <EyeOff size={22} color="#666" />
-                        ) : (
-                          <Eye size={22} color="#666" />
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                    {fieldTouched && fieldError && (
-                      <Text style={styles.error}>{fieldError}</Text>
-                    )}
-                  </View>
-                );
-              }
+            <View style={styles.inputContainer}>
+              <TextInput
+                ref={emailRef}
+                style={styles.input}
+                placeholder="E-Mail-Adresse"
+                placeholderTextColor="#999"
+                value={formik.values.email}
+                onChangeText={(text) => {
+                  if (registrationMessage) setRegistrationMessage("");
+                  formik.setFieldValue("email", text);
+                }}
+                onBlur={formik.handleBlur("email")}
+                keyboardType="email-address"
+                editable={!isSubmitted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                spellCheck={false}
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                {...autofill.email}
+              />
+              {formik.touched.email && formik.errors.email ? (
+                <Text style={styles.error}>{formik.errors.email}</Text>
+              ) : null}
+            </View>
 
-              return (
-                <View key={name} style={styles.inputContainer}>
-                  <TextInput
-                    style={styles.input}
-                    name={name}
-                    placeholder={placeholder}
-                    placeholderTextColor="#999"
-                    value={formik.values[name]}
-                    onChangeText={formik.handleChange(name)}
-                    onBlur={formik.handleBlur(name)}
-                    keyboardType={type === "email-address" ? "email-address" : "default"}
-                    secureTextEntry={false}
-                  />
+            <View style={styles.inputContainer}>
+              <PasswordInput
+                ref={passwordRef}
+                value={formik.values.password}
+                onChangeText={(text) => {
+                  console.log("📦 [Formik] set password:", text, "| length:", text?.length);
 
-                  {fieldTouched && fieldError && (
-                    <Text style={styles.error}>{fieldError}</Text>
-                  )}
-                </View>
-              );
-            })}
+                  if (registrationMessage) setRegistrationMessage("");
+                  formik.setFieldValue("password", text);
+                }}
+                onBlur={formik.handleBlur("password")}
+                placeholder="Passwort"
+                style={styles.passwordInput}
+                returnKeyType="done"
+                editable={!isSubmitted}
+                onSubmitEditing={() => formik.handleSubmit()}
+                {...autofill.newPassword}
+              />
+              {formik.touched.password && formik.errors.password ? (
+                <Text style={styles.error}>{formik.errors.password}</Text>
+              ) : null}
+            </View>
 
-            {registrationMessage && (
+            {registrationMessage ? (
               <Text style={styles.error}>{registrationMessage}</Text>
-            )}
+            ) : null}
 
-            <TouchableOpacity style={styles.button} onPress={formik.handleSubmit}>
-              <Text style={styles.buttonText}>Registrieren</Text>
+            <TouchableOpacity
+              style={[styles.button, isSubmitted && styles.buttonDisabled]}
+              onPress={() => formik.handleSubmit()}
+              disabled={isSubmitted}
+            >
+              {isSubmitted ? (
+                <View style={styles.buttonContent}>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text style={styles.buttonTextLoading}>Registriere...</Text>
+                </View>
+              ) : (
+                <Text style={styles.buttonText}>Registrieren</Text>
+              )}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.backButton} onPress={handleBackButton}>
-              <Text style={styles.buttonText}>Zurück</Text>
+            {isSubmitted ? (
+              <View style={styles.processingBox}>
+                <Text style={styles.processingTitle}>Registrierung läuft</Text>
+                <Text style={styles.processingText}>
+                  Die Registrierung kann ein paar Sekunden dauern.
+                  Bitte hab etwas Geduld und unterbreche den Vorgang nicht.
+                </Text>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={[
+                styles.backButton,
+                isSubmitted && styles.backButtonDisabled
+              ]}
+              onPress={handleBackButton}
+              disabled={isSubmitted}
+            >
+              <Text style={styles.backButtonText}>Zurück</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -276,15 +320,15 @@ const styles = StyleSheet.create({
   appName: {
     marginTop: 12,
     fontSize: 30,
-    fontWeight: "500",   // wichtig!
-    letterSpacing: 0.6,  // extrem wirkungsvoll
+    fontWeight: "500",
+    letterSpacing: 0.6,
     color: "#666",
   },
   title: {
     fontSize: 22,
     marginBottom: 20,
     textAlign: "center",
-    color: "#404040", // ruhiger
+    color: "#404040",
   },
   inputContainer: {
     marginBottom: 15,
@@ -293,26 +337,16 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 8,
     paddingLeft: 10,
+    paddingRight: 10,
     backgroundColor: "#fff",
     fontSize: 16,
-  },
-  passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderColor: "#ccc",
-    backgroundColor: "#fff",
+    color: "#000",
   },
   passwordInput: {
     flex: 1,
-    height: 48,
-    paddingLeft: 10,
     fontSize: 16,
-  },
-  eyeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    justifyContent: "center",
-    alignItems: "center",
+    color: "#000",
+    paddingLeft: 0,
   },
   button: {
     backgroundColor: "#4FB6B8",
@@ -321,6 +355,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginVertical: 12,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: "#fff",
@@ -334,28 +371,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginVertical: 8,
   },
+  backButtonText: {
+    color: "#404040",
+    fontSize: 16,
+  },
   error: {
     color: "red",
     fontSize: 12,
-  },
-  registrationSaved: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  closeButton: {
-    marginTop: 20,
-    backgroundColor: "#4FB6B8",
-    padding: 10,
-    borderRadius: 5,
-  },
-  closeButtonText: {
-    color: "#fff",
-    fontSize: 18,
-  },
-  hint: {
-    fontSize: 12,
-    color: "#666",
     marginTop: 4,
   },
   logoContainer: {
@@ -367,6 +389,39 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 50,
   },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 10,
+  },
+  buttonTextLoading: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  processingBox: {
+    marginTop: 4,
+    marginBottom: 8,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#eef8f8",
+    borderWidth: 1,
+    borderColor: "#cfeaea",
+  },
+  processingTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2f6f70",
+    marginBottom: 4,
+  },
+  processingText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#4b6667",
+  },
+  backButtonDisabled: {
+    opacity: 0.6,
+  }
 });
 
 export default RegisterScreen;

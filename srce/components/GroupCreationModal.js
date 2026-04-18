@@ -1,26 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Modal,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform
+} from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useUser } from "../components/context/UserContext";
-
+import { useGroups } from "../components/context/GroupContext";
+import { useNetwork } from "../components/context/NetworkContext";
 import { API_URL } from "../config/env";
-
 
 export default function GroupCreationModal({
   isVisible = false,
   onClose,
-  userId,
   onGroupCreated,
 }) {
   const [groupName, setGroupName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { triggerGroupReload, accessToken } = useUser();
+  const { accessToken } = useUser();
+  const { refreshGroups, setSelectedGroupId } = useGroups();
+  const { safeFetch } = useNetwork();
 
-  // 🟢 SAFE callback (niemals undefined)
-  //const safeToggle = onClose ?? (() => { });
-
-  // 🟢 Modal beim Logout sofort schließen
   useEffect(() => {
     if (!accessToken) {
       setGroupName('');
@@ -34,21 +43,28 @@ export default function GroupCreationModal({
     }
 
     setLoading(true);
+
     try {
       const token = await SecureStore.getItemAsync('accessToken');
-      if (!token) return; // Logout-Schutz
+      if (!token) return;
 
-      const response = await fetch(`${API_URL}/api/groups/create`, {
+      const trimmedName = groupName.trim();
+
+      const response = await safeFetch(`${API_URL}/api/groups/create`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          groupName: groupName.trim(),
-          userId,
+          groupName: trimmedName,
         }),
       });
+
+      if (response?.offline) {
+        Alert.alert("Offline", "Keine Internetverbindung.");
+        return;
+      }
 
       const data = await response.json();
 
@@ -56,14 +72,23 @@ export default function GroupCreationModal({
         throw new Error(data?.error || 'Failed to create group');
       }
 
-      // ✅ 1. Parent informieren
+      console.log("createGroup response:", data);
+
       onGroupCreated?.(data);
 
-      // ✅ 2. Lokalen State resetten
-      setGroupName('');
+      const result = await refreshGroups();
 
-      // ✅ 3. Modal EXPLIZIT schließen
-      onClose();
+      if (data?.groupId) {
+        setSelectedGroupId(data.groupId);
+      } else if (result?.groups?.length) {
+        const created = result.groups.find((g) => g.label === trimmedName);
+        if (created) {
+          setSelectedGroupId(created.value);
+        }
+      }
+
+      setGroupName('');
+      onClose?.();
 
     } catch (error) {
       console.error('Error creating group:', error);
@@ -73,7 +98,6 @@ export default function GroupCreationModal({
     }
   };
 
-  // 🟢 WICHTIG: Modal gar nicht rendern, wenn ausgeloggt
   if (!accessToken) {
     return null;
   }
@@ -89,17 +113,14 @@ export default function GroupCreationModal({
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* BACKDROP */}
         <TouchableWithoutFeedback
           onPress={() => {
             Keyboard.dismiss();
-            onClose();
+            onClose?.();
           }}
           accessible={false}
         >
           <View style={styles.overlay}>
-
-            {/* MODAL CONTENT */}
             <TouchableWithoutFeedback accessible={false}>
               <View style={styles.modalContent}>
                 <Text style={styles.title}>Neue Gruppe erstellen</Text>
@@ -125,7 +146,6 @@ export default function GroupCreationModal({
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
-
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -156,10 +176,10 @@ const styles = StyleSheet.create({
   createButton: {
     backgroundColor: '#4FB6B8',
     paddingVertical: 14,
-    paddingHorizontal: 24,   // 👈 DAS fehlt aktuell
+    paddingHorizontal: 24,
     borderRadius: 10,
     alignItems: 'center',
-    width: '100%',           // optional, aber empfehlenswert
+    width: '100%',
   },
   createButtonText: {
     color: '#FFF',

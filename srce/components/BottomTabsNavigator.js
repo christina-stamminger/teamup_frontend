@@ -11,9 +11,8 @@ import CreateTodoScreen from "../components/CreateTodoScreen";
 import MyGroups from "../components/MyGroups";
 import GroupCreationModal from "./GroupCreationModal";
 import { useUser } from "../components/context/UserContext";
-import { useUnread } from '../components/context/UnreadContext';
-
-import { API_URL, APP_ENV } from "../config/env";
+import { useUnread } from "../components/context/UnreadContext";
+import { useGroups } from "../components/context/GroupContext";
 
 const Tab = createBottomTabNavigator();
 
@@ -23,74 +22,32 @@ export default function BottomTabsNavigator({ navigation }) {
     userId,
     bringits,
     accessToken,
-    groupsVersion,
   } = useUser();
 
-  const [isModalVisible, setModalVisible] = useState(false);
-  const [groups, setGroups] = useState([]);
-  const [selectedGroup, setSelectedGroup] = useState("");
-  const [hasGroups, setHasGroups] = useState(false);
-
   const { hasAnyUnread } = useUnread();
+  const { groups, refreshGroups } = useGroups();
+
+  const [isModalVisible, setModalVisible] = useState(false);
+
+  const hasGroups = Array.isArray(groups) && groups.length > 0;
 
   useEffect(() => {
+    // Logout-sicher: Modal sofort schließen
     if (!accessToken) {
       setModalVisible(false);
-      setSelectedGroup("");
-      setGroups([]);
-      setHasGroups(false);
+      return;
     }
-  }, [accessToken]);
 
-  // 🟢 Modal niemals rendern, wenn ausgeloggt
+    // Beim Login / App-Start / User-Wechsel Gruppen laden
+    if (userId) {
+      refreshGroups();
+    }
+  }, [accessToken, userId, refreshGroups]);
+
+  // Komplett nichts rendern, wenn ausgeloggt
   if (!accessToken) {
     return null;
   }
-
-  // 🟢 Modal nur UI – KEINE Datenlogik
-  const toggleModal = () => {
-    setModalVisible((prev) => !prev);
-  };
-
-  // 🟢 Gruppen laden – NUR wenn User eingeloggt
-  const fetchUserGroups = async () => {
-    if (!accessToken || !userId) return;
-
-    try {
-      const response = await fetch(
-        `${API_URL}/api/groups/myGroups?userId=${userId}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setGroups(data);
-      setHasGroups(Array.isArray(data) && data.length > 0);
-    } catch (error) {
-      console.error("❌ Error fetching groups:", error);
-      setHasGroups(false);
-    }
-  };
-
-  // 🟢 Declarative Effect – logout-sicher
-  useEffect(() => {
-    if (!accessToken || !userId) return;
-    fetchUserGroups();
-  }, [accessToken, userId, groupsVersion]);
-
-  const handleGroupSelect = (group) => {
-    setSelectedGroup(group);
-    setModalVisible(false);
-  };
 
   return (
     <>
@@ -197,10 +154,8 @@ export default function BottomTabsNavigator({ navigation }) {
 
       <GroupCreationModal
         isVisible={isModalVisible}
-        toggleModal={toggleModal}
-        selectedGroup={selectedGroup}
-        handleGroupSelect={handleGroupSelect}
-        groups={groups}
+        onClose={() => setModalVisible(false)}
+        userId={userId}
       />
     </>
   );
