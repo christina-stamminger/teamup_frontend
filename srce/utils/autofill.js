@@ -4,7 +4,7 @@ export const autofill = {
   username: Platform.select({
     ios: {
       textContentType: "username",
-      autoComplete: undefined,
+      autoComplete: "username",
     },
     android: {
       textContentType: undefined,
@@ -17,7 +17,7 @@ export const autofill = {
   email: Platform.select({
     ios: {
       textContentType: "emailAddress",
-      autoComplete: undefined,
+      autoComplete: "email",
     },
     android: {
       textContentType: undefined,
@@ -30,11 +30,11 @@ export const autofill = {
   password: Platform.select({
     ios: {
       textContentType: "password",
-      autoComplete: undefined,
+      autoComplete: "current-password",
     },
     android: {
       textContentType: undefined,
-      autoComplete: "password",
+      autoComplete: "current-password",
       importantForAutofill: "yes",
     },
     default: {},
@@ -43,7 +43,7 @@ export const autofill = {
   newPassword: Platform.select({
     ios: {
       textContentType: "newPassword",
-      autoComplete: undefined,
+      autoComplete: "new-password",
       passwordRules:
         "minlength: 8; required: lower; required: upper; required: digit; required: special;",
     },
