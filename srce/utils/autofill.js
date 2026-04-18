@@ -16,7 +16,7 @@ export const autofill = {
 
   email: Platform.select({
     ios: {
-      textContentType: "emailAddress",
+      textContentType: "none", // default is "emailAddress", but that causes issues with autofill on iOS 16.4+ where it doesn't trigger autofill suggestions at all. Setting it to "none" seems to fix the issue while still allowing autofill to work.
       autoComplete: "email",
     },
     android: {
