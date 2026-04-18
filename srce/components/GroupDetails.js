@@ -83,7 +83,7 @@ export default function GroupDetails({ route, navigation }) {
     const controller = new AbortController();
     setIsLoading(true);
 
-    fetchNewMembers(group.groupId, controller.signal)
+    fetchNewMembers(group.groupId, { signal: controller.signal })
       .then(setMembers)
       .catch((e) => {
         if (e.name !== "AbortError") {
@@ -365,6 +365,7 @@ export default function GroupDetails({ route, navigation }) {
             <Picker
               selectedValue={selectedNewAdmin}
               onValueChange={(value) => setSelectedNewAdmin(value)}
+              style={styles.picker}
             >
               <Picker.Item label="Wähle ein Mitglied..." value={null} />
               {members
@@ -490,7 +491,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 18,
     paddingHorizontal: 12,
-    minHeight: 72,         
+    minHeight: 72,
   },
   backButtonBottom: {
     marginBottom: 20,
@@ -507,7 +508,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     padding: 20,
     borderRadius: 10,
-    alignItems: "center",
+    width: "80%",
   },
   modalTitle: {
     fontSize: 18,
