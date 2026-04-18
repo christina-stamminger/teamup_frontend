@@ -110,14 +110,14 @@ const LoginScreen = ({ navigation }) => {
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Benutzername</Text>
+              <Text style={styles.label}>Benutzername oder Email</Text>
               <UsernameInput
                 value={inputUsername}
                 onChangeText={(text) => {
                   if (errorMessage) setErrorMessage("");
                   setInputUsername(text);
                 }}
-                placeholder="z. B. bringitUser1"
+                placeholder="zB max1 oder max1@mail.com"
                 editable={!isLoading}
                 returnKeyType="next"
                 onSubmitEditing={() => passwordRef.current?.focus()}
