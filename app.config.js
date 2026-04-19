@@ -32,7 +32,7 @@ export default {
   expo: {
     name: getAppName(),
     slug: "bringit",
-    version: "1.0.16",
+    version: "1.0.17",
     cli: {
       appVersionSource: "local",
     },
@@ -56,14 +56,14 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: getBundleIdentifier(),
-      buildNumber: "16",
+      buildNumber: "17",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
     },
     android: {
       package: getBundleIdentifier(),
-      versionCode: 16,
+      versionCode: 17,
       softwareKeyboardLayoutMode: "resize",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
