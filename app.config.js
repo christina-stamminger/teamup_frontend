@@ -1,14 +1,38 @@
-import 'dotenv/config';
-/*
-const isEasBuild = ['development', 'preview', 'production'].includes(
-  process.env.EAS_BUILD_PROFILE
-);
-*/
+import "dotenv/config";
+
+const appVariant = process.env.APP_VARIANT;
+const appEnv = process.env.APP_ENV;
+const apiUrl = process.env.API_URL;
+
+if (!appVariant) {
+  throw new Error("APP_VARIANT is missing");
+}
+
+if (!appEnv) {
+  throw new Error("APP_ENV is missing");
+}
+
+if (!apiUrl) {
+  throw new Error("API_URL is missing");
+}
+
+const getAppName = () => {
+  if (appVariant === "development") return "bringit Dev";
+  if (appVariant === "preview") return "bringit Preview";
+  return "bringit";
+};
+
+const getBundleIdentifier = () => {
+  if (appVariant === "development") return "com.christina.bringit.dev";
+  if (appVariant === "preview") return "com.christina.bringit.preview";
+  return "com.christina.bringit";
+};
+
 export default {
     expo: {
         name: "bringit",
         slug: "bringit",
-        version: "1.0.16",    // hier user version hochziehen
+        version: "1.0.17",    // hier user version hochziehen
         cli: {
             appVersionSource: "local"
         },
@@ -37,7 +61,7 @@ export default {
         ios: {
             supportsTablet: true,
             bundleIdentifier: "com.christina.bringit",
-            buildNumber: "16",   // hier user build number erhöhen
+            buildNumber: "17",   // hier user build number erhöhen
 
             infoPlist: {
                 ITSAppUsesNonExemptEncryption: false
@@ -47,7 +71,7 @@ export default {
 
         android: {
             package: "com.christina.bringit",
-            versionCode: 16,   // hier user version code erhöhen
+            versionCode: 17,   // hier user version code erhöhen
             softwareKeyboardLayoutMode: "resize",
 
             adaptiveIcon: {
