@@ -33,9 +33,7 @@ export default {
     name: getAppName(),
     slug: "bringit",
     version: "1.0.17",
-    cli: {
-      appVersionSource: "local",
-    },
+
     runtimeVersion: {
       policy: "appVersion",
     },
