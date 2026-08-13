@@ -117,25 +117,11 @@ export default function BottomTabsNavigator({ navigation }) {
         <Tab.Screen
           name="Todo erstellen"
           component={CreateTodoScreen}
-          listeners={{
-            tabPress: (e) => {
-              if (!hasGroups) {
-                e.preventDefault();
-                Toast.show({
-                  type: "info",
-                  text1: "Keine Gruppe vorhanden!",
-                  text2: "Erstelle eine Gruppe oder trete einer bei.",
-                  visibilityTime: 4000,
-                });
-              }
-            },
-          }}
           options={{
             tabBarIcon: ({ color }) => (
               <Icons.PlusCircle
                 size={24}
-                color={hasGroups ? color : "#cccccc"}
-                opacity={hasGroups ? 1 : 0.5}
+                color={color}
               />
             ),
           }}

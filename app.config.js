@@ -3,6 +3,7 @@ import "dotenv/config";
 const appVariant = process.env.APP_VARIANT;
 const appEnv = process.env.APP_ENV;
 const apiUrl = process.env.API_URL;
+const mapboxPublicToken = process.env.MAPBOX_PUBLIC_TOKEN;
 
 if (!appVariant) {
   throw new Error("APP_VARIANT is missing");
@@ -14,6 +15,10 @@ if (!appEnv) {
 
 if (!apiUrl) {
   throw new Error("API_URL is missing");
+}
+
+if (!mapboxPublicToken) {
+  throw new Error("MAPBOX_PUBLIC_TOKEN is missing");
 }
 
 const getAppName = () => {
@@ -32,7 +37,7 @@ export default {
   expo: {
     name: getAppName(),
     slug: "bringit",
-    version: "1.0.17",
+    version: "1.0.18",
 
     runtimeVersion: {
       policy: "appVersion",
@@ -54,14 +59,14 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: getBundleIdentifier(),
-      buildNumber: "18",
+      buildNumber: "19",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
     },
     android: {
       package: getBundleIdentifier(),
-      versionCode: 17,
+      versionCode: 18,
       softwareKeyboardLayoutMode: "resize",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
@@ -84,6 +89,14 @@ export default {
           },
         },
       ],
+      "@rnmapbox/maps",
+      [
+        "expo-location",
+        {
+          locationWhenInUsePermission:
+            "bringit nutzt deinen Standort, um Nachbarschaftshilfe in deiner Nähe zu zeigen.",
+        },
+      ],
     ],
     scheme: "bringit",
     platforms: ["ios", "android", "web"],
@@ -91,6 +104,8 @@ export default {
       API_URL: apiUrl,
       APP_ENV: appEnv,
       APP_VARIANT: appVariant,
+      // Public Token, im Client-Code ueber expo-constants auslesbar
+      MAPBOX_PUBLIC_TOKEN: mapboxPublicToken,
       eas: {
         projectId: "da762c57-1d88-4aba-b0cb-d5c4fb973bdb",
       },

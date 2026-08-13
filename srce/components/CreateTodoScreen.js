@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -42,6 +42,13 @@ export default function CreateTodoScreen() {
         loadingGroups,
         refreshGroups
     } = useGroups();
+
+    // Der Placeholder eines Dropdowns ist nicht auswählbar. Deshalb wird
+    // "Keine Gruppe" als echte Option ergänzt.
+    const groupOptions = useMemo(() => [
+        { label: "Nachbarschaft", value: "" },
+        ...groups.filter((group) => group.value !== "")
+    ], [groups]);
 
     const getAuthToken = useCallback(async () => {
         if (accessToken) return accessToken;
@@ -130,18 +137,18 @@ export default function CreateTodoScreen() {
             return;
         }
 
-        if (!selectedGroupId) {
-            Alert.alert("Fehler", "Bitte eine Gruppe auswählen!");
-            return;
-        }
-
+        // new todo object for nearby-mvp
         const newTodo = {
             userOfferedId: userId,
             title: title.trim(),
             expiresAt: expiresAt.toISOString(),
-            groupId: parseInt(selectedGroupId, 10),
             isTimeCritical,
-            ...(description.trim() && { description: description.trim() }),
+            ...(description.trim() && {
+                description: description.trim()
+            }),
+            ...(selectedGroupId && {
+                groupId: Number(selectedGroupId)
+            }),
         };
 
         console.log("Creating todo:", newTodo);
@@ -183,6 +190,7 @@ export default function CreateTodoScreen() {
             setDescription("");
             setShowDescription(false);
             setIsTimeCritical(false);
+            setSelectedGroupId(null);
         } catch (error) {
             console.error("❌ Fehler:", error);
             Alert.alert(
@@ -243,25 +251,59 @@ export default function CreateTodoScreen() {
                                 />
                             </View>
                         )}
-
                         <Dropdown
                             style={styles.dropdown}
-                            data={groups}
+                            data={groupOptions}
                             maxHeight={300}
                             labelField="label"
                             valueField="value"
-                            placeholder={loadingGroups ? "Lade Gruppen..." : "Gruppe auswählen"}
-                            value={selectedGroupId}
+                            placeholder={loadingGroups ? "Lade Gruppen..." : "Gruppe auswählen (optional)"}
+                            value={selectedGroupId ?? ""}
+
+                            selectedTextStyle={
+                                selectedGroupId === null
+                                    ? styles.neighborhoodSelectedText
+                                    : styles.selectedText
+                            }
+
                             onChange={(item) => {
-                                setSelectedGroupId(item.value);
+                                setSelectedGroupId(item.value === "" ? null : item.value);
                                 console.log("✅ Selected group:", item.label);
                             }}
                             disable={loadingGroups}
+
+                            renderItem={(item) => {
+                                const isNeighborhood = item.value === "";
+
+                                return (
+                                    <View
+                                        style={[
+                                            styles.dropdownItem,
+                                            isNeighborhood && styles.neighborhoodItem,
+                                        ]}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.dropdownItemText,
+                                                isNeighborhood && styles.neighborhoodItemText,
+                                            ]}
+                                        >
+                                            {item.label}
+                                        </Text>
+
+                                        {isNeighborhood && (
+                                            <Text style={styles.neighborhoodHint}>
+                                                Für Nutzer in deiner Nähe sichtbar
+                                            </Text>
+                                        )}
+                                    </View>
+                                );
+                            }}
                         />
 
                         {groups.length === 0 && !loadingGroups && (
                             <Text style={styles.noGroupsText}>
-                                Keine Gruppen vorhanden.
+                                Du kannst das Todo ohne Gruppe erstellen.
                             </Text>
                         )}
 
@@ -330,12 +372,15 @@ export default function CreateTodoScreen() {
                         <TouchableOpacity
                             style={[
                                 styles.createButton,
-                                (!title.trim() || !expiresAt || !selectedGroupId) && styles.createButtonDisabled
+                                (!title.trim() || !expiresAt) &&
+                                styles.createButtonDisabled
                             ]}
                             onPress={handleCreateTodo}
-                            disabled={!title.trim() || !expiresAt || !selectedGroupId}
+                            disabled={!title.trim() || !expiresAt}
                         >
-                            <Text style={styles.createButtonText}>Todo erstellen</Text>
+                            <Text style={styles.createButtonText}>
+                                Todo erstellen
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
@@ -502,5 +547,41 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 16,
         fontWeight: "600",
+    },
+    dropdownItem: {
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+    },
+
+    dropdownItemText: {
+        fontSize: 15,
+        color: "#333",
+    },
+
+    neighborhoodItem: {
+        backgroundColor: "#E9F7F7",
+        borderBottomWidth: 1,
+        borderBottomColor: "#D5EEEE",
+    },
+
+    neighborhoodItemText: {
+        color: "#3A9294",
+        fontWeight: "700",
+    },
+
+    neighborhoodHint: {
+        marginTop: 3,
+        fontSize: 12,
+        color: "#6F9FA0",
+    },
+    selectedText: {
+        fontSize: 16,
+        color: "#333",
+    },
+
+    neighborhoodSelectedText: {
+        fontSize: 16,
+        color: "#3A9294",
+        fontWeight: "700",
     },
 });

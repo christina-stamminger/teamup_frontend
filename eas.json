@@ -8,15 +8,17 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
+      "environment": "development",
       "env": {
         "APP_ENV": "development",
         "APP_VARIANT": "development",
-        "API_URL": "http://192.168.50.116:8082"
+        "API_URL": "http://192.168.50.116:8080"
       }
     },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
+      "environment": "preview",
       "env": {
         "APP_ENV": "preview",
         "APP_VARIANT": "preview",
@@ -25,6 +27,7 @@
     },
     "production": {
       "channel": "production",
+      "environment": "production",
       "env": {
         "APP_ENV": "production",
         "APP_VARIANT": "production",

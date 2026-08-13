@@ -10,6 +10,11 @@ import AppRoot from "./AppRoot";
 import { UnreadProvider } from "./srce/components/context/UnreadContext";
 import { GroupProvider } from "./srce/components/context/GroupContext";
 
+import Mapbox from '@rnmapbox/maps';
+import { MAPBOX_PUBLIC_TOKEN } from './srce/config/env';
+
+Mapbox.setAccessToken(MAPBOX_PUBLIC_TOKEN);
+
 export default function App() {
   const navigationRef = useNavigationContainerRef();
 
@@ -25,9 +30,10 @@ export default function App() {
               </NavigationContainer>
             </UnreadProvider>
           </GroupProvider>
+
           <Toast config={toastConfig} />
         </NetworkProvider>
       </UserProvider>
-    </GestureHandlerRootView >
+    </GestureHandlerRootView>
   );
 }
