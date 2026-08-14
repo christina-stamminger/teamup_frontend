@@ -20,7 +20,7 @@ import Toast from "react-native-toast-message";
 import { Feather } from "@expo/vector-icons";
 
 import { useNetwork } from "../context/NetworkContext";
-import { useUserLocation } from "../../hooks/useUserLocation";
+import { useUser } from "../context/UserContext";
 import { API_URL } from "../../config/env";
 
 
@@ -28,13 +28,25 @@ const SEARCH_RADIUS_METERS = 10000;
 const DEFAULT_ZOOM_LEVEL = 13;
 
 
-export default function TodoMapView() {
+export default function TodoMapView({
+  onOpenTodo,
+}) {
 
   const [nearbyTodos, setNearbyTodos] =
     useState([]);
 
+  const [homeLocation, setHomeLocation] =
+    useState(null);
+
+  const [selectedTodo, setSelectedTodo] =
+    useState(null);
+
   const [loadingTodos, setLoadingTodos] =
     useState(true);
+
+  const [error, setError] =
+    useState(null);
+
 
   const isFocused =
     useIsFocused();
@@ -42,64 +54,170 @@ export default function TodoMapView() {
   const cameraRef =
     useRef(null);
 
+
   const {
     safeFetch,
   } = useNetwork();
 
+
   const {
-    location,
-    loading: loadingLocation,
-    error: locationError,
-  } = useUserLocation();
+    userId,
+    accessToken,
+  } = useUser();
 
 
   // =========================================================
-  // FETCH TODOS
+  // TOKEN
   // =========================================================
 
-  const fetchNearbyTodos =
+  const getAuthToken =
     useCallback(async () => {
 
-      if (!location) {
+      if (accessToken) {
+        return accessToken;
+      }
+
+      return await SecureStore.getItemAsync(
+        "accessToken"
+      );
+
+    }, [accessToken]);
+
+
+  // =========================================================
+  // LOAD PROFILE ADDRESS + NEARBY TODOS
+  // =========================================================
+
+  const loadMapData =
+    useCallback(async () => {
+
+      if (!userId) {
         return;
       }
 
       try {
 
         setLoadingTodos(true);
+        setError(null);
+
 
         const token =
-          await SecureStore.getItemAsync(
-            "accessToken"
-          );
+          await getAuthToken();
+
 
         if (!token) {
 
-          console.warn(
-            "No access token available"
+          setError(
+            "Bitte melde dich erneut an."
           );
 
           return;
         }
 
 
+        // -----------------------------------------------------
+        // 1. Profil laden
+        // -----------------------------------------------------
+
+        const profileResponse =
+          await safeFetch(
+            `${API_URL}/api/users/profile/${userId}`,
+            {
+              method: "GET",
+
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+
+                "Content-Type":
+                  "application/json",
+              },
+            }
+          );
+
+
+        if (profileResponse?.offline) {
+
+          Toast.show({
+            type: "info",
+            text1: "Offline",
+            text2:
+              "Keine Internetverbindung",
+          });
+
+          return;
+        }
+
+
+        if (!profileResponse?.ok) {
+
+          console.warn(
+            "Profil konnte nicht geladen werden:",
+            profileResponse?.status
+          );
+
+          setError(
+            "Deine Profiladresse konnte nicht geladen werden."
+          );
+
+          return;
+        }
+
+
+        const profile =
+          await profileResponse.json();
+
+
+        const latitude =
+          profile?.address?.latitude;
+
+        const longitude =
+          profile?.address?.longitude;
+
+
+        if (
+          typeof latitude !== "number" ||
+          typeof longitude !== "number"
+        ) {
+
+          setHomeLocation(null);
+
+          setNearbyTodos([]);
+
+          setError(
+            "Hinterlege zuerst eine Adresse in deinem Profil, um Nachbarschafts-Todos auf der Karte zu sehen."
+          );
+
+          return;
+        }
+
+
+        const profileLocation = {
+          latitude,
+          longitude,
+        };
+
+
+        setHomeLocation(
+          profileLocation
+        );
+
+
+        // -----------------------------------------------------
+        // 2. Todos rund um PROFILADRESSE laden
+        // -----------------------------------------------------
+
         const params =
           new URLSearchParams({
-            lat: String(
-              location.latitude
-            ),
-
-            lng: String(
-              location.longitude
-            ),
-
+            lat: String(latitude),
+            lng: String(longitude),
             radiusMeters: String(
               SEARCH_RADIUS_METERS
             ),
           });
 
 
-        const response =
+        const todosResponse =
           await safeFetch(
             `${API_URL}/api/todos/nearby?${params.toString()}`,
             {
@@ -116,7 +234,7 @@ export default function TodoMapView() {
           );
 
 
-        if (response?.offline) {
+        if (todosResponse?.offline) {
 
           Toast.show({
             type: "info",
@@ -129,11 +247,15 @@ export default function TodoMapView() {
         }
 
 
-        if (!response?.ok) {
+        if (!todosResponse?.ok) {
 
           console.warn(
             "Fehler beim Laden der nahen Todos:",
-            response?.status
+            todosResponse?.status
+          );
+
+          setError(
+            "Todos konnten nicht geladen werden."
           );
 
           return;
@@ -141,7 +263,7 @@ export default function TodoMapView() {
 
 
         const data =
-          await response.json();
+          await todosResponse.json();
 
 
         setNearbyTodos(
@@ -151,59 +273,62 @@ export default function TodoMapView() {
         );
 
 
-      } catch (error) {
+      } catch (err) {
 
         console.error(
-          "Fehler beim Laden der nahen Todos:",
-          error
+          "Fehler beim Laden der Map-Daten:",
+          err
         );
+
+        setError(
+          "Die Karte konnte nicht geladen werden."
+        );
+
 
       } finally {
 
         setLoadingTodos(false);
-
       }
 
     }, [
-      location,
+      userId,
+      getAuthToken,
       safeFetch,
     ]);
 
 
   // =========================================================
-  // LOAD WHEN SCREEN / LOCATION CHANGES
+  // LOAD WHEN SCREEN GETS FOCUS
   // =========================================================
 
   useEffect(() => {
 
-    if (
-      isFocused &&
-      location
-    ) {
-      fetchNearbyTodos();
+    if (isFocused) {
+      loadMapData();
     }
 
   }, [
     isFocused,
-    location,
-    fetchNearbyTodos,
+    loadMapData,
   ]);
 
 
   // =========================================================
-  // RECENTER
+  // RECENTER TO PROFILE ADDRESS
   // =========================================================
 
   const recenterMap = () => {
 
-    if (!location) {
+    if (!homeLocation) {
       return;
     }
 
+
     cameraRef.current?.setCamera({
+
       centerCoordinate: [
-        location.longitude,
-        location.latitude,
+        homeLocation.longitude,
+        homeLocation.latitude,
       ],
 
       zoomLevel:
@@ -211,17 +336,22 @@ export default function TodoMapView() {
 
       animationDuration:
         500,
+
     });
   };
 
 
   // =========================================================
-  // LOCATION STATES
+  // INITIAL LOADING
   // =========================================================
 
-  if (loadingLocation) {
+  if (
+    loadingTodos &&
+    !homeLocation
+  ) {
 
     return (
+
       <View style={styles.centered}>
 
         <ActivityIndicator
@@ -230,7 +360,7 @@ export default function TodoMapView() {
         />
 
         <Text style={styles.statusText}>
-          Standort wird ermittelt...
+          Deine Nachbarschaft wird geladen...
         </Text>
 
       </View>
@@ -238,19 +368,27 @@ export default function TodoMapView() {
   }
 
 
+  // =========================================================
+  // NO PROFILE ADDRESS / ERROR
+  // =========================================================
+
   if (
-    locationError ||
-    !location
+    error &&
+    !homeLocation
   ) {
 
     return (
+
       <View style={styles.centered}>
 
+        <Feather
+          name="home"
+          size={30}
+          color="#4FB6B8"
+        />
+
         <Text style={styles.errorText}>
-          {
-            locationError ||
-            "Standort nicht verfügbar."
-          }
+          {error}
         </Text>
 
       </View>
@@ -263,6 +401,7 @@ export default function TodoMapView() {
   // =========================================================
 
   return (
+
     <View style={styles.container}>
 
       <Mapbox.MapView
@@ -271,80 +410,154 @@ export default function TodoMapView() {
 
         <Mapbox.Camera
           ref={cameraRef}
+
           centerCoordinate={[
-            location.longitude,
-            location.latitude,
+            homeLocation.longitude,
+            homeLocation.latitude,
           ]}
+
           zoomLevel={
             DEFAULT_ZOOM_LEVEL
           }
+
           animationMode="none"
         />
 
 
-        {/* Eigener Standort */}
+        {/* ===================================================
+            PROFILADRESSE
+            =================================================== */}
 
         <Mapbox.PointAnnotation
-          id="own-location"
+          id="home-location"
+
           coordinate={[
-            location.longitude,
-            location.latitude,
+            homeLocation.longitude,
+            homeLocation.latitude,
           ]}
         >
 
           <View
             style={
-              styles.ownLocationDot
+              styles.homeLocationMarker
             }
-          />
+          >
+            <Feather
+              name="home"
+              size={14}
+              color="#fff"
+            />
+          </View>
 
         </Mapbox.PointAnnotation>
 
 
-        {/* Todo Pins */}
+        {/* ===================================================
+            TODO PINS
+            =================================================== */}
 
         {nearbyTodos.map(
           todo => (
 
             <Mapbox.PointAnnotation
-              key={
-                todo.todoId
-              }
+              key={todo.todoId}
+
               id={
                 `todo-${todo.todoId}`
               }
+
               coordinate={[
                 todo.longitude,
                 todo.latitude,
               ]}
+
+              onSelected={() =>
+                setSelectedTodo(todo)
+              }
             >
 
-              <View
-                style={
-                  styles.pin
-                }
-              >
+              <View style={styles.pin}>
 
-                <Text
-                  style={
-                    styles.pinText
-                  }
-                >
+                <Text style={styles.pinText}>
                   📍
                 </Text>
 
               </View>
 
-
-              <Mapbox.Callout
-                title={
-                  todo.title
-                }
-              />
-
             </Mapbox.PointAnnotation>
 
           )
+        )}
+
+
+        {/* ===================================================
+            SELECTED TODO PREVIEW
+            =================================================== */}
+
+        {selectedTodo && (
+
+          <Mapbox.MarkerView
+            coordinate={[
+              selectedTodo.longitude,
+              selectedTodo.latitude,
+            ]}
+
+            anchor={{
+              x: 0.5,
+              y: 1.35,
+            }}
+          >
+
+            <TouchableOpacity
+              style={
+                styles.todoPreview
+              }
+
+              activeOpacity={0.85}
+
+              onPress={() =>
+                onOpenTodo?.(
+                  selectedTodo.todoId
+                )
+              }
+            >
+
+              <Text
+                style={
+                  styles.todoPreviewTitle
+                }
+                numberOfLines={2}
+              >
+                {selectedTodo.title}
+              </Text>
+
+
+              <View
+                style={
+                  styles.todoPreviewAction
+                }
+              >
+
+                <Text
+                  style={
+                    styles.todoPreviewActionText
+                  }
+                >
+                  Todo öffnen
+                </Text>
+
+                <Feather
+                  name="chevron-right"
+                  size={15}
+                  color="#4FB6B8"
+                />
+
+              </View>
+
+            </TouchableOpacity>
+
+          </Mapbox.MarkerView>
+
         )}
 
       </Mapbox.MapView>
@@ -354,24 +567,16 @@ export default function TodoMapView() {
           INFO
           =================================================== */}
 
-      <View
-        style={
-          styles.infoPill
-        }
-      >
+      <View style={styles.infoPill}>
 
         <Feather
-          name="map-pin"
+          name="home"
           size={14}
           color="#4FB6B8"
         />
 
-        <Text
-          style={
-            styles.infoText
-          }
-        >
-          Todos bis 10 km
+        <Text style={styles.infoText}>
+          10 km um deine Profiladresse
         </Text>
 
       </View>
@@ -385,15 +590,17 @@ export default function TodoMapView() {
         style={
           styles.recenterButton
         }
+
         onPress={
           recenterMap
         }
+
         activeOpacity={0.8}
       >
 
         <Feather
-          name="crosshair"
-          size={22}
+          name="home"
+          size={21}
           color="#333"
         />
 
@@ -435,7 +642,7 @@ export default function TodoMapView() {
                 styles.emptyText
               }
             >
-              Keine offenen Todos im Umkreis von 10 km
+              Keine offenen Todos im Umkreis von 10 km um deine Profiladresse
             </Text>
 
           </View>
@@ -467,7 +674,7 @@ const styles =
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
-      padding: 20,
+      padding: 30,
     },
 
 
@@ -478,20 +685,24 @@ const styles =
 
 
     errorText: {
-      color: "#d9534f",
+      marginTop: 12,
+      color: "#666",
       textAlign: "center",
+      lineHeight: 21,
     },
 
 
-    // OWN LOCATION
+    // HOME
 
-    ownLocationDot: {
-      width: 14,
-      height: 14,
-      borderRadius: 7,
+    homeLocationMarker: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
       backgroundColor: "#4285F4",
       borderWidth: 2,
       borderColor: "#fff",
+      alignItems: "center",
+      justifyContent: "center",
     },
 
 
@@ -505,6 +716,49 @@ const styles =
 
     pinText: {
       fontSize: 16,
+    },
+
+
+    // TODO PREVIEW
+
+    todoPreview: {
+      minWidth: 150,
+      maxWidth: 220,
+
+      backgroundColor: "#fff",
+
+      borderRadius: 10,
+
+      paddingVertical: 9,
+      paddingHorizontal: 12,
+
+      shadowColor: "#000",
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+
+      elevation: 5,
+    },
+
+
+    todoPreviewTitle: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: "#333",
+    },
+
+
+    todoPreviewAction: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 5,
+    },
+
+
+    todoPreviewActionText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: "#4FB6B8",
+      marginRight: 3,
     },
 
 
@@ -595,6 +849,8 @@ const styles =
 
       alignSelf: "center",
 
+      maxWidth: "90%",
+
       backgroundColor: "#fff",
 
       borderRadius: 10,
@@ -613,6 +869,7 @@ const styles =
     emptyText: {
       color: "#555",
       fontSize: 13,
+      textAlign: "center",
     },
 
   });

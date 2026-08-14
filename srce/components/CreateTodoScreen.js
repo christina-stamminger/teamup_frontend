@@ -301,11 +301,7 @@ export default function CreateTodoScreen() {
                             }}
                         />
 
-                        {groups.length === 0 && !loadingGroups && (
-                            <Text style={styles.noGroupsText}>
-                                Du kannst das Todo ohne Gruppe erstellen.
-                            </Text>
-                        )}
+                    
 
                         <View style={styles.quickButtonContainer}>
                             <TouchableOpacity
@@ -584,4 +580,5 @@ const styles = StyleSheet.create({
         color: "#3A9294",
         fontWeight: "700",
     },
+   
 });

@@ -22,7 +22,7 @@ const ONBOARDING_PAGES = [
     icon: "map-pin",
     title: "Hilfe in deiner Nähe",
     text:
-      "Entdecke offene Todos im Umkreis von bis zu 10 km um deinen aktuellen Standort – oder erstelle selbst eines, wenn du Unterstützung brauchst.",
+      "Entdecke offene Todos bis zu 10km rund um deine hinterlegte Profiladresse – oder erstelle selbst eines, wenn du Unterstützung brauchst. Denke daran, deine Adresse im Profil einzutragen!", 
   },
   {
     id: "privacy",
@@ -247,8 +247,8 @@ export default function OnboardingScreen({
                 style={[
                   styles.dot,
                   index ===
-                    currentIndex &&
-                    styles.activeDot,
+                  currentIndex &&
+                  styles.activeDot,
                 ]}
               />
             )
@@ -362,7 +362,7 @@ const styles =
     },
 
     title: {
-      fontSize: 25,
+      fontSize: 28,
       fontWeight: "700",
       color: "#333",
       textAlign: "center",
@@ -370,7 +370,7 @@ const styles =
     },
 
     description: {
-      fontSize: 16,
+      fontSize: 18,
       lineHeight: 24,
       color: "#666",
       textAlign: "center",

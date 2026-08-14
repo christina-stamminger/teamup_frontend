@@ -47,38 +47,68 @@ const validationSchema = Yup.object({
 
 const postNewUser = async (userData, safeFetch) => {
   try {
-    console.log("Sending request to:", `${API_URL}/api/user/signup`);
+    console.log(
+      "Sending request to:",
+      `${API_URL}/api/user/signup`
+    );
+
     console.log("APP_ENV:", APP_ENV);
 
-    const response = await safeFetch(`${API_URL}/api/user/signup`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-    });
+    const response = await safeFetch(
+      `${API_URL}/api/user/signup`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      }
+    );
 
-    if (response.offline) {
-      return { success: false, message: "Keine Internetverbindung." };
+    if (response?.offline) {
+      return {
+        success: false,
+        message: "Keine Internetverbindung.",
+      };
     }
 
-    if (response.status === 409) {
-      return { success: false, message: "Benutzername existiert bereits." };
-    }
+    const data =
+      await response.json().catch(() => ({}));
 
     if (response.ok) {
-      return { success: true };
+      return {
+        success: true,
+      };
     }
 
-    const data = await response.json().catch(() => ({}));
+    const backendError =
+      Array.isArray(data.errorMessage)
+        ? data.errorMessage[0]
+        : data.errorMessage;
+
+    const backendMessage =
+      Array.isArray(data.message)
+        ? data.message[0]
+        : data.message;
+
     return {
       success: false,
       message:
-        data.message || "Fehler bei der Registrierung. Bitte erneut versuchen.",
+        backendError ||
+        backendMessage ||
+        "Fehler bei der Registrierung. Bitte erneut versuchen.",
     };
+
   } catch (error) {
-    console.error("❌ Fehler bei der Registrierung:", error);
+    console.error(
+      "❌ Fehler bei der Registrierung:",
+      error
+    );
+
     return {
       success: false,
-      message: "Netzwerkfehler. Bitte überprüfe deine Verbindung.",
+      message:
+        "Netzwerkfehler. Bitte überprüfe deine Verbindung.",
     };
   }
 };
@@ -130,7 +160,7 @@ const RegisterScreen = ({ navigation }) => {
       });
 
       const { success, message } = await postNewUser(userData, safeFetch);
-      
+
       console.log("📥 [REGISTER RESULT]", { success, message });
 
       if (success) {

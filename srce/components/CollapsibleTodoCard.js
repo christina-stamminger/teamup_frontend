@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 
 import {
   View,
@@ -55,9 +55,18 @@ const CollapsibleTodoCard = ({
   onStatusUpdated,
   onDelete,
   hasUnread,
+  forceExpanded = false,
 }) => {
 
   const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+
+    if (forceExpanded) {
+      setIsExpanded(true);
+    }
+
+  }, [forceExpanded]);
 
   const [isCancelModalVisible, setIsCancelModalVisible] =
     useState(false);
