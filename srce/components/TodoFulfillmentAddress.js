@@ -22,6 +22,25 @@ import { useUser } from "./context/UserContext";
 import { useNetwork } from "./context/NetworkContext";
 import { API_URL } from "../config/env";
 
+const COUNTRY_NAMES = {
+  AT: "Österreich",
+  DE: "Deutschland",
+  CH: "Schweiz",
+};
+
+const getCountryName = (countryCode) => {
+  if (!countryCode) {
+    return "";
+  }
+
+  const normalizedCode =
+    countryCode.trim().toUpperCase();
+
+  return (
+    COUNTRY_NAMES[normalizedCode] ||
+    countryCode
+  );
+};
 
 export default function TodoFulfillmentAddress({
   todoId,
@@ -336,10 +355,9 @@ export default function TodoFulfillmentAddress({
               styles.country
             }
           >
-            {
-              fulfillmentDetails
-                .country
-            }
+            {getCountryName(
+              fulfillmentDetails.country
+            )}
           </Text>
 
         </View>
