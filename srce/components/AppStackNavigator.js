@@ -38,11 +38,27 @@ const Stack =
   createStackNavigator();
 
 
-export default function AppStackNavigator() {
+export default function AppStackNavigator({
+  openInitialAddressSetup = false,
+}) {
 
   return (
 
     <Stack.Navigator
+
+      /*
+       * Direkt nach dem First-Run-Onboarding:
+       * ProfileScreen.
+       *
+       * Sonst ganz normal:
+       * HomeTabs.
+       */
+      initialRouteName={
+        openInitialAddressSetup
+          ? "ProfileScreen"
+          : "HomeTabs"
+      }
+
       screenOptions={{
         headerShown: false,
       }}
@@ -61,6 +77,14 @@ export default function AppStackNavigator() {
         component={
           ProfileScreen
         }
+
+        /*
+         * Wird nur beim First-Run relevant.
+         */
+        initialParams={{
+          openAddressSetup:
+            openInitialAddressSetup,
+        }}
       />
 
 
@@ -95,9 +119,12 @@ export default function AppStackNavigator() {
         }
       />
 
+
       <Stack.Screen
         name="Privacy"
-        component={PrivacyScreen}
+        component={
+          PrivacyScreen
+        }
       />
 
 

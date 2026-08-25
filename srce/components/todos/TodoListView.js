@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Alert,
   Text,
+  View,
+  TouchableOpacity,
   StyleSheet,
 } from "react-native";
 
@@ -18,6 +20,7 @@ import * as SecureStore
 
 import {
   useIsFocused,
+  useNavigation,
 } from "@react-navigation/native";
 
 import Toast
@@ -33,6 +36,8 @@ import {
 import {
   API_URL,
 } from "../../config/env";
+
+import { Icons } from "../../ui/icons";
 
 
 export default function TodoListView({
@@ -50,6 +55,9 @@ export default function TodoListView({
 
   const isFocused =
     useIsFocused();
+
+  const navigation =
+    useNavigation();
 
   const {
     safeFetch,
@@ -196,7 +204,7 @@ export default function TodoListView({
                 !todo.status ||
                 todo.status
                   .toUpperCase() ===
-                  "OFFEN"
+                "OFFEN"
               )
           );
 
@@ -323,9 +331,38 @@ export default function TodoListView({
 
     return (
 
-      <Text style={styles.emptyText}>
-        Keine offenen Todos
-      </Text>
+      <View style={styles.emptyContainer}>
+
+        <View style={styles.emptyIconCircle}>
+          <Icons.Handshake
+            size={28}
+            color="#3FA9AB"
+          />
+        </View>
+
+        <Text style={styles.emptyTitle}>
+          Noch ist es still hier
+        </Text>
+
+        <Text style={styles.emptySubtitle}>
+          Erstelle das erste Todo in deiner Umgebung
+          oder lade Nachbarn ein, mitzumachen.
+        </Text>
+
+        <TouchableOpacity
+          style={styles.emptyButton}
+          activeOpacity={0.85}
+          onPress={() =>
+            navigation.navigate("Todo erstellen")
+          }
+        >
+          <Icons.PlusCircle size={16} color="#FFFFFF" />
+          <Text style={styles.emptyButtonText}>
+            Todo erstellen
+          </Text>
+        </TouchableOpacity>
+
+      </View>
 
     );
   }
@@ -363,7 +400,7 @@ export default function TodoListView({
           forceExpanded={
             openTodoId != null &&
             String(item.todoId) ===
-              String(openTodoId)
+            String(openTodoId)
           }
         />
 
@@ -407,11 +444,58 @@ const styles =
       marginTop: 40,
     },
 
-    emptyText: {
+    emptyContainer: {
+      alignItems: "center",
+      paddingHorizontal: 32,
+      paddingTop: 56,
+    },
+
+    emptyIconCircle: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: "#E7F6F6",
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 18,
+    },
+
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: "800",
+      color: "#12151A",
+      marginBottom: 8,
       textAlign: "center",
-      marginTop: 20,
-      color: "#888",
-      fontStyle: "italic",
+    },
+
+    emptySubtitle: {
+      fontSize: 16,
+      color: "#6B7280",
+      textAlign: "center",
+      lineHeight: 20,
+      marginBottom: 24,
+    },
+
+    emptyButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "#3FA9AB",
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 999,
+      gap: 8,
+
+      shadowColor: "#3FA9AB",
+      shadowOpacity: 0.25,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 3,
+    },
+
+    emptyButtonText: {
+      color: "#FFFFFF",
+      fontSize: 16,
+      fontWeight: "700",
     },
 
   });

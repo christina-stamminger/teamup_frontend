@@ -25,7 +25,7 @@
     "env": "^0.0.2",
     "expo": "~54.0.36",
     "expo-build-properties": "^1.0.9",
-    "expo-constants": "~18.0.13",
+    "expo-constants": "~18.0.14",
     "expo-dev-client": "~6.0.21",
     "expo-linear-gradient": "~15.0.0",
     "expo-linking": "~8.0.12",

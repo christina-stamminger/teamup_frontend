@@ -46,12 +46,14 @@ export default function AppRoot() {
     setHasSeenOnboarding,
   ] = useState(false);
 
+  const [
+    openInitialAddressSetup,
+    setOpenInitialAddressSetup,
+  ] = useState(false);
+
 
   /*
-   * Pro Account speichern.
-   *
-   * Dadurch sieht ein neuer Account auf demselben
-   * Gerät das Onboarding ebenfalls.
+   * Onboarding wird pro Account gespeichert.
    */
   const onboardingKey =
     userId
@@ -67,13 +69,9 @@ export default function AppRoot() {
         !userId ||
         !onboardingKey
       ) {
-        setOnboardingChecked(
-          false
-        );
-
-        setHasSeenOnboarding(
-          false
-        );
+        setOnboardingChecked(false);
+        setHasSeenOnboarding(false);
+        setOpenInitialAddressSetup(false);
 
         return;
       }
@@ -82,10 +80,9 @@ export default function AppRoot() {
       try {
 
         const value =
-          await SecureStore
-            .getItemAsync(
-              onboardingKey
-            );
+          await SecureStore.getItemAsync(
+            onboardingKey
+          );
 
 
         setHasSeenOnboarding(
@@ -100,17 +97,14 @@ export default function AppRoot() {
         );
 
         /*
-         * Im Fehlerfall App nicht blockieren.
+         * App bei SecureStore-Fehler
+         * nicht blockieren.
          */
-        setHasSeenOnboarding(
-          true
-        );
+        setHasSeenOnboarding(true);
 
       } finally {
 
-        setOnboardingChecked(
-          true
-        );
+        setOnboardingChecked(true);
       }
 
     }, [
@@ -132,13 +126,9 @@ export default function AppRoot() {
 
     if (!accessToken) {
 
-      setOnboardingChecked(
-        false
-      );
-
-      setHasSeenOnboarding(
-        false
-      );
+      setOnboardingChecked(false);
+      setHasSeenOnboarding(false);
+      setOpenInitialAddressSetup(false);
 
       return;
     }
@@ -155,7 +145,7 @@ export default function AppRoot() {
 
 
   const handleOnboardingComplete =
-    async () => {
+    async (options = {}) => {
 
       if (!onboardingKey) {
         return;
@@ -164,11 +154,10 @@ export default function AppRoot() {
 
       try {
 
-        await SecureStore
-          .setItemAsync(
-            onboardingKey,
-            "true"
-          );
+        await SecureStore.setItemAsync(
+          onboardingKey,
+          "true"
+        );
 
       } catch (error) {
 
@@ -180,11 +169,19 @@ export default function AppRoot() {
 
 
       /*
-       * UI trotzdem weiterlassen.
+       * Beim allerersten Durchlauf soll
+       * direkt die Adresse eingerichtet werden.
        */
-      setHasSeenOnboarding(
-        true
+      setOpenInitialAddressSetup(
+        options?.openAddressSetup === true
       );
+
+
+      /*
+       * Dadurch wird jetzt AppStackNavigator
+       * eingeblendet.
+       */
+      setHasSeenOnboarding(true);
     };
 
 
@@ -200,10 +197,8 @@ export default function AppRoot() {
       <View
         style={{
           flex: 1,
-          justifyContent:
-            "center",
-          alignItems:
-            "center",
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
         <ActivityIndicator
@@ -224,9 +219,7 @@ export default function AppRoot() {
 
 
   /*
-   * Eingeloggt, aber wir prüfen noch,
-   * ob dieser Account das Onboarding
-   * bereits gesehen hat.
+   * Onboarding-Status wird geprüft.
    */
   if (
     !userId ||
@@ -237,10 +230,8 @@ export default function AppRoot() {
       <View
         style={{
           flex: 1,
-          justifyContent:
-            "center",
-          alignItems:
-            "center",
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
         <ActivityIndicator
@@ -268,7 +259,18 @@ export default function AppRoot() {
   }
 
 
+  /*
+   * Nach dem First-Run-Onboarding:
+   * Stack startet einmalig direkt im Profil.
+   *
+   * Bei späteren App-Starts:
+   * Stack startet normal bei HomeTabs.
+   */
   return (
-    <AppStackNavigator />
+    <AppStackNavigator
+      openInitialAddressSetup={
+        openInitialAddressSetup
+      }
+    />
   );
 }

@@ -45,12 +45,14 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   input: {
-    height: 48,
-    borderRadius: 8,
-    paddingHorizontal: 10,
+    height: 52,
+    borderRadius: 14,
+    paddingHorizontal: 14,
     fontSize: 16,
-    backgroundColor: "#fff",
-    color: "#000",
+    backgroundColor: "#FFFFFF",
+    color: "#12151A",
+    borderWidth: 1,
+    borderColor: "#EAECF0",
   },
 });
 

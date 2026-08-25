@@ -76,19 +76,11 @@ export default function TodoChat({
       );
 
       if (response.ok) {
-        const data = await response.json();
-        setMessages(data);
 
-        // ✅ lastSeen auf SERVER-Zeit setzen
-        if (Array.isArray(data) && data.length > 0) {
-          const latest = data[data.length - 1];
-          if (latest?.createdAt) {
-            await SecureStore.setItemAsync(
-              `chat_last_seen_${todoId}`,
-              new Date(latest.createdAt).getTime().toString()
-            );
-          }
-        }
+        const data =
+          await response.json();
+
+        setMessages(data);
       }
     } catch (e) {
       console.error("Fetch messages error:", e);

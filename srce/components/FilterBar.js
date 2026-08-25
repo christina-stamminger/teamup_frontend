@@ -1,4 +1,3 @@
-// components/FilterBar.js
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 
@@ -14,20 +13,16 @@ const FilterBar = ({ filters, selectedFilters, onSelectFilter }) => {
         return (
           <TouchableOpacity
             key={filter.value}
-            activeOpacity={0.7}
-            style={styles.filterButton}
+            activeOpacity={0.75}
+            style={[styles.chip, isSelected && styles.chipActive]}
             onPress={() => onSelectFilter(filter.value)}
           >
             <Text
-              style={[
-                styles.filterText,
-                isSelected && styles.filterTextActive,
-              ]}
+              style={[styles.chipText, isSelected && styles.chipTextActive]}
+              numberOfLines={1}
             >
               {filter.label}
             </Text>
-
-            {isSelected && <View style={styles.activeUnderline} />}
           </TouchableOpacity>
         );
       })}
@@ -38,28 +33,31 @@ const FilterBar = ({ filters, selectedFilters, onSelectFilter }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingLeft: 0,
+    paddingRight: 24,
+    paddingVertical: 12,
   },
-  filterButton: {
-    marginRight: 18,
-    alignItems: "center",
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#EDEEF1",
+    marginRight: 8,
   },
-  filterText: {
-    fontSize: 15,
-    color: "#777", // neutral gray
-    fontWeight: "500",
+  chipActive: {
+    backgroundColor: "#E7F6F6",
+    borderColor: "#CDEBEA",
   },
-  filterTextActive: {
-    color: "#4FB6B8",
+  chipText: {
+    fontSize: 13.5,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  chipTextActive: {
+    color: "#2B8A8C",
     fontWeight: "700",
-  },
-  activeUnderline: {
-    marginTop: 4,
-    height: 2,
-    width: "60%",
-    backgroundColor: "#4FB6B8",
-    borderRadius: 2,
   },
 });
 

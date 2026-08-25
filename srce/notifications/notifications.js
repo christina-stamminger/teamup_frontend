@@ -1,31 +1,39 @@
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 
-// GLOBAL: keine Banner, kein Sound, nur Badge
+
 export function setupNotifications() {
-  // Notification Handler ist in Expo Go sicher (no-op)
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: false,
-      shouldPlaySound: false,
+      shouldPlaySound: true,
       shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
   });
 
-  // Android: Silent Channel
-  if (Platform.OS === 'android') {
-    try {
-      Notifications.setNotificationChannelAsync('badge', {
-        name: 'Badge Updates',
-        importance: Notifications.AndroidImportance.MIN,
-        sound: undefined,
-        vibrationPattern: [],
-        lockscreenVisibility:
-          Notifications.AndroidNotificationVisibility.SECRET,
+
+  if (Platform.OS === "android") {
+
+    Notifications.setNotificationChannelAsync(
+      "chat",
+      {
+        name: "Chat-Nachrichten",
+        importance:
+          Notifications.AndroidImportance.HIGH,
+
+        sound: "default",
+
+        vibrationPattern: [
+          0,
+          250,
+          250,
+          250,
+        ],
+
         showBadge: true,
-      });
-    } catch {
-      // Expo Go / unsupported runtime → ignore
-    }
+      }
+    );
   }
 }

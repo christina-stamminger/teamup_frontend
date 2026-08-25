@@ -24,6 +24,7 @@ import { useNetwork } from "../components/context/NetworkContext";
 import { getStatusColor } from "../utils/statusHelpers";
 import { API_URL } from "../config/env";
 import TodoFulfillmentAddress from "./TodoFulfillmentAddress";
+import { getAvatarColor } from "../utils/getAvatarColor";
 
 
 const CANCEL_REASONS = [
@@ -777,21 +778,18 @@ const CollapsibleTodoCard = ({
               style={[
                 styles.statusBadge,
                 {
-                  backgroundColor:
-                    statusColor,
+                  backgroundColor: statusColor,
                 },
               ]}
             >
-
-              <Text
-                style={
-                  styles.statusBadgeText
-                }
-              >
+              <Text style={styles.statusBadgeText}>
                 {todo.status}
               </Text>
-
             </View>
+
+            {hasUnread && (
+              <View style={styles.statusUnreadDot} />
+            )}
 
 
             {/* GROUP */}
@@ -826,99 +824,43 @@ const CollapsibleTodoCard = ({
                 {todo.title}
               </Text>
 
-
-              {hasUnread && (
-
-                <View
-                  style={
-                    styles.unreadDot
-                  }
-                />
-
-              )}
-
             </View>
 
 
             {/* USERS */}
 
-            <View
-              style={
-                styles.userBlock
-              }
-            >
-
-              <View
-                style={
-                  styles.userRow
-                }
-              >
-
-                <Icon
-                  name="user"
-                  size={16}
-                  color="#666"
-                  style={
-                    styles.icon
-                  }
-                />
-
-                <Text
-                  style={
-                    styles.userValue
-                  }
-                >
-
-                  {todo.username}
-
-                  {userId ===
-                    todo.userOfferedId
-                    ? " (Du)"
-                    : ""}
-
-                </Text>
-
-              </View>
-
-
-              {todo.userTakenUsername && (
-
+            {/* USERS */}
+            <View style={styles.userBlock}>
+              <View style={styles.userRow}>
                 <View
-                  style={
-                    styles.userRow
-                  }
+                  style={[
+                    styles.avatar,
+                    { backgroundColor: getAvatarColor(todo.username?.charAt(0) || "?") },
+                  ]}
                 >
-
-                  <Icon
-                    name="check"
-                    size={16}
-                    color="#28a745"
-                    style={
-                      styles.icon
-                    }
-                  />
-
-                  <Text
-                    style={
-                      styles.userValue
-                    }
-                  >
-
-                    {
-                      todo.userTakenUsername
-                    }
-
-                    {userId ===
-                      todo.userTakenId
-                      ? " (Du)"
-                      : ""}
-
+                  <Text style={styles.avatarText}>
+                    {(todo.username?.charAt(0) || "?").toUpperCase()}
                   </Text>
-
                 </View>
 
-              )}
+                <Text style={styles.userValue}>
+                  {todo.username}
+                  {userId === todo.userOfferedId ? " · Du" : ""}
+                </Text>
+              </View>
 
+              {todo.userTakenUsername && (
+                <View style={styles.userRow}>
+                  <View style={[styles.avatar, styles.avatarTaken]}>
+                    <Feather name="check" size={12} color="#fff" />
+                  </View>
+
+                  <Text style={styles.userValue}>
+                    {todo.userTakenUsername}
+                    {userId === todo.userTakenId ? " · Du" : ""}
+                  </Text>
+                </View>
+              )}
             </View>
 
           </TouchableOpacity>
@@ -1378,7 +1320,7 @@ const CollapsibleTodoCard = ({
                   >
                     {todo.status ===
                       "IN_ARBEIT"
-                      ? "Kurze Rückfrage"
+                      ? "Chat"
                       : "Chat ansehen"}
                   </Text>
 
@@ -1578,53 +1520,90 @@ const styles = StyleSheet.create({
   },
 
 
+  // =========================================================
+  // CARD
+  // =========================================================
+
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 15,
-    marginVertical: 5,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    padding: 18,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: "#F1F2F4",
+
+    shadowColor: "#12151A",
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+
     position: "relative",
   },
 
 
+  // =========================================================
+  // STATUS - BADGE
+  // =========================================================
+
   statusBadge: {
     position: "absolute",
-    top: 10,
-    right: 5,
+    top: 12,
+    right: 12,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    zIndex: 1,
+    paddingVertical: 5,
+    borderRadius: 999,
+    zIndex: 2,
   },
 
-
   statusBadgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4,
     textTransform: "uppercase",
   },
 
+  statusUnreadDot: {
+    position: "absolute",
+    top: 1,
+    right: 1,
+    width: 11,
+    height: 11,
+    borderRadius: 5,
+    backgroundColor: "#EF4444",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    zIndex: 4,
+  },
+
+  // =========================================================
+  // GROUP
+  // =========================================================
 
   groupName: {
-    fontSize: 13,
-    color: "#6B7280",
-    fontWeight: "400",
-    marginBottom: 2,
+    fontSize: 11,
+    color: "#8B93A1",
+    fontWeight: "700",
     letterSpacing: 0.5,
+    textTransform: "uppercase",
+    marginBottom: 6,
   },
 
 
+  // =========================================================
+  // TITLE
+  // =========================================================
   title: {
     fontSize: 20,
-    color: "#333",
+    fontWeight: "700",
+    color: "#12151A",
+    letterSpacing: 0.3,
     marginBottom: 10,
     paddingRight: 90,
+    lineHeight: 23,
   },
+
 
 
   unreadDot: {
@@ -1636,99 +1615,139 @@ const styles = StyleSheet.create({
   },
 
 
+  // =========================================================
+  // USERS
+  // =========================================================
+
   userBlock: {
-    marginBottom: 10,
+    marginBottom: 8,
   },
 
 
   userRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 5,
+    marginBottom: 4,
   },
 
 
   icon: {
-    marginRight: 6,
+    marginRight: 7,
   },
 
 
   userValue: {
     fontSize: 13,
-    color: "#333",
+    color: "#667085",
+  },
+  // =========================================================
+  // AVATARS AND TEXT
+  // =========================================================
+
+  avatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  avatarText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  avatarTaken: {
+    backgroundColor: "#34C77B",
   },
 
+  userValue: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#4B5563",
+  },
+  // =========================================================
+  // EXPANDED CONTENT
+  // =========================================================
 
   additionalContent: {
-    marginTop: 10,
+    marginTop: 12,
   },
 
 
   detailRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 10,
+    marginBottom: 12,
   },
 
 
   detailText: {
-    fontSize: 16,
-    color: "#444",
+    fontSize: 15,
+    color: "#475467",
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 21,
   },
 
 
   userTakenText: {
-    fontSize: 14,
+    fontSize: 13,
     fontStyle: "italic",
-    color: "#333",
-    marginBottom: 10,
+    color: "#667085",
+    marginBottom: 12,
   },
 
 
+  // =========================================================
+  // TIME CRITICAL
+  // =========================================================
+
   timeCriticalCard: {
     borderLeftWidth: 4,
-    borderLeftColor: "#FF3B3B",
-    shadowColor: "#FF6B6B",
+    borderLeftColor: "#F04438",
+
+    shadowColor: "#F04438",
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+
+    elevation: 2,
   },
 
 
   timeCriticalWarning: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFE5E5",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#FF6B6B",
+    backgroundColor: "#FEF3F2",
+    padding: 13,
+    borderRadius: 16,
+    marginBottom: 14,
   },
 
 
   timeCriticalWarningText: {
     flex: 1,
     fontSize: 13,
-    color: "#C92A2A",
+    lineHeight: 18,
+    color: "#B42318",
     fontWeight: "500",
   },
 
+
+  // =========================================================
+  // TIME
+  // =========================================================
 
   timeContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginTop: 14,
-    paddingVertical: 6,
-    borderTopWidth: 0.5,
-    borderTopColor: "#ddd",
+
+    marginTop: 16,
+    paddingVertical: 4,
   },
 
 
@@ -1741,60 +1760,71 @@ const styles = StyleSheet.create({
 
   completedTimeBlock: {
     borderLeftWidth: 1,
-    borderLeftColor: "#e0e0e0",
+    borderLeftColor: "#EAECF0",
   },
 
 
   timeHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 5,
   },
-
 
   timeLabel: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
   },
-
 
   timeMain: {
-    fontSize: 16,
-    fontWeight: "700",
-    lineHeight: 20,
+    fontSize: 18,
+    fontWeight: "800",
+    lineHeight: 22,
   },
 
-
   timeSub: {
-    fontSize: 13,
-    color: "#777",
-    marginTop: 2,
+    fontSize: 12,
+    color: "#98A2B3",
+    marginTop: 3,
     textAlign: "center",
   },
 
 
+  // =========================================================
+  // TAKE BUTTON
+  // =========================================================
+
   takeButton: {
-    marginTop: 10,
-    backgroundColor: "#5FC994",
-    paddingVertical: 10,
-    borderRadius: 8,
+    marginTop: 16,
+    backgroundColor: "#34C77B",
+    paddingVertical: 14,
+    borderRadius: 16,
     alignItems: "center",
-    minHeight: 44,
+    minHeight: 50,
     justifyContent: "center",
+    shadowColor: "#34C77B",
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
   },
 
 
   takeButtonText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
+
+  // =========================================================
+  // ACTION BUTTONS
+  // =========================================================
 
   actionButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 15,
+
+    marginTop: 16,
+
     gap: 10,
   },
 
@@ -1804,53 +1834,58 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 13,
+    borderRadius: 16,
     gap: 8,
-    minHeight: 44,
+    minHeight: 50,
   },
 
 
   completeButton: {
-    backgroundColor: "#6BA8D1",
+    backgroundColor: "#3FA9AB",
   },
 
-
   cancelButton: {
-    backgroundColor: "#E7E7E7",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
   },
 
 
   statusButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
   },
 
 
   cancelButtonText: {
-    color: "#555",
-    fontSize: 16,
+    color: "#475467",
+    fontSize: 15,
     fontWeight: "600",
   },
 
 
   buttonIcon: {
-    marginRight: 4,
+    marginRight: 2,
   },
 
 
   disabledButton: {
-    opacity: 0.6,
+    opacity: 0.55,
   },
 
 
+  // =========================================================
+  // CHAT
+  // =========================================================
+
   chatTrigger: {
     marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    backgroundColor: "#F9FAFB",
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: "#F7F8FA",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -1861,17 +1896,25 @@ const styles = StyleSheet.create({
   chatTriggerText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#374151",
+    color: "#344054",
   },
 
 
+  // =========================================================
+  // DELETE SWIPE ACTION
+  // =========================================================
+
   deleteButton: {
-    backgroundColor: "#E74C3C",
+    backgroundColor: "#D92D20",
+
     justifyContent: "center",
     alignItems: "center",
+
     width: 80,
-    marginVertical: 5,
-    borderRadius: 10,
+
+    marginVertical: 7,
+
+    borderRadius: 14,
   },
 
 
@@ -1888,91 +1931,126 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
+
     backgroundColor:
-      "rgba(0,0,0,0.45)",
+      "rgba(15,23,42,0.42)",
+
     justifyContent: "center",
+
     alignItems: "center",
+
     paddingHorizontal: 20,
   },
 
 
   cancelModal: {
     width: "100%",
+
     maxWidth: 440,
-    backgroundColor: "#fff",
-    borderRadius: 16,
+
+    backgroundColor: "#FFFFFF",
+
+    borderRadius: 20,
+
     padding: 20,
   },
 
 
   cancelModalTitle: {
-    fontSize: 19,
+    fontSize: 20,
+
     fontWeight: "700",
-    color: "#333",
+
+    color: "#1F2937",
+
     textAlign: "center",
   },
 
 
   cancelModalSubtitle: {
-    marginTop: 7,
+    marginTop: 8,
+
     marginBottom: 16,
+
     fontSize: 14,
+
     lineHeight: 20,
-    color: "#666",
+
+    color: "#667085",
+
     textAlign: "center",
   },
 
 
   cancelReasonItem: {
-    minHeight: 48,
-    paddingVertical: 12,
+    minHeight: 50,
+
+    paddingVertical: 13,
+
     paddingHorizontal: 10,
+
     borderBottomWidth: 1,
-    borderBottomColor: "#ECECEC",
+
+    borderBottomColor: "#EAECF0",
+
     flexDirection: "row",
+
     alignItems: "center",
+
     justifyContent: "space-between",
   },
 
 
   cancelReasonText: {
     flex: 1,
+
     fontSize: 15,
-    color: "#333",
+
+    color: "#344054",
+
     paddingRight: 12,
   },
 
 
   cancelLoading: {
     marginTop: 16,
+
     flexDirection: "row",
+
     justifyContent: "center",
+
     alignItems: "center",
   },
 
 
   cancelLoadingText: {
     marginLeft: 8,
+
     fontSize: 13,
-    color: "#666",
+
+    color: "#667085",
   },
 
 
   keepTodoButton: {
     marginTop: 18,
+
     alignSelf: "center",
+
     paddingVertical: 10,
+
     paddingHorizontal: 16,
   },
 
 
   keepTodoButtonText: {
     color: "#4FB6B8",
+
     fontWeight: "600",
+
     fontSize: 15,
   },
 
 });
-
 
 export default CollapsibleTodoCard;

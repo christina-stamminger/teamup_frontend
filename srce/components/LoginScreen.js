@@ -98,7 +98,7 @@ const LoginScreen = ({ navigation }) => {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.card}>
+        <View style={styles.content}>
           <View style={styles.logoContainer}>
             <View style={styles.iconContainer}>
               <Handshake size={40} color="#fff" />
@@ -185,94 +185,131 @@ const LoginScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 8,
+  container: {
+    flex: 1,
+    backgroundColor: "#F7F8FA",
   },
-  iconContainer: {
-    backgroundColor: "#4FB6B8",
-    padding: 22,
-    borderRadius: 999,
-    shadowColor: "#4FB6B8",
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-  },
-  appName: {
-    marginTop: 12,
-    fontSize: 30,
-    fontWeight: "500",
-    letterSpacing: 0.6,
-    color: "#666",
-  },
-  title: {
-    fontSize: 18,
-    marginBottom: 24,
-    textAlign: "center",
-    color: "#404040",
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: "#666",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  form: {},
-  inputGroup: {
-    marginBottom: 8,
-  },
-  label: {
-    marginBottom: 6,
-    fontSize: 13,
-    color: "#6b7280",
-  },
-  forgotPassword: {
-    marginTop: 1,
-    textAlign: "right",
-    color: "#4FB6B8",
-  },
-  errorText: {
-    color: "#dc2626",
-    backgroundColor: "#fee2e2",
-    padding: 10,
-    borderRadius: 8,
-    marginVertical: 12,
-    textAlign: "center",
-    fontSize: 14,
-  },
-  button: {
-    backgroundColor: "#4FB6B8",
-    height: 52,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 16,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  buttonDisabled: {
-    backgroundColor: "#a0d9d9",
-    opacity: 0.7,
-  },
-  registerText: {
-    marginTop: 15,
-    textAlign: "center",
-    color: "#666",
-  },
-  registerLink: {
-    color: "#4FB6B8",
-    fontWeight: "bold",
-  },
+
   scrollContainer: {
     flexGrow: 1,
-    padding: 30,
+    paddingHorizontal: 24,
+    justifyContent: "center",
+  },
+
+  content: {
+    width: "100%",
+    maxWidth: 460,
+    alignSelf: "center",
+  },
+
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 28,
+  },
+
+  iconContainer: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    backgroundColor: "#4FB6B8",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#4FB6B8",
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+
+  appName: {
+    marginTop: 14,
+    fontSize: 30,
+    fontWeight: "700",
+    letterSpacing: -0.4,
+    color: "#12151A",
+  },
+
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 28,
+    textAlign: "center",
+    color: "#1F2937",
+  },
+
+  form: {
+    width: "100%",
+  },
+
+  inputGroup: {
+    marginBottom: 14,
+  },
+
+  label: {
+    marginBottom: 7,
+    marginLeft: 2,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#7C8492",
+  },
+
+  forgotPassword: {
+    marginTop: 2,
+    textAlign: "right",
+    color: "#3FA9AB",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  errorText: {
+    color: "#B42318",
+    backgroundColor: "#FEF3F2",
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginTop: 14,
+    textAlign: "center",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+
+  button: {
+    backgroundColor: "#3FA9AB",
+    minHeight: 54,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 22,
+    shadowColor: "#3FA9AB",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+
+  buttonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  buttonDisabled: {
+    backgroundColor: "#A9DADB",
+    shadowOpacity: 0,
+    elevation: 0,
+    opacity: 0.8,
+  },
+
+  registerText: {
+    marginTop: 22,
+    textAlign: "center",
+    color: "#7C8492",
+    fontSize: 14,
+  },
+
+  registerLink: {
+    color: "#3FA9AB",
+    fontWeight: "700",
   },
 });
 

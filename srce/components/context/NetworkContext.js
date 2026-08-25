@@ -50,6 +50,7 @@ export const NetworkProvider = ({ children }) => {
       "/api/user/auth/set-new-password",
       "/api/user/auth/refresh",
       "/api/user/signup",
+      "/api/user/username-available",
       "/api/user/register",
     ];
 

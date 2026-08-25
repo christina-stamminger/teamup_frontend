@@ -5,6 +5,7 @@ import {
   Users,
   User2,
   Star,
+  Handshake
 } from "lucide-react-native";
 
 export const Icons = {
@@ -14,4 +15,5 @@ export const Icons = {
   Users,
   User2,
   Star,
+  Handshake
 };

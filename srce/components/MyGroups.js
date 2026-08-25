@@ -411,10 +411,12 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     headerTitle: {
-        marginTop: 20,
-        fontSize: 26,
-        color: '#333',
-        textAlign: 'center', // ⬅️ Also helps center text inside its block
+        flex: 1,
+        textAlign: "center",
+        fontSize: 28,
+        fontWeight: "800",
+        color: "#12151A",
+        letterSpacing: -0.5,
     },
     overlay: {
         flex: 1,

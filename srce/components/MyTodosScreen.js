@@ -95,8 +95,6 @@ export default function MyTodosScreen() {
     useState(false);
 
 
-  // Unread / Chat
-  const [unreadMap, setUnreadMap] = useState({});
 
 
   // Trash
@@ -135,32 +133,7 @@ export default function MyTodosScreen() {
   }, [tokenFromCtx]);
 
 
-  const computeUnreadMap = useCallback(async (todoList) => {
-    const map = {};
 
-    for (const todo of todoList) {
-      if (!todo.lastMessageAt) {
-        map[todo.todoId] = false;
-        continue;
-      }
-
-      const lastSeen =
-        await SecureStore.getItemAsync(
-          `chat_last_seen_${todo.todoId}`
-        );
-
-      if (!lastSeen) {
-        map[todo.todoId] = true;
-        continue;
-      }
-
-      map[todo.todoId] =
-        new Date(todo.lastMessageAt).getTime()
-        > Number(lastSeen);
-    }
-
-    setUnreadMap(map);
-  }, []);
 
 
   // =========================================================
@@ -229,7 +202,6 @@ export default function MyTodosScreen() {
 
       setTodos(normalized);
 
-      await computeUnreadMap(normalized);
 
     } catch (error) {
       console.error(
@@ -251,7 +223,6 @@ export default function MyTodosScreen() {
     getAuthToken,
     safeFetch,
     shouldShowError,
-    computeUnreadMap,
   ]);
 
 
@@ -692,12 +663,19 @@ export default function MyTodosScreen() {
    * Bottom-Nav Unread Indicator.
    */
   useEffect(() => {
+
+    const hasUnread =
+      todos.some(
+        todo =>
+          todo.hasUnreadMessages === true
+      );
+
     setHasAnyUnread(
-      Object.values(unreadMap)
-        .some(Boolean)
+      hasUnread
     );
+
   }, [
-    unreadMap,
+    todos,
     setHasAnyUnread,
   ]);
 
@@ -1145,65 +1123,36 @@ export default function MyTodosScreen() {
     <View style={styles.container}>
 
       {/* HEADER */}
+      {/* HEADER */}
       <View style={styles.topArea}>
+        <View style={styles.headerRow}>
+          <View style={styles.headerSideSpacer} />
 
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>
-            Meine Todos
-          </Text>
-        </View>
-
-
-        {/* Gruppenfilter */}
-        <View style={styles.groupFilterRow}>
+          <Text style={styles.headerTitle}>Meine Todos</Text>
 
           <TouchableOpacity
-            onPress={openGroupModal}
-            style={styles.groupSelectorUnderline}
+            onPress={toggleTrashModal}
+            style={styles.trashButton}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Text
-              style={
-                styles.groupSelectorUnderlineText
-              }
-            >
-              {selectedGroupName}
-            </Text>
-
-            <View style={styles.underline} />
+            <Icon name="trash-o" size={20} color="#9CA3AF" />
           </TouchableOpacity>
-
-
-     
-
         </View>
 
+        <TouchableOpacity
+          onPress={openGroupModal}
+          activeOpacity={0.8}
+          style={styles.groupPill}
+        >
+          <Text style={styles.groupPillText}>{selectedGroupName}</Text>
+          <Icon name="chevron-down" size={12} color="#6B7280" style={{ marginLeft: 6 }} />
+        </TouchableOpacity>
 
         <FilterBar
           filters={FILTER_OPTIONS}
           selectedFilters={selectedFilters}
           onSelectFilter={handleSelectFilter}
         />
-
-
-        <View style={styles.trashRow}>
-          <TouchableOpacity
-            onPress={toggleTrashModal}
-            style={styles.trashButton}
-            hitSlop={{
-              top: 10,
-              bottom: 10,
-              left: 10,
-              right: 10,
-            }}
-          >
-            <Icon
-              name="trash"
-              size={24}
-              color="#cccccc"
-            />
-          </TouchableOpacity>
-        </View>
-
       </View>
 
 
@@ -1246,7 +1195,7 @@ export default function MyTodosScreen() {
                 todo={item}
 
                 hasUnread={
-                  unreadMap[item.todoId]
+                  item.hasUnreadMessages === true
                 }
 
                 /*
@@ -1762,11 +1711,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
 
+  // HEADER ROW
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+  },
+
+  headerSideSpacer: {
+    width: 36, // gleiche Breite wie trashButton, balanciert die Zeile
+  },
 
   // HEADER
 
   topArea: {
-    paddingVertical: 10,
+    paddingTop: 14,
+    paddingBottom: 4,
   },
 
   headerContainer: {
@@ -1776,11 +1737,33 @@ const styles = StyleSheet.create({
   },
 
   headerTitle: {
-    fontSize: 26,
-    color: '#333',
-    textAlign: 'center',
+    flex: 1,
+    textAlign: "center",
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#12151A",
+    letterSpacing: -0.5,
   },
 
+  // GROUP PILL
+  groupPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#F1F2F4",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    marginBottom: 14,
+  },
+
+  groupPillText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#12151A",
+  },
 
   // GROUP FILTER
 
@@ -1816,12 +1799,10 @@ const styles = StyleSheet.create({
   },
 
   trashButton: {
-    padding: 8,
-    borderRadius: 8,
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
 

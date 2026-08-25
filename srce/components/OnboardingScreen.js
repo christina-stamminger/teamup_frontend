@@ -22,7 +22,7 @@ const ONBOARDING_PAGES = [
     icon: "map-pin",
     title: "Hilfe in deiner Nähe",
     text:
-      "Entdecke offene Todos bis zu 10km rund um deine hinterlegte Profiladresse – oder erstelle selbst eines, wenn du Unterstützung brauchst. Denke daran, deine Adresse im Profil einzutragen!", 
+      "Entdecke offene Todos bis zu 10 km rund um deine Profiladresse – oder erstelle selbst eines, wenn du Unterstützung brauchst.",
   },
   {
     id: "privacy",
@@ -37,6 +37,13 @@ const ONBOARDING_PAGES = [
     title: "Gemeinsam erledigen",
     text:
       "Ein Todo kann übernommen und erledigt werden. Falls etwas dazwischenkommt, kann es wieder freigegeben werden, damit jemand anderes helfen kann.",
+  },
+  {
+    id: "bringits",
+    icon: "award",
+    title: "Sammle BringIts",
+    text:
+      "Für erledigte Todos sammelst du BringIts. Sie zeigen deinen Beitrag zur Community und wie aktiv du anderen in deiner Umgebung hilfst.",
   },
   {
     id: "payment",
@@ -67,6 +74,9 @@ export default function OnboardingScreen({
     currentIndex ===
     ONBOARDING_PAGES.length - 1;
 
+  const isPreview =
+    !onComplete;
+
 
   const handleNext = () => {
     if (isLastPage) {
@@ -85,19 +95,23 @@ export default function OnboardingScreen({
     setCurrentIndex(nextIndex);
   };
 
-
   const handleComplete = () => {
     /*
-     * Automatisches First-Run-Onboarding:
-     * AppRoot übernimmt Speichern + Wechsel zur App.
+     * First-Run-Onboarding:
+     * AppRoot speichert "Onboarding gesehen"
+     * und öffnet danach das Profil direkt
+     * im Adress-Setup.
      */
     if (onComplete) {
-      onComplete();
+      onComplete({
+        openAddressSetup: true,
+      });
       return;
     }
 
     /*
-     * Manuell aus dem Profil geöffnet.
+     * Onboarding wurde später manuell
+     * aus dem Profil geöffnet.
      */
     if (navigation.canGoBack()) {
       navigation.goBack();
@@ -171,7 +185,27 @@ export default function OnboardingScreen({
         styles.container
       }
     >
+      {isPreview && (
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <Feather
+            name="chevron-left"
+            size={20}
+            color="#4FB6B8"
+          />
 
+          <Text style={styles.backButtonText}>
+            Zurück
+          </Text>
+        </TouchableOpacity>
+      )}
       <View
         style={
           styles.brandContainer
@@ -289,26 +323,7 @@ export default function OnboardingScreen({
         </TouchableOpacity>
 
 
-        {!isLastPage && (
-          <TouchableOpacity
-            style={
-              styles.skipButton
-            }
-            onPress={
-              handleComplete
-            }
-          >
 
-            <Text
-              style={
-                styles.skipText
-              }
-            >
-              Überspringen
-            </Text>
-
-          </TouchableOpacity>
-        )}
 
       </View>
 
@@ -426,14 +441,24 @@ const styles =
       fontWeight: "700",
     },
 
-    skipButton: {
+    backButton: {
+      position: "absolute",
+      top: 54,
+      left: 18,
+      zIndex: 10,
+
+      flexDirection: "row",
       alignItems: "center",
-      paddingVertical: 14,
+
+      paddingVertical: 8,
+      paddingRight: 12,
     },
 
-    skipText: {
-      color: "#888",
-      fontSize: 14,
+    backButtonText: {
+      color: "#4FB6B8",
+      fontSize: 15,
+      fontWeight: "700",
+      marginLeft: 2,
     },
 
   });

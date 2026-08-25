@@ -16,7 +16,7 @@ import {
 
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
-
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUser } from "./context/UserContext";
 import { useNetwork } from "../components/context/NetworkContext";
 import { API_URL } from "../config/env";
@@ -30,8 +30,7 @@ const COUNTRY_NAMES = {
 };
 
 
-const ProfileScreen = () => {
-
+const ProfileScreen = ({ route }) => {
   const {
     userId,
     accessToken,
@@ -46,6 +45,11 @@ const ProfileScreen = () => {
   const navigation =
     useNavigation();
 
+  const insets =
+    useSafeAreaInsets();
+
+  const isInitialAddressSetup =
+    route?.params?.openAddressSetup === true;
 
   // =========================================================
   // PROFILE STATE
@@ -74,6 +78,12 @@ const ProfileScreen = () => {
 
   const [addressSaving, setAddressSaving] =
     useState(false);
+
+  useEffect(() => {
+    if (isInitialAddressSetup) {
+      setShowAddressInput(true);
+    }
+  }, [isInitialAddressSetup]);
 
   /*
    * Kommt vom Backend:
@@ -471,10 +481,42 @@ const ProfileScreen = () => {
           setShowAddressInput(false);
 
 
+          /*
+           * First-Run:
+           * Adresse ist gespeichert,
+           * jetzt in die eigentliche App.
+           */
+          if (isInitialAddressSetup) {
+
+            Toast.show({
+              type: "success",
+              text1: "Adresse gespeichert",
+              text2: "Jetzt kann's losgehen!",
+            });
+
+
+            navigation.reset({
+              index: 0,
+              routes: [
+                {
+                  name: "HomeTabs",
+                },
+              ],
+            });
+
+
+            return;
+          }
+
+
+          /*
+           * Normale Adressänderung im Profil.
+           */
           Alert.alert(
             "Erfolg",
             "Adresse erfolgreich gespeichert."
           );
+
 
           return;
         }
@@ -756,26 +798,54 @@ const ProfileScreen = () => {
   // RENDER
   // =========================================================
 
+  // =========================================================
+  // RENDER
+  // =========================================================
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollViewContainer}
+        contentContainerStyle={[
+          styles.scrollViewContainer,
+          {
+            paddingTop: Math.max(
+              insets.top + 10,
+              24
+            ),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.container}>
 
-          {/* =================================================
-              BACK
-              ================================================= */}
+        {/* HEADER */}
+        <View style={styles.headerArea}>
 
           <TouchableOpacity
             style={styles.topBackButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.8}
+            onPress={() => {
+              if (isInitialAddressSetup) {
+                navigation.reset({
+                  index: 0,
+                  routes: [
+                    {
+                      name: "HomeTabs",
+                    },
+                  ],
+                });
+
+                return;
+              }
+
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              }
+            }}
+            disabled={saving}
+            activeOpacity={0.7}
           >
             <Text style={styles.topBackButtonText}>
               ‹ Zurück
@@ -784,321 +854,431 @@ const ProfileScreen = () => {
 
 
           <Text style={styles.header}>
-            Benutzerprofil
+            Profil
           </Text>
 
+          <Text style={styles.headerSubtitle}>
+            Deine persönlichen Daten und Einstellungen
+          </Text>
 
-          {/* =================================================
-              PROFILE + ADDRESS
-              ================================================= */}
-
-          <View style={styles.infoContainer}>
-
-            <LabelValue
-              label="Benutzername"
-              value={userDetails.username}
-            />
-
-            <LabelValue
-              label="E-Mail"
-              value={userDetails.email}
-            />
-
-            <LabelValue
-              label="Passwort"
-              value={userDetails.password}
-            />
+        </View>
 
 
-            {/* VORNAME */}
+        {/* =================================================
+            ACCOUNT
+            ================================================= */}
 
-            <Text style={styles.label}>
-              Vorname:
-            </Text>
+        <Text style={styles.sectionLabel}>
+          ACCOUNT
+        </Text>
 
-            <TextInput
-              style={styles.input}
-              value={userDetails.firstName}
-              onChangeText={(val) =>
-                setUserDetails((prev) => ({
-                  ...prev,
-                  firstName: val,
-                }))
-              }
-              editable={!saving}
-              autoComplete="off"
-              textContentType="none"
-              importantForAutofill="no"
-            />
+        <View style={styles.settingsCard}>
 
+          <LabelValue
+            label="Benutzername"
+            value={userDetails.username}
+          />
 
-            {/* NACHNAME */}
+          <View style={styles.rowDivider} />
 
-            <Text style={styles.label}>
-              Nachname:
-            </Text>
+          <LabelValue
+            label="E-Mail"
+            value={userDetails.email}
+          />
 
-            <TextInput
-              style={styles.input}
-              value={userDetails.lastName}
-              onChangeText={(val) =>
-                setUserDetails((prev) => ({
-                  ...prev,
-                  lastName: val,
-                }))
-              }
-              editable={!saving}
-              autoComplete="off"
-              textContentType="none"
-              importantForAutofill="no"
-            />
+          <View style={styles.rowDivider} />
+
+          <LabelValue
+            label="Passwort"
+            value={userDetails.password}
+          />
+
+        </View>
 
 
-            {/* GEBURTSDATUM */}
+        {/* =================================================
+            PERSONAL DATA
+            ================================================= */}
 
-            <Text style={styles.label}>
-              Geburtsdatum (YYYY-MM-DD):
-            </Text>
+        <Text style={styles.sectionLabel}>
+          PERSÖNLICHE DATEN
+        </Text>
 
-            <TextInput
-              style={styles.input}
-              value={userDetails.dateOfBirth}
-              onChangeText={(val) =>
-                setUserDetails((prev) => ({
-                  ...prev,
-                  dateOfBirth: val,
-                }))
-              }
-              editable={!saving}
-              placeholder="1990-01-31"
-              autoComplete="off"
-              textContentType="none"
-              importantForAutofill="no"
-            />
+        <View style={styles.settingsCard}>
 
+          {/* VORNAME */}
 
-            {/* =================================================
-                ADDRESS
-                ================================================= */}
+          <Text style={styles.inputLabel}>
+            Vorname
+          </Text>
 
-            <View style={styles.profileDivider} />
-
-            <Text style={styles.profileSectionTitle}>
-              Adresse
-            </Text>
+          <TextInput
+            style={styles.input}
+            value={userDetails.firstName}
+            onChangeText={(val) =>
+              setUserDetails((prev) => ({
+                ...prev,
+                firstName: val,
+              }))
+            }
+            editable={!saving}
+            autoComplete="off"
+            textContentType="none"
+            importantForAutofill="no"
+          />
 
 
-            {/* ADDRESS EXISTS */}
+          {/* NACHNAME */}
 
-            {address && !showAddressInput && (
-              <>
-                <View style={styles.addressDisplay}>
-                  <Text style={styles.value}>
-                    {address.streetNumber}
-                    {"\n"}
-                    {address.postalCode} {address.city}
-                    {"\n"}
-                    {getCountryName(address.country)}
-                  </Text>
-                </View>
+          <Text style={styles.inputLabel}>
+            Nachname
+          </Text>
+
+          <TextInput
+            style={styles.input}
+            value={userDetails.lastName}
+            onChangeText={(val) =>
+              setUserDetails((prev) => ({
+                ...prev,
+                lastName: val,
+              }))
+            }
+            editable={!saving}
+            autoComplete="off"
+            textContentType="none"
+            importantForAutofill="no"
+          />
 
 
-                {addressEditable ? (
-                  <TouchableOpacity
-                    style={styles.infoButton}
-                    onPress={() => setShowAddressInput(true)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.infoButtonText}>
-                      Adresse ändern
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={styles.addressLockedBox}>
-                    <Text style={styles.addressLockedTitle}>
-                      🔒 Adresse vorübergehend gesperrt
-                    </Text>
+          {/* GEBURTSDATUM - LOGIK UND FORMAT UNVERÄNDERT */}
 
-                    <Text style={styles.addressLockedText}>
-                      Deine Adresse kann nicht geändert werden,
-                      solange eines deiner Todos in Arbeit ist.
-                    </Text>
-                  </View>
-                )}
-              </>
+          <Text style={styles.inputLabel}>
+            Geburtsdatum (YYYY-MM-DD)
+          </Text>
+
+          <TextInput
+            style={styles.input}
+            value={userDetails.dateOfBirth}
+            onChangeText={(val) =>
+              setUserDetails((prev) => ({
+                ...prev,
+                dateOfBirth: val,
+              }))
+            }
+            editable={!saving}
+            placeholder="1990-01-31"
+            autoComplete="off"
+            textContentType="none"
+            importantForAutofill="no"
+          />
+
+
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              saving && styles.disabledButton,
+            ]}
+            onPress={handleSave}
+            disabled={saving}
+            activeOpacity={0.85}
+          >
+            {saving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.saveButtonText}>
+                Änderungen speichern
+              </Text>
             )}
+          </TouchableOpacity>
+
+        </View>
 
 
-            {/* NO ADDRESS */}
+        {/* =================================================
+            ADDRESS
+            ================================================= */}
 
-            {!address && !showAddressInput && (
-              <>
-                <Text style={styles.addressHint}>
-                  Noch keine Adresse hinterlegt. Eine Adresse wird
-                  benötigt, wenn du ein öffentliches Todo erstellen
-                  möchtest.
+        <Text style={styles.sectionLabel}>
+          STANDORT
+        </Text>
+
+        <View style={styles.settingsCard}>
+
+          <View style={styles.sectionHeadingRow}>
+            <View style={styles.locationIcon}>
+              <Text style={styles.locationIconText}>
+                📍
+              </Text>
+            </View>
+
+            <View style={styles.sectionHeadingContent}>
+              <Text style={styles.cardTitle}>
+                Profiladresse
+              </Text>
+
+              <Text style={styles.cardSubtitle}>
+                Bestimmt, welche Todos dir in deiner Umgebung angezeigt werden.
+              </Text>
+            </View>
+          </View>
+
+
+          {isInitialAddressSetup && !address && (
+            <View style={styles.addressSetupInfo}>
+              <Text style={styles.addressSetupTitle}>
+                Gleich kann's losgehen
+              </Text>
+
+              <Text style={styles.addressSetupText}>
+                Hinterlege deine Profiladresse, damit wir dir
+                offene Todos im Umkreis von 10 km zeigen können.
+                Deine genaue Adresse bleibt dabei geschützt.
+              </Text>
+            </View>
+          )}
+
+
+          {/* ADDRESS EXISTS */}
+
+          {address && !showAddressInput && (
+            <>
+              <View style={styles.addressDisplay}>
+                <Text style={styles.addressMain}>
+                  {address.streetNumber}
                 </Text>
 
+                <Text style={styles.addressSecondary}>
+                  {address.postalCode} {address.city}
+                </Text>
+
+                <Text style={styles.addressSecondary}>
+                  {getCountryName(address.country)}
+                </Text>
+              </View>
+
+
+              {addressEditable ? (
                 <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={() => setShowAddressInput(true)}
+                  style={styles.secondaryOutlineButton}
+                  onPress={() =>
+                    setShowAddressInput(true)
+                  }
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.secondaryButtonText}>
-                    Adresse hinzufügen
+                  <Text style={styles.secondaryOutlineButtonText}>
+                    Adresse ändern
                   </Text>
                 </TouchableOpacity>
-              </>
-            )}
+              ) : (
+                <View style={styles.addressLockedBox}>
+                  <Text style={styles.addressLockedTitle}>
+                    🔒 Adresse vorübergehend gesperrt
+                  </Text>
+
+                  <Text style={styles.addressLockedText}>
+                    Deine Adresse kann nicht geändert werden,
+                    solange eines deiner Todos in Arbeit ist.
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
 
 
-            {/* ADDRESS INPUT */}
+          {/* NO ADDRESS */}
 
-            {showAddressInput && (
-              <>
+          {!address && !showAddressInput && (
+            <>
+              <Text style={styles.addressHint}>
+                Noch keine Adresse hinterlegt. Eine Adresse wird
+                benötigt, wenn du ein öffentliches Todo erstellen
+                möchtest.
+              </Text>
+
+              <TouchableOpacity
+                style={styles.primaryCompactButton}
+                onPress={() =>
+                  setShowAddressInput(true)
+                }
+                activeOpacity={0.85}
+              >
+                <Text style={styles.primaryCompactButtonText}>
+                  Adresse hinzufügen
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+
+          {/* ADDRESS INPUT */}
+
+          {showAddressInput && (
+            <>
+              <View style={styles.addressInputArea}>
                 <AddressAutosuggest
                   onSelect={handleAddressSelected}
                 />
+              </View>
 
-                {addressSaving && (
-                  <ActivityIndicator
-                    style={{ marginTop: 10 }}
-                    color="#4FB6B8"
-                  />
-                )}
+              {addressSaving && (
+                <ActivityIndicator
+                  style={{ marginTop: 12 }}
+                  color="#4FB6B8"
+                />
+              )}
 
+              {!isInitialAddressSetup && (
                 <TouchableOpacity
                   style={styles.cancelLink}
-                  onPress={() => setShowAddressInput(false)}
+                  onPress={() =>
+                    setShowAddressInput(false)
+                  }
                   disabled={addressSaving}
                 >
                   <Text style={styles.cancelLinkText}>
                     Abbrechen
                   </Text>
                 </TouchableOpacity>
-              </>
-            )}
-
-
-            {/* =================================================
-                SAVE PROFILE
-                ================================================= */}
-
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.saveButton,
-                  saving && styles.disabledButton,
-                ]}
-                onPress={handleSave}
-                disabled={saving}
-                activeOpacity={0.8}
-              >
-                {saving ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.saveButtonText}>
-                    Profil speichern
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-          </View>
-
-
-          {/* =================================================
-              INFO & SECURITY
-              ================================================= */}
-
-          <View style={styles.infoSection}>
-
-            <Text style={styles.sectionTitle}>
-              Info & Sicherheit
-            </Text>
-
-            <Text style={styles.infoDescription}>
-              Erfahre, wie bringit funktioniert,
-              wann deine Adresse sichtbar wird
-              und wie Vereinbarungen und
-              Bezahlungen gehandhabt werden.
-            </Text>
-
-
-            <TouchableOpacity
-              style={styles.infoButton}
-              onPress={() =>
-                navigation.navigate("Onboarding")
-              }
-            >
-              <Text style={styles.infoButtonText}>
-                So funktioniert bringit
-              </Text>
-            </TouchableOpacity>
-
-
-            <TouchableOpacity
-              style={[
-                styles.infoButton,
-                styles.infoButtonSpacing,
-              ]}
-              onPress={() =>
-                navigation.navigate("Privacy")
-              }
-            >
-              <Text style={styles.infoButtonText}>
-                Datenschutz & Standort
-              </Text>
-            </TouchableOpacity>
-
-
-            <TouchableOpacity
-              style={styles.privacyLinkButton}
-              activeOpacity={0.85}
-              onPress={() =>
-                Linking.openURL(
-                  "https://christina-stamminger.github.io/bringit-privacy/"
-                )
-              }
-            >
-              <Text style={styles.privacyLinkButtonText}>
-                Vollständige Datenschutzerklärung
-              </Text>
-            </TouchableOpacity>
-
-          </View>
-
-
-          {/* =================================================
-              DANGER ZONE
-              ================================================= */}
-
-          <View style={styles.dangerZone}>
-
-            <Text style={styles.dangerTitle}>
-              Account löschen
-            </Text>
-
-            <Text style={styles.dangerDescription}>
-              Du kannst deinen Account nur löschen,
-              wenn du keine Adminrolle in Gruppen mehr
-              hast und keine aktiven Todos in Arbeit sind.
-              Eigene Todos und zugehörige Daten werden
-              bei der Account-Löschung entfernt.
-            </Text>
-
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={handleCheckAccountDeletion}
-            >
-              <Text style={styles.deleteButtonText}>
-                Account löschen
-              </Text>
-            </TouchableOpacity>
-
-          </View>
+              )}
+            </>
+          )}
 
         </View>
+
+
+        {/* =================================================
+            INFO & SECURITY
+            ================================================= */}
+
+        <Text style={styles.sectionLabel}>
+          INFO & SICHERHEIT
+        </Text>
+
+        <View
+          style={styles.settingsCard}
+        >
+          <TouchableOpacity
+            style={styles.settingsRow}
+            onPress={() =>
+              navigation.navigate(
+                "Onboarding",
+                {
+                  previewMode: true,
+                }
+              )}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingsRowContent}>
+              <Text style={styles.settingsRowTitle}>
+                So funktioniert bringit
+              </Text>
+
+              <Text style={styles.settingsRowSubtitle}>
+                Ablauf und Nutzung der App
+              </Text>
+            </View>
+
+            <Text style={styles.chevron}>
+              ›
+            </Text>
+          </TouchableOpacity>
+
+
+          <View style={styles.rowDivider} />
+
+
+          <TouchableOpacity
+            style={styles.settingsRow}
+            onPress={() =>
+              navigation.navigate("Privacy")
+            }
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingsRowContent}>
+              <Text style={styles.settingsRowTitle}>
+                Datenschutz & Standort
+              </Text>
+
+              <Text style={styles.settingsRowSubtitle}>
+                Wann und wie Standortdaten verwendet werden
+              </Text>
+            </View>
+
+            <Text style={styles.chevron}>
+              ›
+            </Text>
+          </TouchableOpacity>
+
+
+          <View style={styles.rowDivider} />
+
+
+          <TouchableOpacity
+            style={styles.settingsRow}
+            activeOpacity={0.7}
+            onPress={() =>
+              Linking.openURL(
+                "https://christina-stamminger.github.io/bringit-privacy/"
+              )
+            }
+          >
+            <View style={styles.settingsRowContent}>
+              <Text style={styles.settingsRowTitle}>
+                Vollständige Datenschutzerklärung
+              </Text>
+
+              <Text style={styles.settingsRowSubtitle}>
+                Im Browser öffnen
+              </Text>
+            </View>
+
+            <Text style={styles.externalIcon}>
+              ↗
+            </Text>
+          </TouchableOpacity>
+
+        </View>
+
+
+        {/* =================================================
+            DANGER ZONE
+            ================================================= */}
+
+        <Text style={styles.sectionLabel}>
+          ACCOUNTVERWALTUNG
+        </Text>
+
+        <View
+          style={[
+            styles.settingsCard,
+            styles.dangerCard,
+          ]}
+        >
+          <Text style={styles.deleteTitle}>
+            Account löschen
+          </Text>
+
+          <Text style={styles.deleteDescription}>
+            Dein Account kann nur gelöscht werden,
+            wenn keine aktiven Todos in Arbeit sind
+            und keine erforderlichen Adminrollen bestehen.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={handleCheckAccountDeletion}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.deleteButtonText}>
+              Account löschen
+            </Text>
+          </TouchableOpacity>
+
+        </View>
+
+
+        <View style={styles.bottomSpacer} />
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -1119,23 +1299,13 @@ const LabelValue = ({
   value,
 }) => (
   <>
-
-    <Text
-      style={
-        styles.label
-      }
-    >
-      {label}:
+    <Text style={styles.readOnlyLabel}>
+      {label}
     </Text>
 
-    <Text
-      style={
-        styles.value
-      }
-    >
+    <Text style={styles.readOnlyValue}>
       {value || "-"}
     </Text>
-
   </>
 );
 
@@ -1144,336 +1314,457 @@ const LabelValue = ({
 // STYLES
 // =========================================================
 
-const styles =
-  StyleSheet.create({
+const styles = StyleSheet.create({
 
-    container: {
-      flex: 1,
-      backgroundColor:
-        "#f9f9f9",
+  container: {
+    flex: 1,
+    backgroundColor: "#F7F8FA",
+  },
+
+
+  scrollViewContainer: {
+    paddingHorizontal: 18,
+    paddingBottom: 40,
+  },
+
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F7F8FA",
+  },
+
+
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: "#747A80",
+  },
+
+
+  // =========================================================
+  // HEADER
+  // =========================================================
+
+  headerArea: {
+    marginBottom: 26,
+  },
+
+
+  topBackButton: {
+    alignSelf: "flex-start",
+    minHeight: 36,
+    justifyContent: "center",
+    paddingRight: 12,
+    marginBottom: 14,
+  },
+
+
+  topBackButtonText: {
+    color: "#3FA9AB",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+
+  header: {
+    fontSize: 30,
+    fontWeight: "800",
+    color: "#12151A",
+    letterSpacing: -0.7,
+  },
+
+
+  headerSubtitle: {
+    marginTop: 5,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#7A8086",
+  },
+
+
+  // =========================================================
+  // SECTIONS / CARDS
+  // =========================================================
+
+  sectionLabel: {
+    marginLeft: 4,
+    marginBottom: 8,
+    marginTop: 8,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    color: "#8B9299",
+  },
+
+
+  settingsCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginBottom: 22,
+
+    borderWidth: 1,
+    borderColor: "#EFF1F3",
+
+    shadowColor: "#12151A",
+    shadowOpacity: 0.035,
+    shadowRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 4,
     },
 
+    elevation: 1,
+  },
+
+
+  rowDivider: {
+    height: 1,
+    backgroundColor: "#F0F1F3",
+    marginVertical: 14,
+  },
+
 
-    scrollViewContainer: {
-      padding: 20,
-      paddingBottom: 40,
-    },
+  // =========================================================
+  // READ ONLY ACCOUNT DATA
+  // =========================================================
 
+  readOnlyLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#8B9299",
+    marginBottom: 4,
+  },
 
-    loadingContainer: {
-      flex: 1,
-      justifyContent:
-        "center",
-      alignItems:
-        "center",
-    },
 
+  readOnlyValue: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#24282D",
+  },
 
-    loadingText: {
-      marginTop: 10,
-    },
 
+  // =========================================================
+  // EDITABLE PROFILE DATA
+  // =========================================================
+
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: "650",
+    color: "#4C5258",
+    marginBottom: 7,
+    marginTop: 4,
+  },
+
 
-    header: {
-      fontSize: 26,
-      color: "#333",
-      marginTop: 20,
-      marginBottom: 10,
-      textAlign: "center",
-    },
+  input: {
+    minHeight: 50,
+    borderWidth: 1,
+    borderColor: "#E3E6E8",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    fontSize: 16,
+    color: "#12151A",
+    backgroundColor: "#FAFBFC",
+    marginBottom: 16,
+  },
 
 
-    // PROFILE
+  saveButton: {
+    minHeight: 50,
+    backgroundColor: "#4FB6B8",
+    borderRadius: 13,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 5,
+  },
+
 
-    infoContainer: {
-      backgroundColor: "#fff",
-      borderRadius: 10,
-      padding: 15,
-      marginBottom: 10,
+  saveButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
 
-      shadowColor: "#000",
-      shadowOpacity: 0.1,
-      shadowRadius: 5,
 
-      elevation: 3,
-    },
+  disabledButton: {
+    opacity: 0.55,
+  },
 
 
-    label: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: "#555",
-      marginTop: 10,
-    },
+  // =========================================================
+  // ADDRESS
+  // =========================================================
+
+  sectionHeadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 18,
+  },
 
+
+  locationIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#EAF7F7",
+    marginRight: 12,
+  },
 
-    value: {
-      fontSize: 16,
-      color: "#333",
-      marginBottom: 10,
-      padding: 10,
-      backgroundColor: "#f0f0f0",
-      borderRadius: 5,
-    },
 
+  locationIconText: {
+    fontSize: 20,
+  },
 
-    input: {
-      borderWidth: 0.5,
-      borderColor: "#ddd",
-      borderRadius: 5,
-      padding: 10,
-      fontSize: 16,
-      backgroundColor: "#fff",
-      marginBottom: 10,
-    },
 
+  sectionHeadingContent: {
+    flex: 1,
+  },
 
-    // PROFILE BUTTONS
 
-    buttonContainer: {
-      marginTop: 20,
-    },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: "750",
+    color: "#171A1F",
+  },
 
 
-    saveButton: {
-      backgroundColor: "#4FB6B8",
-      padding: 15,
-      borderRadius: 10,
-      alignItems: "center",
-      marginBottom: 10,
-    },
+  cardSubtitle: {
+    marginTop: 3,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#7A8086",
+  },
 
 
-    disabledButton: {
-      backgroundColor: "#aaa",
-    },
+  addressDisplay: {
+    backgroundColor: "#F7F8FA",
+    borderRadius: 13,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    marginBottom: 12,
+  },
 
 
-    saveButtonText: {
-      color: "#fff",
-      fontSize: 16,
-      fontWeight: "bold",
-    },
+  addressMain: {
+    fontSize: 15,
+    fontWeight: "650",
+    color: "#24282D",
+    marginBottom: 3,
+  },
 
 
-    backButton: {
-      backgroundColor: "#ccc",
-      padding: 15,
-      borderRadius: 8,
-      alignItems: "center",
-    },
+  addressSecondary: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#626970",
+  },
 
 
-    backButtonText: {
-      color: "#fff",
-      fontSize: 16,
-      fontWeight: "bold",
-    },
+  addressHint: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#6F767D",
+    marginBottom: 16,
+  },
 
 
-    // ADDRESS
+  primaryCompactButton: {
+    minHeight: 46,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#4FB6B8",
+  },
 
-    addressSection: {
-      backgroundColor: "#fff",
-      borderRadius: 10,
-      padding: 15,
-      marginTop: 20,
 
-      shadowColor: "#000",
-      shadowOpacity: 0.1,
-      shadowRadius: 5,
+  primaryCompactButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
 
-      elevation: 3,
-    },
 
+  secondaryOutlineButton: {
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#B9DFE0",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
 
-    sectionTitle: {
-      fontSize: 18,
-      fontWeight: "bold",
-      color: "#333",
-      marginBottom: 10,
-    },
 
+  secondaryOutlineButtonText: {
+    color: "#329A9C",
+    fontSize: 14,
+    fontWeight: "700",
+  },
 
-    addressDisplay: {
-      marginBottom: 10,
-    },
 
+  addressInputArea: {
+    marginTop: 2,
+  },
 
-    addressHint: {
-      fontSize: 14,
-      lineHeight: 20,
-      color: "#888",
-      marginBottom: 12,
-    },
 
+  addressLockedBox: {
+    backgroundColor: "#F6F7F8",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E8EAEC",
+  },
 
-    secondaryButton: {
-      backgroundColor: "#4FB6B8",
-      padding: 12,
-      borderRadius: 8,
-      alignItems: "center",
-    },
 
+  addressLockedTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#444A50",
+    marginBottom: 5,
+  },
 
-    secondaryButtonText: {
-      color: "#fff",
-      fontSize: 16,
-      fontWeight: "bold",
-    },
 
+  addressLockedText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#696F75",
+  },
 
-    addressLockedBox: {
-      backgroundColor: "#F5F5F5",
-      borderRadius: 8,
-      padding: 12,
-      borderWidth: 1,
-      borderColor: "#E2E2E2",
-    },
 
+  addressSetupInfo: {
+    marginBottom: 18,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#EAF7F7",
+  },
 
-    addressLockedTitle: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: "#444",
-      marginBottom: 5,
-    },
 
+  addressSetupTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#2B8A8C",
+    marginBottom: 5,
+  },
 
-    addressLockedText: {
-      fontSize: 13,
-      lineHeight: 19,
-      color: "#666",
-    },
 
+  addressSetupText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#52666A",
+  },
 
-    cancelLink: {
-      marginTop: 12,
-      alignItems: "center",
-    },
 
+  cancelLink: {
+    marginTop: 12,
+    alignItems: "center",
+  },
 
-    cancelLinkText: {
-      color: "#888",
-      fontSize: 14,
-    },
 
+  cancelLinkText: {
+    color: "#7A8086",
+    fontSize: 14,
+    fontWeight: "600",
+  },
 
-    // INFO & SECURITY
 
-    infoSection: {
-      backgroundColor: "#fff",
-      borderRadius: 10,
-      padding: 15,
-      marginTop: 20,
+  // =========================================================
+  // SETTINGS ROWS
+  // =========================================================
 
-      shadowColor: "#000",
-      shadowOpacity: 0.1,
-      shadowRadius: 5,
+  settingsRow: {
+    minHeight: 58,
+    flexDirection: "row",
+    alignItems: "center",
+  },
 
-      elevation: 3,
-    },
 
-
-    infoDescription: {
-      fontSize: 14,
-      lineHeight: 20,
-      color: "#666",
-      marginBottom: 14,
-    },
-
-
-    infoButton: {
-      borderWidth: 1,
-      borderColor: "#4FB6B8",
-      borderRadius: 8,
-      padding: 12,
-      alignItems: "center",
-    },
-
-
-    infoButtonText: {
-      color: "#4FB6B8",
-      fontSize: 15,
-      fontWeight: "700",
-    },
-
-
-    infoButtonSpacing: {
-      marginTop: 10,
-    },
-
-
-    // DANGER ZONE
-
-    dangerZone: {
-      marginTop: 40,
-      padding: 15,
-      backgroundColor: "#ffe6e6",
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: "#ffcccc",
-    },
-
-
-    dangerTitle: {
-      fontSize: 18,
-      fontWeight: "bold",
-      color: "#d9534f",
-      marginBottom: 10,
-    },
-
-
-    dangerDescription: {
-      fontSize: 14,
-      lineHeight: 20,
-      color: "#666",
-      marginBottom: 15,
-    },
-
-
-    deleteButton: {
-      backgroundColor: "#d9534f",
-      padding: 12,
-      borderRadius: 8,
-      alignItems: "center",
-    },
-
-
-    deleteButtonText: {
-      color: "#fff",
-      fontSize: 16,
-      fontWeight: "bold",
-    },
-    privacyLinkButton: {
-      marginTop: 18,
-      backgroundColor: "#4FB6B8",
-      borderRadius: 10,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      alignItems: "center",
-    },
-
-    privacyLinkButtonText: {
-      color: "#fff",
-      fontSize: 16,
-      fontWeight: "700",
-    },
-    topBackButton: {
-      alignSelf: "flex-start",
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: 18,
-      backgroundColor: "#E9F7F7",
-      marginTop: 8,
-    },
-
-    topBackButtonText: {
-      color: "#4FB6B8",
-      fontSize: 16,
-      fontWeight: "700",
-    },
-  });
+  settingsRowContent: {
+    flex: 1,
+    paddingRight: 12,
+  },
+
+
+  settingsRowTitle: {
+    fontSize: 15,
+    fontWeight: "650",
+    color: "#24282D",
+  },
+
+
+  settingsRowSubtitle: {
+    marginTop: 3,
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#8A9096",
+  },
+
+
+  chevron: {
+    fontSize: 27,
+    fontWeight: "300",
+    color: "#B1B6BB",
+    marginTop: -2,
+  },
+
+
+  externalIcon: {
+    fontSize: 18,
+    color: "#8A9096",
+  },
+
+
+  // =========================================================
+  // DELETE ACCOUNT
+  // =========================================================
+
+  deleteTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#24282D",
+    marginBottom: 6,
+  },
+
+
+  deleteDescription: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#747A80",
+    marginBottom: 15,
+  },
+
+
+  deleteButton: {
+    minHeight: 46,
+    borderRadius: 12,
+    backgroundColor: "#D9534F",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  deleteButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+
+  bottomSpacer: {
+    height: 16,
+  },
+
+  dangerCard: {
+    backgroundColor: "#FFF5F5",
+    borderColor: "#FAD5D3",
+  },
+
+});
 
 
 export default ProfileScreen;

@@ -81,22 +81,36 @@ const postNewUser = async (userData, safeFetch) => {
       };
     }
 
-    const backendError =
-      Array.isArray(data.errorMessage)
-        ? data.errorMessage[0]
-        : data.errorMessage;
+    const backendErrors =
+      data.errorMessages ||
+      data.errorMessage ||
+      data.errors ||
+      data.message;
 
-    const backendMessage =
-      Array.isArray(data.message)
-        ? data.message[0]
-        : data.message;
+
+    let backendMessage = null;
+
+
+    if (Array.isArray(backendErrors)) {
+
+      backendMessage =
+        backendErrors[0];
+
+    } else if (
+      typeof backendErrors === "string"
+    ) {
+
+      backendMessage =
+        backendErrors;
+    }
+
 
     return {
       success: false,
+
       message:
-        backendError ||
         backendMessage ||
-        "Fehler bei der Registrierung. Bitte erneut versuchen.",
+        "Registrierung mit diesen Angaben nicht möglich. Bitte überprüfe deine Eingaben.",
     };
 
   } catch (error) {
@@ -117,10 +131,24 @@ const RegisterScreen = ({ navigation }) => {
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [registrationMessage, setRegistrationMessage] = useState("");
+
+  const [usernameAvailable, setUsernameAvailable] =
+    useState(null);
+
+  const [checkingUsername, setCheckingUsername] =
+    useState(false);
   const { safeFetch } = useNetwork();
 
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
+
+  const handleRegisterPress = () => {
+    passwordRef.current?.blur();
+
+    setTimeout(() => {
+      formik.handleSubmit();
+    }, 50);
+  };
 
   useEffect(() => {
     console.log("🟢 [RegisterScreen] mounted");
@@ -133,6 +161,8 @@ const RegisterScreen = ({ navigation }) => {
   const handleBackButton = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
+
+
 
   const formik = useFormik({
     initialValues: {
@@ -182,6 +212,105 @@ const RegisterScreen = ({ navigation }) => {
       setIsSubmitted(false);
     },
   });
+
+  useEffect(() => {
+
+    const username =
+      formik?.values?.username?.trim();
+
+    /*
+     * Solange die lokale Syntax noch nicht stimmt,
+     * kein Request ans Backend.
+     */
+    if (
+      !username ||
+      !usernameRegex.test(username)
+    ) {
+      setUsernameAvailable(null);
+      setCheckingUsername(false);
+      return;
+    }
+
+
+    setUsernameAvailable(null);
+
+
+    /*
+     * Debounce:
+     * Nicht bei jedem einzelnen Tastendruck
+     * sofort einen Request senden.
+     */
+    const timer =
+      setTimeout(async () => {
+
+        try {
+
+          setCheckingUsername(true);
+
+          const response =
+            await safeFetch(
+              `${API_URL}/api/user/username-available?username=${encodeURIComponent(username)}`,
+              {
+                method: "GET",
+              }
+            );
+
+          console.log(
+            "🔎 USERNAME CHECK:",
+            username,
+            "| status:",
+            response?.status,
+            "| ok:",
+            response?.ok
+          );
+
+
+          if (
+            response?.offline ||
+            !response?.ok
+          ) {
+            setUsernameAvailable(null);
+            return;
+          }
+
+
+          const data =
+            await response.json();
+
+
+          setUsernameAvailable(
+            data?.available === true
+          );
+
+        } catch (error) {
+
+          console.error(
+            "Username availability check failed:",
+            error
+          );
+
+          /*
+           * Availability-Check darf das
+           * Registrieren nicht blockieren.
+           */
+          setUsernameAvailable(null);
+
+        } finally {
+
+          setCheckingUsername(false);
+        }
+
+      }, 450);
+
+
+    return () =>
+      clearTimeout(timer);
+
+  }, [
+    formik?.values?.username,
+    safeFetch,
+  ]);
+
   useEffect(() => {
     console.log("🧠 [Formik state] password:", formik.values.password, "| length:", formik.values.password?.length);
   }, [formik.values.password]);
@@ -219,8 +348,21 @@ const RegisterScreen = ({ navigation }) => {
               <UsernameInput
                 value={formik.values.username}
                 onChangeText={(text) => {
-                  if (registrationMessage) setRegistrationMessage("");
-                  formik.setFieldValue("username", text);
+
+                  if (registrationMessage) {
+                    setRegistrationMessage("");
+                  }
+
+                  /*
+                   * Alte Availability-Anzeige sofort entfernen,
+                   * sobald weitergetippt wird.
+                   */
+                  setUsernameAvailable(null);
+
+                  formik.setFieldValue(
+                    "username",
+                    text
+                  );
                 }}
                 onBlur={formik.handleBlur("username")}
                 placeholder="Benutzername"
@@ -232,6 +374,37 @@ const RegisterScreen = ({ navigation }) => {
               {formik.touched.username && formik.errors.username ? (
                 <Text style={styles.error}>{formik.errors.username}</Text>
               ) : null}
+
+              {!formik.errors.username &&
+                checkingUsername && (
+
+                  <Text style={styles.usernameChecking}>
+                    Verfügbarkeit wird geprüft ...
+                  </Text>
+
+                )}
+
+
+              {!formik.errors.username &&
+                !checkingUsername &&
+                usernameAvailable === true && (
+
+                  <Text style={styles.usernameAvailable}>
+                    ✓ Benutzername verfügbar
+                  </Text>
+
+                )}
+
+
+              {!formik.errors.username &&
+                !checkingUsername &&
+                usernameAvailable === false && (
+
+                  <Text style={styles.usernameUnavailable}>
+                    Benutzername bereits vergeben.
+                  </Text>
+
+                )}
             </View>
 
             <View style={styles.inputContainer}>
@@ -263,19 +436,75 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.inputContainer}>
               <PasswordInput
                 ref={passwordRef}
-                value={formik.values.password}
-                onChangeText={(text) => {
-                  console.log("📦 [Formik] set password:", text, "| length:", text?.length);
 
-                  if (registrationMessage) setRegistrationMessage("");
-                  formik.setFieldValue("password", text);
+                value={formik.values.password}
+
+                onChangeText={(text) => {
+                  if (registrationMessage) {
+                    setRegistrationMessage("");
+                  }
+
+                  formik.setFieldValue(
+                    "password",
+                    text,
+                    false
+                  );
                 }}
-                onBlur={formik.handleBlur("password")}
+
+                onNativeChange={(text) => {
+                  if (
+                    Platform.OS === "ios" &&
+                    text &&
+                    text !== formik.values.password
+                  ) {
+                    formik.setFieldValue(
+                      "password",
+                      text,
+                      false
+                    );
+                  }
+                }}
+
+                onEndEditing={async (event) => {
+                  const nativeText =
+                    event?.nativeEvent?.text ?? "";
+
+                  if (
+                    Platform.OS === "ios" &&
+                    nativeText &&
+                    nativeText !== formik.values.password
+                  ) {
+                    await formik.setFieldValue(
+                      "password",
+                      nativeText,
+                      false
+                    );
+                  }
+
+                  await formik.setFieldTouched(
+                    "password",
+                    true,
+                    true
+                  );
+                }}
+
+                onBlur={() => {
+                  formik.setFieldTouched(
+                    "password",
+                    true,
+                    false
+                  );
+                }}
+
                 placeholder="Passwort"
                 style={styles.passwordInput}
                 returnKeyType="done"
                 editable={!isSubmitted}
-                onSubmitEditing={() => formik.handleSubmit()}
+
+                onSubmitEditing={
+                  handleRegisterPress
+                }
+
                 {...autofill.newPassword}
               />
               {formik.touched.password && formik.errors.password ? (
@@ -286,11 +515,21 @@ const RegisterScreen = ({ navigation }) => {
             {registrationMessage ? (
               <Text style={styles.error}>{registrationMessage}</Text>
             ) : null}
-
             <TouchableOpacity
-              style={[styles.button, isSubmitted && styles.buttonDisabled]}
-              onPress={() => formik.handleSubmit()}
-              disabled={isSubmitted}
+              style={[
+                styles.button,
+
+                (isSubmitted ||
+                  usernameAvailable === false) &&
+                styles.buttonDisabled,
+              ]}
+
+              onPress={handleRegisterPress}
+
+              disabled={
+                isSubmitted ||
+                usernameAvailable === false
+              }
             >
               {isSubmitted ? (
                 <View style={styles.buttonContent}>
@@ -325,7 +564,7 @@ const RegisterScreen = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAvoidingView >
   );
 };
 
@@ -451,7 +690,27 @@ const styles = StyleSheet.create({
   },
   backButtonDisabled: {
     opacity: 0.6,
-  }
+  },
+
+  //username checking
+  usernameChecking: {
+    marginTop: 5,
+    fontSize: 12,
+    color: "#8A8F95",
+  },
+
+  usernameAvailable: {
+    marginTop: 5,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#2B8A8C",
+  },
+
+  usernameUnavailable: {
+    marginTop: 5,
+    fontSize: 12,
+    color: "#DC2626",
+  },
 });
 
 export default RegisterScreen;

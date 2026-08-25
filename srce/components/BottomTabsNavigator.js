@@ -8,11 +8,13 @@ import LogoutButton from "../components/LogoutButton";
 import MyTodosScreen from "../components/MyTodosScreen";
 import OpenTodosScreen from "../components/OpenTodosScreen";
 import CreateTodoScreen from "../components/CreateTodoScreen";
-import MyGroups from "../components/MyGroups";
+//import MyGroups from "../components/MyGroups";
 import GroupCreationModal from "./GroupCreationModal";
 import { useUser } from "../components/context/UserContext";
 import { useUnread } from "../components/context/UnreadContext";
 import { useGroups } from "../components/context/GroupContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 
 const Tab = createBottomTabNavigator();
 
@@ -24,6 +26,7 @@ export default function BottomTabsNavigator({ navigation }) {
     accessToken,
   } = useUser();
 
+  const insets = useSafeAreaInsets();
   const { hasAnyUnread } = useUnread();
   const { groups, refreshGroups } = useGroups();
 
@@ -32,19 +35,16 @@ export default function BottomTabsNavigator({ navigation }) {
   const hasGroups = Array.isArray(groups) && groups.length > 0;
 
   useEffect(() => {
-    // Logout-sicher: Modal sofort schließen
     if (!accessToken) {
       setModalVisible(false);
       return;
     }
 
-    // Beim Login / App-Start / User-Wechsel Gruppen laden
     if (userId) {
       refreshGroups();
     }
   }, [accessToken, userId, refreshGroups]);
 
-  // Komplett nichts rendern, wenn ausgeloggt
   if (!accessToken) {
     return null;
   }
@@ -53,17 +53,27 @@ export default function BottomTabsNavigator({ navigation }) {
     <>
       <Tab.Navigator
         screenOptions={{
-          headerTitle: username ? `Hallo, ${username}` : "",
+          headerTitle: username ? `Hallo ${username}` : "",
           headerTitleAlign: "center",
-          headerStyle: { backgroundColor: "#fff" },
-          headerTitleStyle: { fontSize: 22 },
+          headerStyle: {
+            backgroundColor: "#fff",
+            shadowOpacity: 0,
+            elevation: 0,
+            borderBottomWidth: 1,
+            borderBottomColor: "#F1F2F4",
+          },
+          headerTitleStyle: {
+            fontSize: 17,
+            fontWeight: "700",
+            color: "#12151A",
+          },
 
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate("ProfileScreen")}
               style={{ marginLeft: 16 }}
             >
-              <Icons.User2 size={24} color="#4FB6B8" />
+              <Icons.User2 size={24} color="#3FA9AB" />
             </TouchableOpacity>
           ),
 
@@ -76,15 +86,45 @@ export default function BottomTabsNavigator({ navigation }) {
               <LogoutButton />
             </View>
           ),
+
+          tabBarActiveTintColor: "#3FA9AB",
+          tabBarInactiveTintColor: "#9CA3AF",
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: "600",
+          },
+          tabBarStyle: {
+            backgroundColor: "#FFFFFF",
+            borderTopWidth: 1,
+            borderTopColor: "#F1F2F4",
+
+            height: 62 + Math.max(insets.bottom, 12),
+
+            paddingTop: 8,
+
+            paddingBottom: Math.max(
+              insets.bottom,
+              12
+            ),
+
+            shadowColor: "#12151A",
+            shadowOpacity: 0.04,
+            shadowRadius: 12,
+            shadowOffset: {
+              width: 0,
+              height: -4,
+            },
+          },
         }}
       >
         <Tab.Screen
           name="Meine Todos"
           component={MyTodosScreen}
           options={{
+            tabBarLabel: "Meine Todos",
             tabBarIcon: ({ color }) => (
-              <View style={{ width: 24, height: 24 }}>
-                <Icons.Home size={24} color={color} />
+              <View style={{ width: 26, height: 26 }}>
+                <Icons.Home size={28} color={color} />
 
                 {hasAnyUnread && (
                   <View
@@ -95,7 +135,7 @@ export default function BottomTabsNavigator({ navigation }) {
                       width: 8,
                       height: 8,
                       borderRadius: 4,
-                      backgroundColor: "red",
+                      backgroundColor: "#F04438",
                     }}
                   />
                 )}
@@ -108,8 +148,9 @@ export default function BottomTabsNavigator({ navigation }) {
           name="Offene Todos"
           component={OpenTodosScreen}
           options={{
+            tabBarLabel: "Offene Todos",
             tabBarIcon: ({ color }) => (
-              <Icons.ClipboardList size={24} color={color} />
+              <Icons.ClipboardList size={28} color={color} />
             ),
           }}
         />
@@ -118,24 +159,24 @@ export default function BottomTabsNavigator({ navigation }) {
           name="Todo erstellen"
           component={CreateTodoScreen}
           options={{
+            tabBarLabel: "Todo erstellen",
             tabBarIcon: ({ color }) => (
-              <Icons.PlusCircle
-                size={24}
-                color={color}
-              />
+              <Icons.PlusCircle size={28} color={color} />
             ),
           }}
         />
-
+{/*
         <Tab.Screen
           name="Meine Gruppen"
           component={MyGroups}
           options={{
+            tabBarLabel: "Gruppen",
             tabBarIcon: ({ color }) => (
-              <Icons.Users size={24} color={color} />
+              <Icons.Users size={28} color={color} />
             ),
           }}
         />
+        */}
       </Tab.Navigator>
 
       <GroupCreationModal
