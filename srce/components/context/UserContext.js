@@ -4,6 +4,7 @@ import { registerPushToken } from '../../notifications/registerPushToken';
 import { setupNotifications } from "../../notifications/notifications";
 //import { API_URL } from "../../../config/env";
 import { API_URL, APP_ENV } from "../../config/env";
+import { fetchWithTimeout } from "../../utils/fetchWithTimeout";
 
 
 const UserContext = createContext();
@@ -28,13 +29,21 @@ export const UserProvider = ({ children }) => {
   // 🟪 Auth ready flag
   const [authReady, setAuthReady] = useState(false);
 
+  // 🟫 Session error
+  const [sessionError, setSessionError] = useState(null);
+
+  const invalidSessionError = () => {
+    const error = new Error("Deine Sitzung ist abgelaufen.");
+    error.code = "INVALID_SESSION";
+    return error;
+  };
 
   const refreshAccessToken = async () => {
-    // refreshToken aus State oder SecureStore
-    let rt = refreshToken ?? (await SecureStore.getItemAsync("refreshToken"));
-    if (!rt) throw new Error("No refresh token");
+    // SecureStore verwenden, damit kein alter React-State benutzt wird.
+    const rt = await SecureStore.getItemAsync("refreshToken");
+    if (!rt) throw invalidSessionError();
 
-    const res = await fetch(`${API_URL}/api/user/auth/refresh`, {
+    const res = await fetchWithTimeout(`${API_URL}/api/user/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken: rt }),
@@ -42,43 +51,64 @@ export const UserProvider = ({ children }) => {
 
     const text = await res.text();
 
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+
+    if (
+      res.status === 401 &&
+      data?.code === "INVALID_REFRESH_TOKEN"
+    ) {
+      throw invalidSessionError();
+    }
+
     if (!res.ok) {
       throw new Error(`Refresh failed (${res.status})`);
     }
 
+    if (
+      typeof data?.accessToken !== "string" ||
+      !data.accessToken
+    ) {
+      throw new Error("Invalid refresh response");
+    }
 
-    const data = JSON.parse(text);
-    const newAccess = data.accessToken;
-    const newRefresh = data.refreshToken;
+    await SecureStore.setItemAsync("accessToken", data.accessToken);
 
-    await SecureStore.setItemAsync("accessToken", newAccess);
-    if (newRefresh) await SecureStore.setItemAsync("refreshToken", newRefresh);
+    if (data.refreshToken) {
+      await SecureStore.setItemAsync("refreshToken", data.refreshToken);
+      setRefreshToken(data.refreshToken);
+    }
 
-    setAccessToken(newAccess);
-    if (newRefresh) setRefreshToken(newRefresh);
-
-    return newAccess;
+    setAccessToken(data.accessToken);
+    return data.accessToken;
   };
 
   const fetchMeWithAutoRefresh = async () => {
-    // AccessToken aus State oder SecureStore
-    let at = accessToken ?? (await SecureStore.getItemAsync("accessToken"));
-    if (!at) throw new Error("No access token");
+    let at = await SecureStore.getItemAsync("accessToken");
 
-    // 1) Versuch /me
-    let res = await fetch(`${API_URL}/api/users/me`, {
-      headers: { Authorization: `Bearer ${at}` },
-    });
+    if (!at) {
+      at = await refreshAccessToken();
+    }
 
-    // 2) Bei 401/403 -> refresh & retry
-    if (res.status === 401 || res.status === 403) {
-      const newAccess = await refreshAccessToken();
-      res = await fetch(`${API_URL}/api/users/me`, {
-        headers: { Authorization: `Bearer ${newAccess}` },
+    const requestMe = (token) =>
+      fetchWithTimeout(`${API_URL}/api/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (res.status === 401 || res.status === 403) {
-        throw new Error("Unauthorized after refresh");
+    let res = await requestMe(at);
+
+    // 403 vorerst beibehalten: Dein bisheriges Backend kann
+    // diesen Status auch bei fehlender Authentifizierung liefern.
+    if (res.status === 401 || res.status === 403) {
+      const newAccess = await refreshAccessToken();
+      res = await requestMe(newAccess);
+
+      if (res.status === 401) {
+        throw invalidSessionError();
       }
     }
 
@@ -93,6 +123,7 @@ export const UserProvider = ({ children }) => {
   const saveSession = async ({ accessToken, refreshToken }) => {
     try {
       setLoading(true);
+      setSessionError(null);
 
       await SecureStore.setItemAsync("accessToken", accessToken);
       await SecureStore.setItemAsync("refreshToken", refreshToken);
@@ -107,6 +138,11 @@ export const UserProvider = ({ children }) => {
       }
 
       const me = await response.json();
+
+      if (me.userId == null) {
+        throw new Error("Profile response contains no userId");
+      }
+
       setUserId(me.userId);
       setUsername(me.username);
       setBringits(me.bringIts);
@@ -114,6 +150,16 @@ export const UserProvider = ({ children }) => {
       setHasLoggedInOnce(true);
     } catch (err) {
       console.error("Session load failed:", err);
+
+      if (err.code === "INVALID_SESSION") {
+        await clearSession();
+      } else {
+        setSessionError(
+          "Deine Sitzung konnte nicht geladen werden. Bitte versuche es erneut."
+        );
+      }
+
+      throw err;
     }
     finally {
       setAuthReady(true);
@@ -126,6 +172,7 @@ export const UserProvider = ({ children }) => {
   // ==========================================================
   const loadUserData = async () => {
     setLoading(true);
+    setSessionError(null);
 
     try {
       const [storedAccess, storedRefresh] = await Promise.all([
@@ -133,16 +180,15 @@ export const UserProvider = ({ children }) => {
         SecureStore.getItemAsync("refreshToken"),
       ]);
 
-      if (!storedAccess) {
-        // ✅ Kein Token = nicht eingeloggt
-        //setAuthReady(true); // ✅ WICHTIG: authReady = true bedeutet "Auth-Status ist geklärt"
+      if (!storedAccess && !storedRefresh) {
+        await clearSession();
         return;
       }
 
       setHasLoggedInOnce(true);
 
       setAccessToken(storedAccess);
-      if (storedRefresh) setRefreshToken(storedRefresh);
+      setRefreshToken(storedRefresh);
 
       const response = await fetchMeWithAutoRefresh();
 
@@ -151,6 +197,10 @@ export const UserProvider = ({ children }) => {
       }
 
       const me = await response.json();
+
+      if (me.userId == null) {
+        throw new Error("Profile response contains no userId");
+      }
       setUserId(me.userId);
       setUsername(me.username);
       setBringits(me.bringIts);
@@ -158,6 +208,15 @@ export const UserProvider = ({ children }) => {
       //setAuthReady(true);
     } catch (err) {
       console.error("Session load failed:", err);
+
+      if (err.code === "INVALID_SESSION") {
+        await clearSession();
+      } else {
+        setSessionError(
+          "Deine Sitzung konnte nicht geladen werden. " +
+          "Bitte prüfe deine Verbindung und versuche es erneut."
+        );
+      }
     }
     finally {
       setAuthReady(true);
@@ -185,6 +244,8 @@ export const UserProvider = ({ children }) => {
     setRefreshToken(null);
     setBringits(0);
     setAuthReady(true); // ✅ Auth-Status ist geklärt (= nicht eingeloggt)
+    setHasLoggedInOnce(false);
+    setSessionError(null);
   };
 
   // ==========================================================
@@ -260,6 +321,8 @@ export const UserProvider = ({ children }) => {
         // Group Reload System
         groupsVersion,
         triggerGroupReload,
+
+        sessionError,
       }}
     >
       {children}

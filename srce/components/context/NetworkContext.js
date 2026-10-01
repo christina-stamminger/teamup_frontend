@@ -3,7 +3,7 @@ import NetInfo from "@react-native-community/netinfo";
 import * as SecureStore from "expo-secure-store";
 import { useUser } from "./UserContext";
 import { API_URL, APP_ENV } from "../../config/env";
-
+import { fetchWithTimeout } from "../../utils/fetchWithTimeout";
 
 
 const NetworkContext = createContext({ isConnected: true });
@@ -62,7 +62,6 @@ export const NetworkProvider = ({ children }) => {
   // ==========================================================
   const performRefresh = async () => {
     if (isRefreshing.current) {
-      // parallele Refresh-Requests warten
       return new Promise((resolve, reject) => {
         refreshQueue.current.push({ resolve, reject });
       });
@@ -71,24 +70,17 @@ export const NetworkProvider = ({ children }) => {
     isRefreshing.current = true;
 
     try {
-      console.log("🔥 [performRefresh] START");
-      console.log("🔥 [performRefresh] refreshToken in context:", refreshToken);
-
-      // RefreshToken holen (Context oder SecureStore)
-      let rt = refreshToken;
-      if (!rt) {
-        rt = await SecureStore.getItemAsync("refreshToken");
-      }
-      console.log("🔥 [performRefresh] refreshToken in SecureStore:", rt);
+      const rt = await SecureStore.getItemAsync("refreshToken");
 
       if (!rt) {
-        console.error("❌ Kein RefreshToken vorhanden – kann nicht refreshen.");
-        throw new Error("No refresh token");
+        await logoutUser();
+
+        const error = new Error("No refresh token");
+        error.code = "INVALID_SESSION";
+        throw error;
       }
 
-      console.log("🔥 [performRefresh] SENDING refreshToken TO BACKEND:", rt);
-
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `${API_URL}/api/user/auth/refresh`,
         {
           method: "POST",
@@ -97,57 +89,54 @@ export const NetworkProvider = ({ children }) => {
         }
       );
 
-      console.log("🔥 [performRefresh] REFRESH RESPONSE STATUS:", response.status);
-
-      const responseText = await response.text();
-      console.log("🔥 [performRefresh] REFRESH RESPONSE BODY:", responseText);
-
-      // ⬇️ WICHTIG: nur bei 200 JSON parsen
-      if (response.status !== 200) {
-        // Logout NUR wenn RefreshToken wirklich ungültig ist
-        if (response.status === 401 || response.status === 403) {
-          console.error("❌ RefreshToken invalid → logout");
-          logoutUser();
-        }
-        throw new Error(`Refresh failed (${response.status}): ${responseText}`);
-      }
+      const text = await response.text();
 
       let data;
       try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error("❌ JSON parse error im Refresh:", e);
-        throw new Error("Invalid JSON from refresh endpoint");
+        data = JSON.parse(text);
+      } catch {
+        data = null;
       }
 
-      const newAccess = data.accessToken;
-      const newRefresh = data.refreshToken;
+      if (
+        response.status === 401 &&
+        data?.code === "INVALID_REFRESH_TOKEN"
+      ) {
+        await logoutUser();
 
-      console.log("✅ [performRefresh] newAccess:", newAccess);
-      console.log("✅ [performRefresh] newRefresh:", newRefresh);
+        const error = new Error("Invalid refresh token");
+        error.code = "INVALID_SESSION";
+        throw error;
+      }
 
-      // Tokens speichern
-      await SecureStore.setItemAsync("accessToken", newAccess);
-      await SecureStore.setItemAsync("refreshToken", newRefresh);
+      if (!response.ok) {
+        throw new Error(`Refresh failed (${response.status})`);
+      }
 
-      setAccessToken(newAccess);
-      setRefreshToken(newRefresh);
+      if (
+        typeof data?.accessToken !== "string" ||
+        !data.accessToken
+      ) {
+        throw new Error("Invalid refresh response");
+      }
 
-      // wartende Requests auflösen
-      refreshQueue.current.forEach((p) => p.resolve(newAccess));
+      await SecureStore.setItemAsync("accessToken", data.accessToken);
+
+      if (data.refreshToken) {
+        await SecureStore.setItemAsync("refreshToken", data.refreshToken);
+        setRefreshToken(data.refreshToken);
+      }
+
+      setAccessToken(data.accessToken);
+
+      refreshQueue.current.forEach(p => p.resolve(data.accessToken));
       refreshQueue.current = [];
 
-      return newAccess;
-
+      return data.accessToken;
     } catch (err) {
-      console.error("❌ [performRefresh] ERROR:", err);
-
-      refreshQueue.current.forEach((p) => p.reject(err));
+      refreshQueue.current.forEach(p => p.reject(err));
       refreshQueue.current = [];
-
-      //logoutUser();
       throw err;
-
     } finally {
       isRefreshing.current = false;
     }
@@ -159,55 +148,49 @@ export const NetworkProvider = ({ children }) => {
 
   const safeFetch = async (url, options = {}) => {
     console.log("➡️ [safeFetch] CALLED:", url);
-    console.log("➡️ [safeFetch] accessToken (context):", accessToken);
-    console.log("➡️ [safeFetch] refreshToken (context):", refreshToken);
+    console.log("➡️ [safeFetch] Tokens vorhanden:", {
+      accessToken: Boolean(accessToken),
+      refreshToken: Boolean(refreshToken),
+    });
 
     if (!isConnected) {
       return { ok: false, offline: true, status: 0 };
     }
 
-    // Öffentliche Requests → kein Token nötig
-    if (isPublicRequest(url)) {
-      const res = await fetch(url, options);
-      return res;
-    }
-
-    // AccessToken holen
-    let token =
-      accessToken ??
-      (await SecureStore.getItemAsync("accessToken")) ??
-      null;
-
-    if (!token) {
-      console.log("⚠️ Kein AccessToken → 401");
-      return { ok: false, noToken: true, status: 401 };
-    }
-
-    // Request mit Token senden
-    const finalOptions = {
-      ...options,
-      headers: {
-        ...(options.headers || {}),
-        Authorization: `Bearer ${token}`,
-      },
-    };
-
-    let response = await attemptFetch(url, finalOptions);
-
-    console.log("🔎 Response Status:", response.status);
-
-    // Nur bei 401 + 403 refreshen
-    if (response.status !== 401 && response.status !== 403) {
-      return response;
-    }
-
-    console.log("🔄 AccessToken expired → REFRESHING…");
-
-    // REFRESH versuchen
     try {
+      // Öffentliche Requests benötigen keinen Token.
+      if (isPublicRequest(url)) {
+        return await attemptFetch(url, options);
+      }
+
+      let token = await SecureStore.getItemAsync("accessToken");
+
+      if (!token) {
+        token = await performRefresh();
+      }
+
+      const finalOptions = {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          Authorization: `Bearer ${token}`,
+        },
+      };
+
+      const response = await attemptFetch(url, finalOptions);
+
+      console.log("🔎 Response Status:", response.status);
+
+      // 403 vorerst ebenfalls behandeln, weil dein bisheriges
+      // Backend ihn auch bei fehlender Authentifizierung liefern kann.
+      if (response.status !== 401 && response.status !== 403) {
+        return response;
+      }
+
+      console.log("🔄 [safeFetch] Versuche Token-Refresh");
+
       const newAccess = await performRefresh();
 
-      // Retry Request NUR mit neuem Token
       const retryOptions = {
         ...options,
         headers: {
@@ -216,10 +199,20 @@ export const NetworkProvider = ({ children }) => {
         },
       };
 
-      return await attemptFetch(url, retryOptions);
+      const retryResponse = await attemptFetch(url, retryOptions);
+
+      console.log("🔎 Response nach Refresh:", retryResponse.status);
+
+      // Kein weiterer Refresh: höchstens ein erneuter Versuch.
+      return retryResponse;
     } catch (err) {
-      console.error("❌ Refresh failed → logout");
-      return { ok: false, status: 401 };
+
+      if (err.code === "INVALID_SESSION") {
+        return { ok: false, status: 401 };
+      }
+      console.error("❌ [safeFetch] Fehler:", err.message);
+
+      throw err;
     }
   };
 
@@ -228,7 +221,7 @@ export const NetworkProvider = ({ children }) => {
   // ==========================================================
   const attemptFetch = async (url, options) => {
     try {
-      return await fetch(url, options);
+      return await fetchWithTimeout(url, options);
     } catch (err) {
       if (err.message === "Network request failed") {
         return { ok: false, offline: true, status: 0 };

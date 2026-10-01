@@ -7,23 +7,21 @@ import React, {
 import {
   View,
   ActivityIndicator,
+  Text,
+  Button,
 } from "react-native";
 
-import * as SecureStore
-  from "expo-secure-store";
+import * as SecureStore from "expo-secure-store";
 
 import {
   useUser,
 } from "./srce/components/context/UserContext";
 
-import AuthNavigator
-  from "./srce/components/AuthNavigator";
+import AuthNavigator from "./srce/components/AuthNavigator";
 
-import AppStackNavigator
-  from "./srce/components/AppStackNavigator";
+import AppStackNavigator from "./srce/components/AppStackNavigator";
 
-import OnboardingScreen
-  from "./srce/components/OnboardingScreen";
+import OnboardingScreen from "./srce/components/OnboardingScreen";
 
 
 export default function AppRoot() {
@@ -33,6 +31,9 @@ export default function AppRoot() {
     authReady,
     accessToken,
     userId,
+    sessionError,
+    reloadUser,
+    logoutUser,
   } = useUser();
 
 
@@ -123,6 +124,10 @@ export default function AppRoot() {
       return;
     }
 
+    //
+    if (sessionError) {
+      return;
+    }
 
     if (!accessToken) {
 
@@ -141,6 +146,7 @@ export default function AppRoot() {
     authReady,
     accessToken,
     checkOnboarding,
+    sessionError,
   ]);
 
 
@@ -209,7 +215,34 @@ export default function AppRoot() {
     );
   }
 
+  if (sessionError) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 24,
+        }}
+      >
+        <Text style={{ textAlign: "center", marginBottom: 20 }}>
+          {sessionError}
+        </Text>
 
+        <Button
+          title="Erneut versuchen"
+          onPress={reloadUser}
+        />
+
+        <View style={{ marginTop: 12 }}>
+          <Button
+            title="Zur Anmeldung"
+            onPress={logoutUser}
+          />
+        </View>
+      </View>
+    );
+  }
   /*
    * Nicht eingeloggt.
    */
