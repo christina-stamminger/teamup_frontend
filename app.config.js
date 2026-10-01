@@ -37,7 +37,7 @@ export default {
   expo: {
     name: getAppName(),
     slug: "bringit",
-    version: "1.0.21",
+    version: "1.0.22",
 
     runtimeVersion: {
       policy: "appVersion",
@@ -59,7 +59,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: getBundleIdentifier(),
-      buildNumber: "22",
+      buildNumber: "23",
       associatedDomains: [
         "webcredentials:api.bringit.tech"
       ],
@@ -69,7 +69,7 @@ export default {
     },
     android: {
       package: getBundleIdentifier(),
-      versionCode: 21,
+      versionCode: 22,
       softwareKeyboardLayoutMode: "resize",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
